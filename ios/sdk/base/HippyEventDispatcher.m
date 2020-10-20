@@ -23,6 +23,7 @@
 #import "HippyEventDispatcher.h"
 #import "UIView+Hippy.h"
 #import "HippyAssert.h"
+#import "UIView+Hippy.h"
 #import "HippyUtils.h"
 
 const NSInteger HippyTextUpdateLagWarningThreshold = 3;

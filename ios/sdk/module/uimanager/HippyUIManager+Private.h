@@ -25,8 +25,7 @@
 #import <UIKit/UIKit.h>
 #import "HippyUIManager.h"
 
-@interface HippyUIManager (){
-    
+@interface HippyUIManager () {
     // Keyed by viewName
     NSDictionary *_componentDataByName;
 }

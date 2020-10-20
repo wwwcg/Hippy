@@ -104,7 +104,16 @@ typedef NS_ENUM(NSUInteger, CreationType) {
     return NO;
 }
 
+- (NSString *)description {
+    return [NSString
+        stringWithFormat:@"hippyTag: %@, viewName: %@, props:%@, frame:%@", self.hippyTag, self.viewName, self.props, NSStringFromCGRect(self.frame)];
+}
+
 - (BOOL)isLazilyLoadType {
+    return NO;
+}
+
+- (BOOL)isListSubNode {
     return NO;
 }
 

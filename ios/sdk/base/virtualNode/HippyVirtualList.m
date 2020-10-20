@@ -24,6 +24,10 @@
 
 @implementation HippyVirtualList
 
+- (BOOL)isListSubNode {
+    return NO;
+}
+
 - (void)insertHippySubview:(id<HippyComponent>)subview atIndex:(__unused NSInteger)atIndex
 {
     self.isDirty = YES;
@@ -45,6 +49,10 @@
 @end
 
 @implementation HippyVirtualCell
+
+- (BOOL)isListSubNode {
+    return [self listNode] != nil;
+}
 
 - (NSString *)description
 {

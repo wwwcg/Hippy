@@ -349,7 +349,15 @@ HIPPY_NOT_IMPLEMENTED(-(instancetype)initWithCoder : (NSCoder *)aDecoder)
         @{ @"rootTag": _contentView.hippyTag, @"initialProps": _appProperties ?: @ {}, @"commonSDKVersion": _HippySDKVersion };
 
     HippyLogInfo(@"[Hippy_OC_Log][Life_Circle],Running application %@ (%@)", moduleName, appParameters);
-    [bridge enqueueJSCall:@"AppRegistry" method:@"runApplication" args:@[moduleName, appParameters] completion:NULL];
+    __weak typeof(self) weakSelf = self;
+    [bridge enqueueJSCall:@"AppRegistry"
+                   method:@"runApplication"
+                     args:@[moduleName, appParameters]
+               completion:^{
+        if ([weakSelf.delegate respondsToSelector:@selector(rootViewRunApplicationFinished:)]) {
+            [weakSelf.delegate rootViewRunApplicationFinished:weakSelf];
+        }
+    }];
 }
 
 - (void)setSizeFlexibility:(HippyRootViewSizeFlexibility)sizeFlexibility {

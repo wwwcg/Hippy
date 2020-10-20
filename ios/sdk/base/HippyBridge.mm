@@ -187,6 +187,17 @@ static HippyBridge *HippyCurrentBridgeInstance = nil;
 - (instancetype)initWithDelegate:(id<HippyBridgeDelegate>)delegate
                        bundleURL:(NSURL *)bundleURL
                   moduleProvider:(HippyBridgeModuleProviderBlock)block
+                   launchOptions:(NSDictionary *)launchOptions {
+    return [self initWithDelegate:delegate
+                        bundleURL:bundleURL
+                   moduleProvider:block
+                    launchOptions:launchOptions
+                      executorKey:nil];
+}
+
+- (instancetype)initWithDelegate:(id<HippyBridgeDelegate>)delegate
+                       bundleURL:(NSURL *)bundleURL
+                  moduleProvider:(HippyBridgeModuleProviderBlock)block
                    launchOptions:(NSDictionary *)launchOptions
                      executorKey:(NSString *)executorKey {
     if (self = [super init]) {
@@ -375,8 +386,20 @@ HIPPY_NOT_IMPLEMENTED(-(instancetype)init)
     [self.batchedBridge setUpDevClientWithName:name];
 }
 
+- (void)setWormholeDelegate:(id<HippyWormholeDelegate>)wormholeDelegate {
+    _wormholeDelegate = wormholeDelegate;
+    self.batchedBridge.wormholeDelegate = wormholeDelegate;
+}
+
+- (void)setWormholeDataSource:(id<HippyWormholeDataSource>)wormholeDataSource {
+    _wormholeDataSource = wormholeDataSource;
+    self.batchedBridge.wormholeDataSource = wormholeDataSource;
+}
+
 - (void)createBatchedBridge {
     self.batchedBridge = [[HippyBatchedBridge alloc] initWithParentBridge:self];
+    self.batchedBridge.wormholeDelegate = self.wormholeDelegate;
+    self.batchedBridge.wormholeDataSource = self.wormholeDataSource;
 }
 
 - (BOOL)isLoading {

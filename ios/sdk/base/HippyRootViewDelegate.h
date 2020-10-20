@@ -48,4 +48,11 @@
 
 - (void)rootViewWillBePurged:(HippyRootView *)rootView;
 
+@optional
+
+/**
+ * Called after the JSAPI runApplication finished.
+ */
+- (void)rootViewRunApplicationFinished:(HippyRootView *)rootView;
+
 @end

@@ -31,6 +31,7 @@
 #import "HippyCustomTouchHandlerProtocol.h"
 #import "HippyImageProviderProtocol.h"
 #import "HippyMethodInterceptorProtocol.h"
+#import "HippyWormholeProtocol.h"
 
 @class JSValue;
 @class HippyBridge;
@@ -95,7 +96,7 @@ HIPPY_EXTERN NSString *HippyBridgeModuleNameForClass(Class bridgeModuleClass);
                        bundleURL:(NSURL *)bundleURL
                   moduleProvider:(HippyBridgeModuleProviderBlock)block
                    launchOptions:(NSDictionary *)launchOptions
-                     executorKey:(NSString *)executorKey;
+                     executorKey:(NSString *)executorKey NS_DESIGNATED_INITIALIZER;
 /**
  * Creates a new bridge with a custom HippyBridgeDelegate.
  *
@@ -196,6 +197,9 @@ HIPPY_EXTERN NSString *HippyBridgeModuleNameForClass(Class bridgeModuleClass);
  * The delegate provided during the bridge initialization
  */
 @property (nonatomic, weak, readonly) id<HippyBridgeDelegate> delegate;
+
+@property (nonatomic, weak) id<HippyWormholeDataSource> wormholeDataSource;
+@property (nonatomic, weak) id<HippyWormholeDelegate> wormholeDelegate;
 
 @property (nonatomic, weak, readonly) HippyExtAnimationModule *animationModule;
 

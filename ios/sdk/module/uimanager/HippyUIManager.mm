@@ -51,6 +51,8 @@
 #import "HippyMemoryOpt.h"
 #import "HippyDeviceBaseInfo.h"
 #import "HippyVirtualList.h"
+#import "HippyUIManager+Private.h"
+#import "HippyUIManager+NativeVue.h"
 
 @protocol HippyBaseListViewProtocol;
 
@@ -83,9 +85,6 @@ NSString *const HippyUIManagerDidEndBatchNotification = @"HippyUIManagerDidEndBa
 
     NSMutableDictionary<NSNumber *, HippyShadowView *> *_shadowViewRegistry;  // Hippy thread only
     NSMutableDictionary<NSNumber *, UIView *> *_viewRegistry;                 // Main thread only
-
-    // Keyed by viewName
-    NSDictionary *_componentDataByName;
 
     NSMutableSet<id<HippyComponent>> *_bridgeTransactionListeners;
 
@@ -900,6 +899,9 @@ HIPPY_EXPORT_METHOD(createView:(nonnull NSNumber *)hippyTag
     // Register shadow view
     if (shadowView) {
         shadowView.hippyTag = hippyTag;
+        shadowView.owner = self.bridge;
+        shadowView.viewName = viewName;
+        shadowView.props = props;
         shadowView.rootTag = rootTag;
         shadowView.bridge = self.bridge;
         shadowView.viewName = viewName;
@@ -936,6 +938,7 @@ HIPPY_EXPORT_METHOD(createView:(nonnull NSNumber *)hippyTag
             node.rootTag = rootTag;
             node.tagName = tagName;
             node.bridge = [uiManager bridge];
+            node.owner = [uiManager bridge];
             uiManager->_nodeRegistry[hippyTag] = node;
         }
     }];
@@ -1266,19 +1269,12 @@ HIPPY_EXPORT_METHOD(measure:(nonnull NSNumber *)hippyTag
             return;
         }
         
-        // By convention, all coordinates, whether they be touch coordinates, or
-        // measurement coordinates are with respect to the root view.
-        CGRect frame = view.frame;
-        CGPoint pagePoint = [view.superview convertPoint:frame.origin toView:rootView];
-        
-        callback(@[
-                   @(frame.origin.x),
-                   @(frame.origin.y),
-                   @(frame.size.width),
-                   @(frame.size.height),
-                   @(pagePoint.x),
-                   @(pagePoint.y)
-                   ]);
+        CGRect windowFrame = [rootView convertRect:view.frame fromView:view.superview];
+
+        callback(@[@{@"width":@(CGRectGetWidth(windowFrame)),
+                     @"height": @(CGRectGetHeight(windowFrame)),
+                     @"x":@(windowFrame.origin.x),
+                     @"y":@(windowFrame.origin.y)}]);
     }];
 }
 // clang-format on

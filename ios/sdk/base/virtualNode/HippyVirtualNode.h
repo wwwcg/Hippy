@@ -31,6 +31,12 @@
 - (void)virtualListDidUpdated;
 @end
 
+typedef NS_ENUM(NSUInteger, HippyBaseListViewItemDataType) {
+    HippyBaseListViewItemDataTypeDefault, //默认值，数据来源同JS Bundle
+    HippyBaseListViewItemDataTypeWormhole,    //数据来源于虫洞JS
+    HippyBaseListViewItemDataTypeNative,  //数据来源于native绘制
+};
+
 @interface HippyVirtualNode : NSObject <HippyComponent>
 
 + (HippyVirtualNode *)createNode:(NSNumber *)hippyTag viewName:(NSString *)viewName props:(NSDictionary *)props;
@@ -42,6 +48,8 @@
 @property (nonatomic, copy) NSNumber *rootTag;
 @property (nonatomic, weak) HippyBridge *bridge;
 @property (nonatomic, copy) NSString *tagName;
+@property (nonatomic, assign) HippyBaseListViewItemDataType dataType;
+@property (nonatomic, weak) id owner;
 
 /**
  * check if it is layzily-load type
@@ -58,6 +66,9 @@
  * get first layzily-load type ancestor node
  */
 - (HippyVirtualNode *)firstLazilyLoadTypeParentNode;
+
+
+- (BOOL)isListSubNode;
 
 typedef UIView * (^HippyCreateViewForShadow)(HippyVirtualNode *node);
 typedef UIView * (^HippyUpdateViewForShadow)(HippyVirtualNode *newNode, HippyVirtualNode *oldNode);
