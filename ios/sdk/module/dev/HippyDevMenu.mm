@@ -236,6 +236,10 @@ HIPPY_EXPORT_MODULE()
 - (void)showOnShake
 {
   if (_shakeToShow) {
+    if (!self.bridge.debugMode)
+    {
+      return;
+    }
     [self show];
   }
 }
@@ -285,7 +289,7 @@ HIPPY_EXPORT_METHOD(show)
     return;
   }
 
-  NSString *title = [NSString stringWithFormat:@"Hippy: Development (%@)", [_bridge class]];
+  NSString *title = [NSString stringWithFormat:@"Hippy: ModuleName (%@)", [_bridge moduleName]];
   // On larger devices we don't have an anchor point for the action sheet
   UIAlertControllerStyle style = [[UIDevice currentDevice] userInterfaceIdiom] == UIUserInterfaceIdiomPhone ? UIAlertControllerStyleActionSheet : UIAlertControllerStyleAlert;
   UIAlertController *actionSheet = [UIAlertController alertControllerWithTitle:title

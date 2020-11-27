@@ -53,12 +53,12 @@
     objc_setAssociatedObject(self, @selector(Hippy_requestUrl), Hippy_requestUrl, OBJC_ASSOCIATION_RETAIN);
 }
 
-- (void)setHippy_from_nativevue:(BOOL)Hippy_from_nativevue{
-    objc_setAssociatedObject(self, @selector(Hippy_from_nativevue), @(Hippy_from_nativevue), OBJC_ASSOCIATION_RETAIN);
+- (void)setHippy_from_nativevue:(BOOL)hippy_from_nativevue{
+    objc_setAssociatedObject(self, @selector(hippy_from_nativevue), @(hippy_from_nativevue), OBJC_ASSOCIATION_RETAIN);
 }
 
-- (BOOL)Hippy_from_nativevue{
-   return [objc_getAssociatedObject(self, @selector(Hippy_from_nativevue)) boolValue];
+- (BOOL)hippy_from_nativevue{
+   return [objc_getAssociatedObject(self, @selector(hippy_from_nativevue)) boolValue];
 }
 
 @end

@@ -28,8 +28,8 @@
 #import "HippyHeaderRefresh.h"
 #import "HippyFooterRefresh.h"
 #import "UIView+AppearEvent.h"
-
-#define CELL_TAG 10101
+#import "HippyVirtualList.h"
+#import "HippyVirtualWormholeNode.h"
 
 @implementation HippyBaseListViewCell
 
@@ -43,7 +43,7 @@
 
 - (UIView *)cellView
 {
-	return [self.contentView viewWithTag: CELL_TAG];
+    return [[self.contentView subviews] firstObject];
 }
 
 - (void)setCellView:(UIView *)cellView
@@ -51,7 +51,6 @@
 	UIView *selfCellView = [self cellView];
 	if (selfCellView != cellView) {
 		[selfCellView removeFromSuperview];
-		cellView.tag = CELL_TAG;
 		[self.contentView addSubview: cellView];
 	}
 }
@@ -63,7 +62,6 @@
 @end
 
 @implementation HippyBaseListView {
-	__weak HippyBridge *_bridge;
 	__weak HippyRootView *_rootView;
 	NSHashTable * _scrollListeners;
 	BOOL _isInitialListReady;
@@ -80,7 +78,6 @@
 {
 	if (self = [super initWithFrame: CGRectZero])
 	{
-		_bridge = bridge;
 		_scrollListeners = [NSHashTable weakObjectsHashTable];
 		_dataSource = [HippyBaseListViewDataSource new];
 		_isInitialListReady = NO;
@@ -283,7 +280,7 @@
 	if (header) {
 		NSString *type = header.itemViewType;
 		UIView *headerView =[tableView dequeueReusableHeaderFooterViewWithIdentifier: type];
-		headerView = [_bridge.uiManager createViewFromNode: header];
+		headerView = [[self bridge].uiManager createViewFromNode: header];
 		return headerView;
 	} else {
 		return nil;
@@ -357,11 +354,11 @@
 	if (cell == nil) {
 		cell = [[[self listViewCellClass] alloc] initWithStyle: UITableViewCellStyleDefault reuseIdentifier: identifier];
 		cell.tableView = tableView;
-		cell.cellView = [_bridge.uiManager createViewFromNode:newNode];
+		cell.cellView = [[self bridge].uiManager createViewFromNode:newNode];
 	} else {
-		UIView *cellView = [_bridge.uiManager updateNode: cell.node withNode: newNode];
+		UIView *cellView = [[self bridge].uiManager updateNode: cell.node withNode: newNode];
 		if (cellView == nil) {
-			cell.cellView = [_bridge.uiManager createViewFromNode: newNode];
+			cell.cellView = [[self bridge].uiManager createViewFromNode: newNode];
 		} else {
 			cell.cellView = cellView;
 		}

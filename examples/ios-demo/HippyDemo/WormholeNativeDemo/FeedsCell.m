@@ -9,17 +9,17 @@
 #import "FeedsCell.h"
 #import "FeedsCellData.h"
 #import "UIImageView+LoadUrl.h"
-#import "RCTWormholeViewModel.h"
+#import "HippyWormholeViewModel.h"
 #import "MBProgressHUD.h"
 #import "FeedsInteractBar.h"
-#import "RCTWormholeWrapperView.h"
-#import "RCTWormholeBusinessHandler.h"
-#import "RCTBridge.h"
+#import "HippyWormholeWrapperView.h"
+#import "HippyWormholeBusinessHandler.h"
+#import "HippyBridge.h"
 
 static const CGFloat gCellPaddingHorizontal = 12.0f;
 static const CGFloat gCellPaddingVertical = 6.0f;
 
-@interface FeedsCell() <RCTWormholeViewModelDelegate>
+@interface FeedsCell() <HippyWormholeViewModelDelegate>
 
 @property (nonatomic, strong) FeedsCellData *data;
 @property (nonatomic, strong) NSIndexPath *indexPath;
@@ -79,9 +79,9 @@ static const CGFloat gCellPaddingVertical = 6.0f;
                 data.model.wormholeViewModel.delegate = self;
             }
             
-            RCTWormholeViewModel *viewModel = data.model.wormholeViewModel;
+            HippyWormholeViewModel *viewModel = data.model.wormholeViewModel;
             viewModel.indexPath = indexPath;
-            RCTWormholeWrapperView *div = viewModel.view;
+            HippyWormholeWrapperView *div = viewModel.view;
             if (div)
             {
                 [self.contentView addSubview:(UIView *)div];
@@ -161,19 +161,19 @@ static const CGFloat gCellPaddingVertical = 6.0f;
     [self layoutIfNeeded];
 }
 
-#pragma mark - RCTWormholeViewModelDelegate
+#pragma mark - HippyWormholeViewModelDelegate
 
-- (void)wormholeWillAppear:(RCTWormholeViewModel *)viewModel
+- (void)wormholeWillAppear:(HippyWormholeViewModel *)viewModel
 {
     //[self showHUD:[NSString stringWithFormat:@"Wormhole[%d] will Appear.", (int)viewModel.rowIndex]];
 }
 
-- (void)wormholeWillDisappear:(RCTWormholeViewModel *)viewModel
+- (void)wormholeWillDisappear:(HippyWormholeViewModel *)viewModel
 {
     //[self showHUD:[NSString stringWithFormat:@"Wormhole[%d] will Disappear.", (int)viewModel.rowIndex]];
 }
 
-- (void)wormholeDidOnClick:(RCTWormholeViewModel *)viewModel
+- (void)wormholeDidOnClick:(HippyWormholeViewModel *)viewModel
 {
     if (viewModel && viewModel.wormholeId.length > 0)
     {
@@ -191,7 +191,7 @@ static const CGFloat gCellPaddingVertical = 6.0f;
     }
 }
 
-- (void)wormholeViewModel:(RCTWormholeViewModel *)viewModel didChangedSize:(CGSize)size
+- (void)wormholeViewModel:(HippyWormholeViewModel *)viewModel didChangedSize:(CGSize)size
 {
     NSIndexPath *indexPath = viewModel.indexPath;
     if (indexPath)

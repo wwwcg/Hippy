@@ -104,7 +104,7 @@
     {
         self.bridge = [[HippyBridge alloc] initWithBundleURL:commonBundlePath moduleProvider:^NSArray<id<HippyBridgeModule>> *{
             return tmpReplaceModules;
-        } launchOptions:debugKey];
+        } launchOptions:debugKey executorKey:nil];
     }
     else
     {
@@ -250,11 +250,11 @@
     
     if (!node && wormholdView)
     {
-        NSNumber *reactTag = [self.bridge.wormholeFactory wormholeReactTagForWormholeId:wormholeId];
-        if (reactTag)
+        NSNumber *hippyTag = [self.bridge.wormholeFactory wormholeHippyTagForWormholeId:wormholeId];
+        if (hippyTag)
         {
             // 再次寻找
-            node = (HippyVirtualWormholeNode *)[self.bridge.uiManager nodeForReactTag:reactTag];
+            node = (HippyVirtualWormholeNode *)[self.bridge.uiManager nodeForHippyTag:hippyTag];
         }
     }
     

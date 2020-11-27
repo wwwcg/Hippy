@@ -8,9 +8,9 @@
 
 #import "MockFeedsDataFactory.h"
 #import "FeedsModel.h"
-#import "RCTWormholeViewModel.h"
+#import "HippyWormholeViewModel.h"
 #import "FeedsInteractBar.h"
-#import "RCTWormholeEngine.h"
+#import "HippyWormholeEngine.h"
 
 @implementation MockFeedsDataFactory
 
@@ -337,7 +337,7 @@
         
         model.extraInfo = [NSDictionary dictionaryWithDictionary:mutableDict];
         
-        model.wormholeViewModel = [[RCTWormholeEngine sharedInstance] newWormholeViewModel:@{@"index": @(index), @"data": dict}];
+        model.wormholeViewModel = [[HippyWormholeEngine sharedInstance] newWormholeViewModel:@{@"index": @(index), @"data": dict}];
     }
     
     return model;

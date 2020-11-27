@@ -29,14 +29,14 @@
 HIPPY_EXPORT_MODULE(MyView)
 HIPPY_EXPORT_VIEW_PROPERTY(text, NSString)
 
-HIPPY_EXPORT_METHOD(changeColor:(nonnull NSNumber *)reactTag
+HIPPY_EXPORT_METHOD(changeColor:(nonnull NSNumber *)hippyTag
                     color:(__unused NSString *)color)
 {
     [self.bridge.uiManager addUIBlock:^(__unused HippyUIManager *uiManager, NSDictionary<NSNumber *, UIView *> *viewRegistry){
-        UIView *view = viewRegistry[reactTag];
+        UIView *view = viewRegistry[hippyTag];
         if (view == nil || ![view isKindOfClass:[MyView class]]) {
             HippyLogError(@"tried to setPage: on an error viewPager %@ "
-                        "with tag #%@", view, reactTag);
+                        "with tag #%@", view, hippyTag);
         }
         [(MyView *)view setBackgroundColor:[self colorWithHexString:color alpha:1] ];
     }];

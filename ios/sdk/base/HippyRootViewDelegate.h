@@ -40,4 +40,10 @@
  */
 - (void)rootView:(HippyRootView *)rootView didLoadFinish:(BOOL)success;
 
+/**
+ * Called when rootview dealloc.
+ */
+
+- (void)rootViewWillBePurged:(HippyRootView *)rootView;
+
 @end

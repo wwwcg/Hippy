@@ -7,7 +7,7 @@
 //
 
 #import "FeedsModel.h"
-#import "RCTWormholeViewModel.h"
+#import "HippyWormholeViewModel.h"
 
 @implementation FeedsModel
 

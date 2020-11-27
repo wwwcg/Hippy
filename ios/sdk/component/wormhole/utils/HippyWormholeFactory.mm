@@ -40,7 +40,7 @@ API_AVAILABLE(ios(10.0))
     NSRecursiveLock *_lock;
     NSMutableDictionary *_wormholeIdCache;
     NSMutableDictionary *_indexKeyCache;
-    NSMutableDictionary *_reactTagsDict;
+    NSMutableDictionary *_hippyTagsDict;
 }
 
 @end
@@ -56,7 +56,7 @@ API_AVAILABLE(ios(10.0))
         _wormholeViewModelDict = [HippyWormholeLockDictionary dictionary];
         _wormholeIdCache = [NSMutableDictionary dictionary];  // (rootTag + index)为key 唯一映射 wormholeId
         _indexKeyCache = [NSMutableDictionary dictionary];    // wormholeId为key 唯一映射 索引key(rootTag + index)
-        _reactTagsDict = [NSMutableDictionary dictionary];
+        _hippyTagsDict = [NSMutableDictionary dictionary];
         
         if (@available(iOS 10.0, *)) {
             _unfairLock = OS_UNFAIR_LOCK_INIT;
@@ -98,9 +98,9 @@ API_AVAILABLE(ios(10.0))
     [_wormholeNodeDict setObject:node forKey:wormholeId];
 }
 
-- (void)setWormholeNodeWithReactTag:(NSNumber *)reactTag forWormholeId:(NSString *)wormholeId
+- (void)setWormholeNodeWithHippyTag:(NSNumber *)hippyTag forWormholeId:(NSString *)wormholeId
 {
-    [_reactTagsDict setObject:reactTag forKey:wormholeId];
+    [_hippyTagsDict setObject:hippyTag forKey:wormholeId];
 }
 
 - (void)setWormholeViewModel:(HippyWormholeViewModel *)model forWormholeId:(NSString *)wormholeId
@@ -173,9 +173,9 @@ API_AVAILABLE(ios(10.0))
     return (HippyVirtualWormholeNode *)[_wormholeNodeDict objectForKey:wormholeId];
 }
 
-- (NSNumber *)wormholeReactTagForWormholeId:(NSString *)wormholeId
+- (NSNumber *)wormholeHippyTagForWormholeId:(NSString *)wormholeId
 {
-    return (NSNumber *)[_reactTagsDict objectForKey:wormholeId];
+    return (NSNumber *)[_hippyTagsDict objectForKey:wormholeId];
 }
 
 - (HippyWormholeViewModel *)wormholeViewModelForWormholeId:(NSString *)wormholeId{
@@ -392,7 +392,7 @@ API_AVAILABLE(ios(10.0))
                 // 删除索引cache
                 [_indexKeyCache removeObjectForKey:wormholeId];
                 
-                [_reactTagsDict removeObjectForKey:wormholeId];
+                [_hippyTagsDict removeObjectForKey:wormholeId];
             }
         }
     }

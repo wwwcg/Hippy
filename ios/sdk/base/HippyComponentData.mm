@@ -116,6 +116,7 @@ HIPPY_NOT_IMPLEMENTED(- (instancetype)init)
     HippyAssertMainQueue();
     
     UIView *view = [self.manager view];
+    view.bridge = _bridge;
     view.hippyTag = tag;
     view.multipleTouchEnabled = YES;
     view.userInteractionEnabled = YES; // required for touch handling
@@ -132,6 +133,7 @@ HIPPY_NOT_IMPLEMENTED(- (instancetype)init)
 {
     self.manager.props = props;
     UIView *view = [self.manager view];
+    view.bridge = _bridge;
     view.hippyTag = tag;
     view.rootTag = props[@"rootTag"];
     view.multipleTouchEnabled = YES;
@@ -489,6 +491,10 @@ break; \
         return [[self manager] uiBlockToAmendWithShadowViewRegistry:registry];
     }
     return nil;
+}
+
+- (id)copy{
+    return [[HippyComponentData alloc] initWithManagerClass:self->_managerClass bridge:self->_bridge];
 }
 
 @end

@@ -66,8 +66,8 @@
 - (void)insertSubcomponent:(HippyNVComponent *)subcomponent atIndex:(NSInteger)index {
     [_subComponents insertObject:subcomponent atIndex:index];
     subcomponent->_parentComponent = self;
-    [_virtualNode insertReactSubview:subcomponent.virtualNode atIndex:index];
-    [_shadowView insertReactSubview:subcomponent.shadowView atIndex:index];
+    [_virtualNode insertHippySubview:subcomponent.virtualNode atIndex:index];
+    [_shadowView insertHippySubview:subcomponent.shadowView atIndex:index];
     
     HippyVirtualNode * node = subcomponent.virtualNode;
     if ([node createViewLazily]) {
@@ -101,7 +101,7 @@
     }
    
     HippyAssert(_shadowView, @"can't be nil");
-    _shadowView.reactTag = tag;
+    _shadowView.hippyTag = tag;
     _shadowView.viewName = viewName;
     _shadowView.props = props;
     _shadowView.rootTag = rootTag;
@@ -119,7 +119,7 @@
     if (view) {
        view.viewName = [self viewName];
        [_componentData setProps:_props forView:view]; // Must be done before bgColor to prevent wrong default
-       if ([view respondsToSelector:@selector(reactBridgeDidFinishTransaction)]) {
+       if ([view respondsToSelector:@selector(hippyBridgeDidFinishTransaction)]) {
            [_builder addBridgeTransactionListeners:view];
        }
        [_builder registerViewWithTag:_tag view:view component:self];
@@ -180,7 +180,7 @@
 - (UIView *)view{
     if (!_view) {
        _view = [self _createView];
-       _view.Hippy_from_nativevue = true;
+       _view.hippy_from_nativevue = true;
     }
     return _view;
 }

@@ -23,6 +23,8 @@
 #import "HippyEventObserverModule.h"
 #import "HippyAssert.h"
 #import "HippyEventDispatcher.h"
+#import "HippyBridgeDelegate.h"
+#import "HippyWormholeEngine.h"
 
 @implementation HippyEventObserverModule {
     NSMutableDictionary *_config;
@@ -69,6 +71,11 @@ HIPPY_EXPORT_METHOD(removeListener:(NSString *)eventName)
         _config[eventName] = value;
     }
 }
+
+HIPPY_EXPORT_METHOD(postWormholeMessage:(NSDictionary *)message) {
+    [[HippyWormholeEngine sharedInstance] postWormholeMessage:message];
+}
+
 
 - (void)addEventObserverForName:(__unused NSString *)eventName
 {

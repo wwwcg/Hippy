@@ -20,30 +20,19 @@
 * limitations under the License.
 */
 
-#import "HippyWormholeTagViewManager.h"
-#import "HippyWormholeTagView.h"
-#import "HippyWormholeTagShadowView.h"
+#import "HippyVirtualNode.h"
 
-@implementation HippyWormholeTagViewManager
+@interface HippyVirtualCell: HippyVirtualNode
 
-HIPPY_EXPORT_MODULE(TKDWormhole)
+@property (nonatomic, copy) NSString *itemViewType;
+@property (nonatomic, assign) BOOL sticky;
+@property (nonatomic, weak) UIView *cell;
+@property (nonatomic, weak) HippyVirtualList *listNode;
 
-HIPPY_EXPORT_VIEW_PROPERTY(params, NSDictionary);
+@end
 
-- (UIView *)view {
-    return [HippyWormholeTagView new];
-}
+@interface HippyVirtualList: HippyVirtualNode
 
-- (HippyShadowView *)shadowView{
-    return [HippyWormholeTagShadowView new];
-}
-
-HIPPY_EXPORT_METHOD(sendEventToWormholeView:(nonnull NSNumber *)reactTag message:(NSDictionary *)message)
-{
-    [self.bridge.uiManager addUIBlock:^(HippyUIManager *uiManager, NSDictionary<NSNumber *,__kindof UIView *> *viewRegistry) {
-        HippyWormholeTagView *view = viewRegistry[reactTag];
-        [view sendEventToWormholeView:message];
-    }];
-}
+@property (nonatomic, assign) BOOL isDirty;
 
 @end

@@ -30,6 +30,7 @@
 #import "HippyAssert.h"
 #import "HippyWormholeFactory.h"
 #import "HippyWormholeLockDictionary.h"
+#import "HippyBridge+Private.h"
 
 #define ITEM_DELETE_CACHE_SIZE 16
 
@@ -339,7 +340,7 @@ enableWormholeDataSource:(BOOL)enableDataSource
 #pragma mark - initNativeEngine{
 
 - (void)_registerDeviceInfoToNativeVueContext{
-    NSDictionary * deviceInfo = [self.businessHandler.bridge.batchedBridge deviceInfoDic];
+    NSDictionary * deviceInfo = [self.businessHandler.bridge deviceInfo];
     [deviceInfo enumerateKeysAndObjectsUsingBlock:^(id  _Nonnull key, id  _Nonnull obj, BOOL * _Nonnull stop) {
         [[HippyNativeVueManager shareInstance] registerGlobalVaribleWithKey:key value:obj];
     }];

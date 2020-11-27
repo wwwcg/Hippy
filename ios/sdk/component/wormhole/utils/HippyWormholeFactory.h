@@ -32,7 +32,7 @@
 - (void)setWormholeWrapperView:(HippyWormholeWrapperView *)wrapperView forWormholeId:(NSString *)wormholeId;
 
 - (void)setWormholeNode:(HippyVirtualWormholeNode *)node forWormholeId:(NSString *)wormholeId;
-- (void)setWormholeNodeWithReactTag:(NSNumber *)reactTag forWormholeId:(NSString *)wormholeId;
+- (void)setWormholeNodeWithHippyTag:(NSNumber *)hippyTag forWormholeId:(NSString *)wormholeId;
 
 - (void)setWormholeViewModel:(HippyWormholeViewModel *)model forWormholeId:(NSString *)wormholeId;
 
@@ -54,7 +54,7 @@
 - (void)removeAllCacheOfRootView:(NSNumber *)rootTag;
 
 - (HippyVirtualWormholeNode *)wormholeNodeForWormholeId:(NSString *)wormholeId;
-- (NSNumber *)wormholeReactTagForWormholeId:(NSString *)wormholeId;
+- (NSNumber *)wormholeHippyTagForWormholeId:(NSString *)wormholeId;
 
 - (HippyWormholeWrapperView *)wormholeWrapperViewForWormholeId:(NSString *)wormholeId;
 

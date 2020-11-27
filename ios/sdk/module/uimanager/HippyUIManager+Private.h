@@ -20,19 +20,17 @@
  * limitations under the License.
  */
 
-#import "HippyViewManager.h"
-#import "HippyModalHostView.h"
-#import "HippyInvalidating.h"
+#ifndef HippyUIManager_private_h
+#define HippyUIManager_private_h
+#import <UIKit/UIKit.h>
+#import "HippyUIManager.h"
 
-#define HippyModalHostViewDismissNotification     @"HippyModalHostViewDismissNotification"
-
-@protocol HippyModalHostViewInteractor;
-
-typedef void (^HippyModalViewInteractionBlock)(UIViewController *hippyViewController, UIViewController *viewController, BOOL animated, dispatch_block_t completionBlock);
-
-@interface HippyModalHostViewManager : HippyViewManager <HippyInvalidating>
-
-@property (nonatomic, strong) NSHashTable *hostViews;
-@property (nonatomic, strong) id<HippyModalHostViewInteractor, UIViewControllerTransitioningDelegate> transitioningDelegate;
+@interface HippyUIManager (){
+    
+    // Keyed by viewName
+    NSDictionary *_componentDataByName;
+}
 
 @end
+
+#endif /* HippyUIManager_private_h */

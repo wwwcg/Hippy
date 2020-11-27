@@ -32,9 +32,9 @@
 }
 @synthesize wormholeId = _wormholeId;
 
-- (instancetype)initWithTag:(NSNumber *)reactTag viewName:(NSString *)viewName props:(NSDictionary *)props
+- (instancetype)initWithTag:(NSNumber *)hippyTag viewName:(NSString *)viewName props:(NSDictionary *)props
 {
-    if (self = [super initWithTag:reactTag viewName:viewName props:props]) {
+    if (self = [super initWithTag:hippyTag viewName:viewName props:props]) {
         self.dataType = HippyBaseListViewItemDataTypeWormhole;
         self.wormholeId = props[@"params"][@"wormholeId"];
     }
@@ -68,7 +68,7 @@
     {
         HippyWormholeFactory *wormholeFactory = [HippyWormholeEngine sharedInstance].wormholeFactory;
         [wormholeFactory setWormholeNode:self forWormholeId:_wormholeId];
-        [wormholeFactory setWormholeNodeWithReactTag:self.reactTag forWormholeId:_wormholeId];
+        [wormholeFactory setWormholeNodeWithHippyTag:self.hippyTag forWormholeId:_wormholeId];
     }
     
     if ([bridge.wormholeDelegate respondsToSelector:@selector(didCreateWormholeNode:userInfo:)])

@@ -197,7 +197,7 @@
         }
         __strong HippyNVComponentTreeBuilder * strongSelf = weakSelf;
         for (id<HippyComponent> node in strongSelf->_bridgeTransactionListeners) {
-               [node reactBridgeDidFinishTransaction];
+               [node hippyBridgeDidFinishTransaction];
         }
     }];
 }
@@ -226,13 +226,13 @@
 
     // Construct arrays then hand off to main thread
     NSUInteger count = viewsWithNewFrames.count;
-    NSMutableArray *reactTags = [[NSMutableArray alloc] initWithCapacity:count];
+    NSMutableArray *hippyTags = [[NSMutableArray alloc] initWithCapacity:count];
     NSMutableData *framesData = [[NSMutableData alloc] initWithLength:sizeof(HippyFrameData) * count];
     {
         NSUInteger index = 0;
         HippyFrameData *frameDataArray = (HippyFrameData *)framesData.mutableBytes;
         for (HippyShadowView *shadowView in viewsWithNewFrames) {
-            reactTags[index] = shadowView.reactTag;
+            hippyTags[index] = shadowView.hippyTag;
             frameDataArray[index++] = (HippyFrameData){
                 shadowView.frame,
                 shadowView.isNewView,
@@ -243,7 +243,7 @@
         }
     }
     // These are blocks to be executed on each view, immediately after
-    // reactSetFrame: has been called. Note that if reactSetFrame: is not called,
+    // hippySetFrame: has been called. Note that if hippySetFrame: is not called,
     // these won't be called either, so this is not a suitable place to update
     // properties that aren't related to layout.
     NSMutableDictionary<NSNumber *, HippyViewManagerUIBlock> *updateBlocks =
@@ -251,11 +251,11 @@
     for (HippyShadowView *shadowView in viewsWithNewFrames) {
         // We have to do this after we build the parentsAreNew array.
         shadowView.newView = NO;
-        NSNumber *reactTag = shadowView.reactTag;
+        NSNumber *hippyTag = shadowView.hippyTag;
         HippyViewManager *manager = [_contenxt.componentDataByName[shadowView.viewName] manager];
         HippyViewManagerUIBlock block = [manager uiBlockToAmendWithShadowView:shadowView];
         if (block) {
-            updateBlocks[reactTag] = block;
+            updateBlocks[hippyTag] = block;
         }
         if (shadowView.onLayout) {
             CGRect frame = shadowView.frame;
@@ -272,11 +272,11 @@
     [self addVirtualNodeBlock:^(HippyUIManager *uiManager, NSDictionary<NSNumber *,HippyVirtualNode *> *virtualNodeRegistry) {
         NSInteger index = 0;
         HippyFrameData *frameDataArray = (HippyFrameData *)framesData.mutableBytes;
-        for (NSNumber *reactTag in reactTags) {
-            HippyVirtualNode *node = virtualNodeRegistry[reactTag];
+        for (NSNumber *hippyTag in hippyTags) {
+            HippyVirtualNode *node = virtualNodeRegistry[hippyTag];
             if (node) {
                   HippyFrameData frameData = frameDataArray[index];
-                  [node reactSetFrame: frameData.frame];
+                  [node hippySetFrame: frameData.frame];
             }
             index++;
         }
@@ -292,10 +292,10 @@
         __block NSUInteger completionsCalled = 0;
 
         NSInteger index = 0;
-        for (NSNumber *reactTag in reactTags) {
+        for (NSNumber *hippyTag in hippyTags) {
             HippyFrameData frameData = frameDataArray[index++];
 
-            UIView *view = viewRegistry[reactTag];
+            UIView *view = viewRegistry[hippyTag];
             CGRect frame = frameData.frame;
 
             BOOL isHidden = frameData.isHidden;
@@ -305,11 +305,11 @@
             if (view.isHidden != isHidden) {
                 view.hidden = isHidden;
             }
-            HippyViewManagerUIBlock updateBlock = updateBlocks[reactTag];
-            [view reactSetFrame:frame];
+            HippyViewManagerUIBlock updateBlock = updateBlocks[hippyTag];
+            [view hippySetFrame:frame];
 //            if (frameData.animated) {//nv not support animated
 //                if (nil == view) {
-//                    [self->_listAnimatedViewTags addObject:reactTag];
+//                    [self->_listAnimatedViewTags addObject:hippyTag];
 //                }
 //                [uiManager.bridge.animationModule connectAnimationToView:view];
 //            }

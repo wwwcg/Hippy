@@ -37,7 +37,7 @@ NS_ASSUME_NONNULL_BEGIN
 
 @property(nonatomic,strong) NSString * Hippy_requestUrl;
 
-@property(nonatomic,assign) BOOL Hippy_from_nativevue;
+@property(nonatomic,assign) BOOL hippy_from_nativevue;
 
 
 @end

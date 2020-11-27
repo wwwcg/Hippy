@@ -10,8 +10,8 @@
 #import "MockFeedsDataFactory.h"
 #import "FeedsCell.h"
 #import "ViewController.h"
-#import "RCTWormholeViewModel.h"
-#import "RCTWormholeEngine.h"
+#import "HippyWormholeViewModel.h"
+#import "HippyWormholeEngine.h"
 
 #define AdsDebugURL @"http://localhost:38989/index.bundle?platform=ios&dev=true&minify=false"
 
@@ -49,7 +49,7 @@
     //优先加载native vue模板
     NSString * pathJson = [[NSBundle mainBundle] pathForResource:@"nv_json" ofType:@"json"];
     NSData *data = [NSData dataWithContentsOfFile:pathJson];
-    [[RCTWormholeEngine sharedInstance] loadNativeVueDomData:data];
+    [[HippyWormholeEngine sharedInstance] loadNativeVueDomData:data];
     
     // 再加载“动态化模板jsbundle”
     NSURL *commonBundlePath = [NSURL fileURLWithPath:[[NSBundle mainBundle] pathForResource: @"base.ios" ofType: @"jsbundle"]];
@@ -59,9 +59,9 @@
     }
     
     NSString *moduleName = @"AdsTemplates";
-    [[RCTWormholeEngine sharedInstance] launchEngine:commonBundlePath indexBundlePath:indexPath moduleName:moduleName replaceModules:nil isDebug:_debug];
+    [[HippyWormholeEngine sharedInstance] launchEngine:commonBundlePath indexBundlePath:indexPath moduleName:moduleName replaceModules:nil isDebug:_debug];
 
-    [[RCTWormholeEngine sharedInstance] switchFPSMonitor:YES];
+    [[HippyWormholeEngine sharedInstance] switchFPSMonitor:YES];
     
     self.tableView = [[UITableView alloc] initWithFrame:self.view.bounds style:UITableViewStylePlain];
     self.tableView.backgroundColor = [UIColor colorWithRed:238.0f/255.0f green:238.0f/255.0f blue:238.0f/255.0f alpha:1.0f];
@@ -132,8 +132,9 @@
 #pragma mark - Button Actions Handler
 - (void)enterHippyDemo
 {
-    ViewController *vc = [[ViewController alloc] initWithEnableFeedsDebug:_debug enableWormholeDebug:_debug];
-    [self.navigationController pushViewController:vc animated:YES];
+    //TODO
+//    ViewController *vc = [[ViewController alloc] initWithEnableFeedsDebug:_debug enableWormholeDebug:_debug];
+//    [self.navigationController pushViewController:vc animated:YES];
 }
 
 #pragma mark - UIGestureRecognizerDelegate

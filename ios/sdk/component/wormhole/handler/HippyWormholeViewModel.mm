@@ -176,7 +176,7 @@ static NSInteger gWormholeBaseId = 10000;
     newProps[@"width"] = @(size.width);
     newProps[@"height"] = @(size.height);
     [bridge.uiManager executeBlockOnUIManagerQueue:^{
-        [bridge.uiManager updateViewWithReactTag:shadowView.reactTag props:newProps];
+        [bridge.uiManager updateViewWithHippyTag:shadowView.hippyTag props:newProps];
         [bridge.uiManager setNeedsLayout];
     }];
 }

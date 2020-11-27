@@ -18,7 +18,7 @@ typedef NS_ENUM(NSInteger, FeedsType)
     FeedsType_Dynamic = 2,
 };
 
-@class RCTWormholeViewModel;
+@class HippyWormholeViewModel;
 @class FeedsInteractBarModel;
 @interface FeedsModel : NSObject
 
@@ -30,7 +30,7 @@ typedef NS_ENUM(NSInteger, FeedsType)
 @property (nonatomic, strong) FeedsInteractBarModel *interactModel;
 
 /// 只有动态样式(type==FeedsType_Dynamic)，才需要此model
-@property (nonatomic, strong, nullable) RCTWormholeViewModel *wormholeViewModel;
+@property (nonatomic, strong, nullable) HippyWormholeViewModel *wormholeViewModel;
 
 @end
 

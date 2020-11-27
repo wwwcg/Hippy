@@ -20,27 +20,30 @@
 * limitations under the License.
 */
 
-#import "HippyBaseListItemViewManager.h"
-#import "HippyBaseListItemView.h"
-#import "HippyVirtualList.h"
+#import "HippyWormholeTagViewManager.h"
+#import "HippyWormholeTagView.h"
+#import "HippyWormholeTagShadowView.h"
 
-@implementation HippyBaseListItemViewManager
-HIPPY_EXPORT_MODULE(ListViewItem)
+@implementation HippyWormholeTagViewManager
 
-HIPPY_EXPORT_VIEW_PROPERTY(type, id)
-HIPPY_EXPORT_VIEW_PROPERTY(isSticky, BOOL)
-HIPPY_EXPORT_VIEW_PROPERTY(onAppear, HippyDirectEventBlock)
-HIPPY_EXPORT_VIEW_PROPERTY(onDisappear, HippyDirectEventBlock)
+HIPPY_EXPORT_MODULE(TKDWormhole)
 
-- (UIView *)view
-{
-	return [HippyBaseListItemView new];
+HIPPY_EXPORT_VIEW_PROPERTY(params, NSDictionary);
+
+- (UIView *)view {
+    return [HippyWormholeTagView new];
 }
 
-- (HippyVirtualNode *)node:(NSNumber *)tag name:(NSString *)name props:(NSDictionary *)props
-{
-	return [HippyVirtualCell createNode: tag viewName: name props: props];
+- (HippyShadowView *)shadowView{
+    return [HippyWormholeTagShadowView new];
 }
 
+HIPPY_EXPORT_METHOD(sendEventToWormholeView:(nonnull NSNumber *)hippyTag message:(NSDictionary *)message)
+{
+    [self.bridge.uiManager addUIBlock:^(HippyUIManager *uiManager, NSDictionary<NSNumber *,__kindof UIView *> *viewRegistry) {
+        HippyWormholeTagView *view = viewRegistry[hippyTag];
+        [view sendEventToWormholeView:message];
+    }];
+}
 
 @end
