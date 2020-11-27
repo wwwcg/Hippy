@@ -68,7 +68,15 @@ return nil;                                \
 Hippy_JSON_CONVERTER(NSArray)
 Hippy_JSON_CONVERTER(NSDictionary)
 Hippy_JSON_CONVERTER(NSString)
-Hippy_JSON_CONVERTER(NSNumber)
+//Hippy_JSON_CONVERTER(NSNumber)
++ (NSNumber *)NSNumber:(id)json{
+   if ([json isKindOfClass:[NSNumber class]]) {
+       return json;
+    } else if ([json respondsToSelector:@selector(integerValue)]) {
+        return @([json integerValue]);
+    }
+    return nil;
+}
 
 Hippy_CUSTOM_CONVERTER(NSSet *, NSSet, [NSSet setWithArray:json])
 Hippy_CUSTOM_CONVERTER(NSData *, NSData, [json dataUsingEncoding:NSUTF8StringEncoding])
@@ -630,6 +638,10 @@ Hippy_CGSTRUCT_CONVERTER(CGAffineTransform, (@[
         CGFloat b = (argb & 0xFF) / 255.0;
         return [UIColor colorWithRed:r green:g blue:b alpha:a];
     } else {
+        UIColor * color = [self convertToColor:json];
+        if(color){
+            return color;
+        }
         HippyLogConvertError(json, @"a UIColor. Did you forget to call processColor() on the JS side?");
         return nil;
     }

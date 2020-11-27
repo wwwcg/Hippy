@@ -340,7 +340,7 @@ enableWormholeDataSource:(BOOL)enableDataSource
 #pragma mark - initNativeEngine{
 
 - (void)_registerDeviceInfoToNativeVueContext{
-    NSDictionary * deviceInfo = [self.businessHandler.bridge deviceInfo];
+    NSDictionary * deviceInfo = [self.businessHandler.bridge.batchedBridge deviceInfo];
     [deviceInfo enumerateKeysAndObjectsUsingBlock:^(id  _Nonnull key, id  _Nonnull obj, BOOL * _Nonnull stop) {
         [[HippyNativeVueManager shareInstance] registerGlobalVaribleWithKey:key value:obj];
     }];
