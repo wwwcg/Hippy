@@ -173,6 +173,11 @@ HIPPY_EXTERN NSString *HippyBridgeModuleNameForClass(Class bridgeModuleClass);
  */
 - (void)whitelistedModulesDidChange;
 
+/** A red box will show when error occurs by default
+ *  only work on HIPPY_DEBUG mode
+ */
+- (void)setRedBoxShowEnabled:(BOOL)enabled;
+
 /**
  * All registered bridge module classes.
  */
@@ -218,7 +223,6 @@ HIPPY_EXTERN NSString *HippyBridgeModuleNameForClass(Class bridgeModuleClass);
  */
 @property (nonatomic, readonly, getter=isValid) BOOL valid;
 
-//判断当前bridge载入JSBundle后是否发生过错误
 @property (nonatomic, readonly, getter=isErrorOccured) BOOL errorOccured;
 
 /**
@@ -248,7 +252,7 @@ HIPPY_EXTERN NSString *HippyBridgeModuleNameForClass(Class bridgeModuleClass);
 
 @property (nonatomic, strong) NSString *moduleName;
 
-@property (nonatomic, strong) NSString *appVerson;//宿主App的版本号
+@property (nonatomic, strong) NSString *appVerson;//
 
 /**
  * just for debugger

@@ -293,13 +293,26 @@ UIImage *HippyBlurredImageWithRadiusv(UIImage *inputImage, CGFloat radius)
         NSString *uri = source[@"uri"];
         self.pendingImageSourceUri = uri;
         BOOL isBlurredImage = NO;
-        UIImage *image = [[HippyImageCacheManager sharedInstance] loadImageFromCacheForURLString:uri radius:_blurRadius isBlurredImage:&isBlurredImage];
-        if (image) {
-            [self loadImage:image url:uri error:nil needBlur:!isBlurredImage needCache:NO];
-            return;
+        NSData *data = [[HippyImageCacheManager sharedInstance] imageCacheDataForURLString:uri];
+        if (data) {
+            Class<HippyImageProviderProtocol> ipClass = imageProviderClassFromBridge(data, self.bridge);
+            id<HippyImageProviderProtocol> instance = [ipClass imageProviderInstanceForData:data];
+            if (instance) {
+                BOOL isAnimatedImage = [instance imageCount] > 1;
+                if (isAnimatedImage) {
+                    if (_animatedImageOperation) {
+                        [_animatedImageOperation cancel];
+                    }
+                    _animatedImageOperation = [[HippyAnimatedImageOperation alloc] initWithAnimatedImageProvider:instance imageView:self imageURL:uri];
+                    [animated_image_queue() addOperation:_animatedImageOperation];
+                }
+                else {
+                    UIImage *image = [instance image];
+                    [self loadImage:image url:uri error:nil needBlur:!isBlurredImage needCache:NO];
+                }
+                return;
+            }
         }
-        
-        //是否在请求中
         HippyImageTask * requestingTask = [[HippyImageCacheManager sharedInstance] imageTaskForRequestingWithURLString:uri radius:_blurRadius];
         if (requestingTask) {
              __weak typeof(self) weakSelf = self;
@@ -310,7 +323,6 @@ UIImage *HippyBlurredImageWithRadiusv(UIImage *inputImage, CGFloat radius)
         }else if(self.hippy_from_nativevue){
             [[HippyImageCacheManager sharedInstance] addImageTaskWithURLString:uri radius:_blurRadius imageView:self];
         }
-        
         NSData *uriData = [uri dataUsingEncoding:NSUTF8StringEncoding];
         if (nil == uriData) {
             return;
