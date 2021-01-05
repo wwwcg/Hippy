@@ -24,6 +24,7 @@
 #import <UIKit/UIKit.h>
 #import "HippyWormholeProtocol.h"
 #import "HippyBridgeDelegate.h"
+#import "HippyWormholePublicDefines.h"
 
 NS_ASSUME_NONNULL_BEGIN
 
@@ -34,29 +35,66 @@ NS_ASSUME_NONNULL_BEGIN
 
 @interface HippyWormholeBusinessHandler : NSObject<HippyWormholeDataSource, HippyWormholeDelegate, HippyBridgeDelegate>
 
+#pragma mark - Properties
+
+/// bridge of Wormhole.
 @property (nonatomic, strong, readonly) HippyBridge *bridge;
+
+/// rootView of Wormhole.
 @property (nonatomic, strong, readonly) HippyRootView *rootView;
 
+#pragma mark - Public Methods
+/**
+ * init JSBridge and RootView of Wormhole with the given commonBundlePath and indexBundlePath.
+ * @param commonBundlePath hippy commonBundlePath.
+ * @param indexBundlePath hippy indexBundlePath.
+ * @param moduleName name of module.
+ * @param isDebug whether debug mode is enabled.
+ * @param replaceModules customized replaceModules.
+ */
 - (void)configureJSBundle:(NSURL *)commonBundlePath
           indexBundlePath:(NSURL *)indexBundlePath
                moduleName:(NSString *)moduleName
                   isDebug:(BOOL)isDebug
            replaceModules:(nullable NSArray<id<HippyBridgeModule>> *)replaceModules;
 
+/**
+ * get RCTWormholeWrapperView instance by wormholeId.
+ * @param wormholeId the identifier of wormhole.
+ * @return RCTWormholeWrapperView instance.
+ */
 - (HippyWormholeWrapperView *)wormholeWrapperView:(NSString *)wormholeId;
 
+/**
+ * destroy JSBridge and RootView of Wormhole, and related objects caches.
+ */
 - (void)clear;
 
+/**
+ * sent event to Wormhole.
+ * @param event event type of wormhole.
+ * @param extraData event data.
+ */
 - (void)notifyWormholeEvent:(HippyWormholeEvent)event extraData:(NSDictionary *)extraData;
 
 #pragma mark - For Native Interfaces
-/// 根据原始数据生成一个WormholeViewModel
+/**
+ * generate a RCTWormholeViewModel instance by raw data.
+ * @param rawData raw data of wormhole.
+ * @return RCTWormholeViewModel instance.
+ */
 - (HippyWormholeViewModel *)wormholeViewModelWithRawData:(NSDictionary *)rawData;
 
-/// 添加一个WormholeViewModel至数据源
+/**
+ * cache a RCTWormholeViewModel instance to the queue.
+ * @param viewModel RCTWormholeViewModel instance.
+ */
 - (void)enqueueWormholeViewModel:(HippyWormholeViewModel *)viewModel;
 
-/// 移除一个WormholeViewModel从数据源
+/**
+ * remove a RCTWormholeViewModel instance from the queue.
+ * @param viewModel RCTWormholeViewModel instance.
+ */
 - (void)dequeueWormholeViewModel:(HippyWormholeViewModel *)viewModel;
 
 @end

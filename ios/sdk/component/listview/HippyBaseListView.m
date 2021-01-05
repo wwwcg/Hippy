@@ -306,7 +306,12 @@
 	HippyVirtualCell *node = [_dataSource cellForIndexPath: indexPath];
 	NSInteger index = [_subNodes indexOfObject: node];
 	if (self.onRowWillDisplay) {
-		self.onRowWillDisplay(@{@"index": @(index), @"frame": @{@"x":@(CGRectGetMinX(cell.frame)), @"y": @(CGRectGetMinY(cell.frame)), @"width": @(CGRectGetWidth(cell.frame)), @"height": @(CGRectGetHeight(cell.frame))}});
+		self.onRowWillDisplay(@{@"index": @(index),
+                                @"frame": @{@"x":@(CGRectGetMinX(cell.frame)),
+                                            @"y": @(CGRectGetMinY(cell.frame)),
+                                            @"width": @(CGRectGetWidth(cell.frame)),
+                                            @"height": @(CGRectGetHeight(cell.frame))}
+                              });
 	}
     
     if (self.onEndReached) {

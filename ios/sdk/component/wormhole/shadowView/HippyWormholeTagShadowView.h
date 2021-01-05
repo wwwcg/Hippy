@@ -24,6 +24,9 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
+/**
+ * shadow view implement of <TKDWormhole>.
+ */
 @interface HippyWormholeTagShadowView : HippyWormholeBaseShadowView
 
 @end

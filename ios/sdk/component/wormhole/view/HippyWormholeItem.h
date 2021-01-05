@@ -25,12 +25,21 @@
 
 @class HippyBridge;
 
+/**
+ * native view implement of <Wormhole> component.
+ */
 @interface HippyWormholeItem : UIView<HippyWormholeProtocol>
 
 - (instancetype)initWithBridge:(HippyBridge *)bridge;
 
+/**
+ * params of WormholeView.
+ */
 @property(nonatomic, strong) NSDictionary *params;
 
+/**
+ * index of <RCTWormhole> component in <ListView>.
+ */
 @property(nonatomic, assign) NSInteger businessIndex;
 
 @end

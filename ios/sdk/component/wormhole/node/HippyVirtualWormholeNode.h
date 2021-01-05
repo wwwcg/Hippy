@@ -23,14 +23,23 @@
 #import "HippyVirtualNode.h"
 #import "HippyWormholeProtocol.h"
 
+/**
+ * native node implement of <Wormhole> component.
+ */
 @interface HippyVirtualWormholeNode : HippyVirtualNode <HippyWormholeProtocol>
 
 @end
 
+/**
+ * native node implement of <WormholeContainer> component.
+ */
 @interface HippyVirtualWormholeContainerNode : HippyVirtualNode
 
 @end
 
+/**
+ * native node implement of <WormholeSession> component.
+ */
 @interface HippyVirtualWormholeSessionNode : HippyVirtualNode
 
 @end

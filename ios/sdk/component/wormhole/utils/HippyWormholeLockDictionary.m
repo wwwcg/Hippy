@@ -204,10 +204,7 @@
     NSData *data = [NSKeyedArchiver archivedDataWithRootObject:dic];
     dic = [NSKeyedUnarchiver unarchiveObjectWithData:data];
     
-    BOOL b = [dic writeToFile:path atomically:useAuxiliaryFile];
-    if (!b) {}
-    
-    return b;
+    return [dic writeToFile:path atomically:useAuxiliaryFile];
 }
 
 - (NSDictionary *)fetchDictionary {
@@ -223,13 +220,13 @@
     
     if (!block) return;
     [_lock lock];
-    BOOL _stop = NO;
+    BOOL stop = NO;
     NSArray *allKeys = [self allKeys];
     for (int i = 0; i < allKeys.count; i++) {
         id key = [allKeys objectAtIndex:i];
         id value = [_dict objectForKey:key];
-        block(key, value, &_stop);
-        if (_stop) break;
+        block(key, value, &stop);
+        if (stop) break;
     }
     [_lock unlock];
 }

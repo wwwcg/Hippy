@@ -24,8 +24,13 @@
 #import "HippyWormholeProtocol.h"
 #import "HippyWormholeWrapperView.h"
 #import "HippyNativeVueViewModel.h"
+
 NS_ASSUME_NONNULL_BEGIN
 @class HippyWormholeViewModel;
+
+/**
+ * delegate of WormholeViewModel.
+ */
 @protocol HippyWormholeViewModelDelegate  <NSObject>
 
 @optional
@@ -44,29 +49,87 @@ NS_ASSUME_NONNULL_BEGIN
 @class HippyVirtualNode;
 @class HippyWormholeBaseShadowView;
 @class HippyBridge;
+
+/**
+ * ViewModel of Wormhole.
+ */
 @interface HippyWormholeViewModel : NSObject<HippyWormholeProtocol>
 
+#pragma mark - Properties
+/**
+ * params of WormholeViewModel(include wormholeId).
+ */
 @property (nonatomic, strong, readonly) NSDictionary *params;
-@property (nonatomic, weak) id<HippyWormholeViewModelDelegate> delegate;
-@property (nonatomic, strong, nullable, readonly) HippyWormholeWrapperView *view;
-@property (nonnull, strong) NSIndexPath *indexPath; // for Native case only
 
+/**
+ * delegate of WormholeViewModel.
+ */
+@property (nonatomic, weak) id<HippyWormholeViewModelDelegate> delegate;
+
+/**
+ * WrapperView instance(read only).
+ */
+@property (nonatomic, strong, nullable, readonly) HippyWormholeWrapperView *view;
+
+/**
+ * index path of Wormhole node(for Native case only).
+ */
+@property (nonnull, strong) NSIndexPath *indexPath;
+
+#pragma mark - Initial Methods
+/**
+ * Init a WormholeViewModel instance.
+ * @param params data of WormholeViewModel.
+ * @param rootTag root tag of business root view.
+ * @return WormholeViewModel instance.
+ */
 - (instancetype)initWithParams:(NSDictionary *)params rootTag:(NSNumber *)rootTag;
 - (instancetype)init NS_UNAVAILABLE;
 
+#pragma mark - Public Methods
+/**
+ * Build natvie-vue view in synchronous mode.
+ */
 - (void)syncBuild;
+
+/**
+ * Build natvie-vue view in asynchronous mode with completion block.
+ * @param completion build completion block.
+ */
 - (void)asyncBuildWithCompletion:(HippyNVBuildCompletion)completion;
 
+/**
+ * get Width of wormhole view.
+ * @return width of wormhole view.
+ */
 - (CGFloat)viewWidth;
+
+/**
+ * get Height of wormhole view.
+ * @return height of wormhole view.
+ */
 - (CGFloat)viewHeight;
 
+/**
+ * clear contents of WormholeViewModel.
+ */
 - (void)clear;
 
+/**
+ * attach props of WormholeViewModel to WormholeShadowView.
+ * @param shadowView the instance of WormholeShadowView.
+ * @param originProps the original props of wormhole shadow view.
+ */
 - (void)attachViewModelPropsToShadowView:(HippyWormholeBaseShadowView *)shadowView withOriginProps:(NSMutableDictionary *)originProps;
+
+/**
+ * update WormholeShadowView when wormhole size changed.
+ * @param shadowView the instance of WormholeShadowView.
+ * @param size the size of wormhole view after size-changed.
+ */
 - (void)updateShadowView:(HippyWormholeBaseShadowView *)shadowView onWormholeSizeChanged:(CGSize)size;
 
-#pragma mark - For Native Interfaces
-
+#pragma mark - For Native Only
 - (void)wormholeWillAppear;
 
 - (void)wormholeWillDisappear;

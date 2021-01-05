@@ -20,13 +20,21 @@
 * limitations under the License.
 */
 
-#import "HippyViewManager.h"
+#ifndef HippyWormholePublicDefines_h
+#define HippyWormholePublicDefines_h
 
-NS_ASSUME_NONNULL_BEGIN
+typedef NS_ENUM(NSUInteger, HippyWormholeEvent) {
+    HippyWormholeEventViewDidAppear,
+    HippyWormholeEventViewDidDisappear,
+    HippyWormholeEventEnterForeground,
+    HippyWormholeEventEnterBackground,
+};
 
-/** ViewManager of RCTWormholeSession */
-@interface HippyWormholeSessionManager : HippyViewManager
+extern NSString *const HippyWormholeRootDeletedEventName;
+extern NSString *const HippyWormholeItemDeletedEventName;
+extern NSString *const HippyWormholeDataReceivedEventName;
 
-@end
+extern NSString *const HippyWormholeEventDispatcherEventName;
+extern NSString *const HippyWormholeEventDispatcherModuleName;
 
-NS_ASSUME_NONNULL_END
+#endif /* RCTWormholePublicDefines_h */

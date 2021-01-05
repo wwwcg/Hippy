@@ -21,6 +21,9 @@
 */
 #import <Foundation/Foundation.h>
 
+/**
+ * A kind of thread-safe dictionary.
+ */
 @interface HippyWormholeLockDictionary : NSObject
 
 - (instancetype)initWithMutableDictionary:(NSMutableDictionary *)dic;

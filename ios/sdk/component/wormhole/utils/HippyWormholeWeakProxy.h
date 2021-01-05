@@ -24,10 +24,16 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
+/**
+ * a kind of weak proxy to solve retain-cycle problem in CADisplayLink or NSTimer.
+ */
 @interface HippyWormholeWeakProxy : NSProxy
 
 #if DEBUG
 
+/**
+ * target of weak proxy.
+ */
 @property (nonatomic, weak, readonly) id target;
 
 - (instancetype)initWithTarget:(id)target;

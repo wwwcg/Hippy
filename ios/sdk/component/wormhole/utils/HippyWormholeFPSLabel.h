@@ -24,6 +24,9 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
+/**
+ * A kind of label that counts FPS in debug mode.
+ */
 @interface HippyWormholeFPSLabel : UILabel
 
 #if DEBUG

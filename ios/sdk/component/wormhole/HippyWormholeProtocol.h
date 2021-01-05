@@ -25,29 +25,34 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
-typedef NS_ENUM(NSUInteger, HippyWormholeEvent) {
-    HippyWormholeEventViewDidAppear,
-    HippyWormholeEventViewDidDisappear,
-    HippyWormholeEventEnterForeground,
-    HippyWormholeEventEnterBackground,
-};
-
 @class HippyVirtualNode, UIView, HippyBridge, HippyVirtualWormholeNode, HippyShadowView,  HippyWormholeWrapperView, HippyVirtualWormholeNode, HippyWormholeViewModel;
 
+/**
+ * protocol that wormhole-related classes conform to.
+ */
 @protocol HippyWormholeProtocol <NSObject>
 
+/**
+ * unique identifier of wormhole.
+ */
 @property(nonatomic, copy) NSString *wormholeId;
 
 @end
 
 #pragma mark - HippyWormholeDataSource
+
+/**
+ * data source that wormhole-related classes implement.
+ */
 @protocol HippyWormholeDataSource <NSObject>
 
 @optional
 
 /**
- @wormholeId 虫洞id
- @nvOverlayView NativeView浮层（加速首屏渲染）
+ * create WormholeWrapperView instance. This method should not be called on main thread!
+ * @param wormholeId the identifier of Wormhole.
+ * @param nvOverlayView native-vue view instance, for acceleration of first frame rendering.
+ * @return WormholeWrapperView instance.
  */
 - (HippyWormholeWrapperView *)wormholeViewWithWormholeId:(NSString *)wormholeId
                                          nvOverlayView:(UIView * _Nullable)nvOverlayView;
@@ -55,6 +60,9 @@ typedef NS_ENUM(NSUInteger, HippyWormholeEvent) {
 @end
 
 #pragma mark - HippyWormholeDelegate
+/**
+ * delegate that wormhole-related classes implement.
+ */
 @protocol HippyWormholeDelegate <NSObject>
 
 @optional

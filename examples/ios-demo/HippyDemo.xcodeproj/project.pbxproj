@@ -173,7 +173,6 @@
 		0695D27E256E83DF00F179F5 /* FeedsInteractBar.m in Sources */ = {isa = PBXBuildFile; fileRef = 0695D26D256E83DF00F179F5 /* FeedsInteractBar.m */; };
 		0695D27F256E83DF00F179F5 /* FeedsModel.m in Sources */ = {isa = PBXBuildFile; fileRef = 0695D270256E83DF00F179F5 /* FeedsModel.m */; };
 		0695D280256E83DF00F179F5 /* FeedsCellData.m in Sources */ = {isa = PBXBuildFile; fileRef = 0695D273256E83DF00F179F5 /* FeedsCellData.m */; };
-		069E5961251848A600C90029 /* scope.cc in Sources */ = {isa = PBXBuildFile; fileRef = 069E595F251848A600C90029 /* scope.cc */; };
 		06F2A76F2519E319000AF839 /* HippyJSEnginesMapper.mm in Sources */ = {isa = PBXBuildFile; fileRef = 06F2A76E2519E319000AF839 /* HippyJSEnginesMapper.mm */; };
 		06FF8BD62511BC0400C03900 /* HippyImageProviderProtocol.m in Sources */ = {isa = PBXBuildFile; fileRef = 06FF8BD52511BC0400C03900 /* HippyImageProviderProtocol.m */; };
 		06FF8EEC2511C10B00C03900 /* HippyDefaultImageProvider.m in Sources */ = {isa = PBXBuildFile; fileRef = 06FF8EEB2511C10B00C03900 /* HippyDefaultImageProvider.m */; };
@@ -543,6 +542,7 @@
 		067AB97223B5F309009D5EE2 /* MyView.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = MyView.h; sourceTree = "<group>"; };
 		067AB97323B5F309009D5EE2 /* MyViewManager.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = MyViewManager.h; sourceTree = "<group>"; };
 		067AB97423B5F309009D5EE2 /* MyView.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = MyView.m; sourceTree = "<group>"; };
+		06954B8725A468E000277712 /* HippyWormholePublicDefines.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = HippyWormholePublicDefines.h; sourceTree = "<group>"; };
 		0695D25E256E83DF00F179F5 /* FeedsInteractBar.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = FeedsInteractBar.h; sourceTree = "<group>"; };
 		0695D25F256E83DF00F179F5 /* MBProgressHUD.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = MBProgressHUD.m; sourceTree = "<group>"; };
 		0695D260256E83DF00F179F5 /* FeedsModel.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = FeedsModel.h; sourceTree = "<group>"; };
@@ -564,7 +564,6 @@
 		0695D271256E83DF00F179F5 /* UIImageView+LoadUrl.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "UIImageView+LoadUrl.h"; sourceTree = "<group>"; };
 		0695D272256E83DF00F179F5 /* MockFeedsDataFactory.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = MockFeedsDataFactory.h; sourceTree = "<group>"; };
 		0695D273256E83DF00F179F5 /* FeedsCellData.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = FeedsCellData.m; sourceTree = "<group>"; };
-		069E595F251848A600C90029 /* scope.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = scope.cc; sourceTree = "<group>"; };
 		06F2A76D2519E319000AF839 /* HippyJSEnginesMapper.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = HippyJSEnginesMapper.h; sourceTree = "<group>"; };
 		06F2A76E2519E319000AF839 /* HippyJSEnginesMapper.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = HippyJSEnginesMapper.mm; sourceTree = "<group>"; };
 		06FF8BD42511BC0400C03900 /* HippyImageProviderProtocol.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = HippyImageProviderProtocol.h; sourceTree = "<group>"; };
@@ -643,6 +642,7 @@
 		060415D9256F85DC00DC7082 /* wormhole */ = {
 			isa = PBXGroup;
 			children = (
+				06954B8725A468E000277712 /* HippyWormholePublicDefines.h */,
 				060415DA256F85DC00DC7082 /* viewManager */,
 				060415E3256F85DC00DC7082 /* handler */,
 				060415E8256F85DC00DC7082 /* shadowView */,
@@ -1381,6 +1381,42 @@
 			path = myview;
 			sourceTree = "<group>";
 		};
+		0695D25D256E83DF00F179F5 /* WormholeNativeDemo */ = {
+			isa = PBXGroup;
+			children = (
+				0695D25E256E83DF00F179F5 /* FeedsInteractBar.h */,
+				0695D25F256E83DF00F179F5 /* MBProgressHUD.m */,
+				0695D260256E83DF00F179F5 /* FeedsModel.h */,
+				0695D261256E83DF00F179F5 /* FeedsCell.m */,
+				0695D262256E83DF00F179F5 /* TestWormholeViewController.m */,
+				0695D263256E83DF00F179F5 /* images */,
+				0695D269256E83DF00F179F5 /* MockFeedsDataFactory.m */,
+				0695D26A256E83DF00F179F5 /* FeedsCellData.h */,
+				0695D26B256E83DF00F179F5 /* UIImageView+LoadUrl.m */,
+				0695D26C256E83DF00F179F5 /* MBProgressHUD.h */,
+				0695D26D256E83DF00F179F5 /* FeedsInteractBar.m */,
+				0695D26E256E83DF00F179F5 /* TestWormholeViewController.h */,
+				0695D26F256E83DF00F179F5 /* FeedsCell.h */,
+				0695D270256E83DF00F179F5 /* FeedsModel.m */,
+				0695D271256E83DF00F179F5 /* UIImageView+LoadUrl.h */,
+				0695D272256E83DF00F179F5 /* MockFeedsDataFactory.h */,
+				0695D273256E83DF00F179F5 /* FeedsCellData.m */,
+			);
+			path = WormholeNativeDemo;
+			sourceTree = "<group>";
+		};
+		0695D263256E83DF00F179F5 /* images */ = {
+			isa = PBXGroup;
+			children = (
+				0695D264256E83DF00F179F5 /* comment@2x.png */,
+				0695D265256E83DF00F179F5 /* share@2x.png */,
+				0695D266256E83DF00F179F5 /* liked@2x.png */,
+				0695D267256E83DF00F179F5 /* more@2x.png */,
+				0695D268256E83DF00F179F5 /* unliked@2x.png */,
+			);
+			path = images;
+			sourceTree = "<group>";
+		};
 		85BCD3BC2578C57F00638DB4 /* core */ = {
 			isa = PBXGroup;
 			children = (
@@ -1569,42 +1605,6 @@
 			path = loader;
 			sourceTree = "<group>";
 		};
-		0695D25D256E83DF00F179F5 /* WormholeNativeDemo */ = {
-			isa = PBXGroup;
-			children = (
-				0695D25E256E83DF00F179F5 /* FeedsInteractBar.h */,
-				0695D25F256E83DF00F179F5 /* MBProgressHUD.m */,
-				0695D260256E83DF00F179F5 /* FeedsModel.h */,
-				0695D261256E83DF00F179F5 /* FeedsCell.m */,
-				0695D262256E83DF00F179F5 /* TestWormholeViewController.m */,
-				0695D263256E83DF00F179F5 /* images */,
-				0695D269256E83DF00F179F5 /* MockFeedsDataFactory.m */,
-				0695D26A256E83DF00F179F5 /* FeedsCellData.h */,
-				0695D26B256E83DF00F179F5 /* UIImageView+LoadUrl.m */,
-				0695D26C256E83DF00F179F5 /* MBProgressHUD.h */,
-				0695D26D256E83DF00F179F5 /* FeedsInteractBar.m */,
-				0695D26E256E83DF00F179F5 /* TestWormholeViewController.h */,
-				0695D26F256E83DF00F179F5 /* FeedsCell.h */,
-				0695D270256E83DF00F179F5 /* FeedsModel.m */,
-				0695D271256E83DF00F179F5 /* UIImageView+LoadUrl.h */,
-				0695D272256E83DF00F179F5 /* MockFeedsDataFactory.h */,
-				0695D273256E83DF00F179F5 /* FeedsCellData.m */,
-			);
-			path = WormholeNativeDemo;
-			sourceTree = "<group>";
-		};
-		0695D263256E83DF00F179F5 /* images */ = {
-			isa = PBXGroup;
-			children = (
-				0695D264256E83DF00F179F5 /* comment@2x.png */,
-				0695D265256E83DF00F179F5 /* share@2x.png */,
-				0695D266256E83DF00F179F5 /* liked@2x.png */,
-				0695D267256E83DF00F179F5 /* more@2x.png */,
-				0695D268256E83DF00F179F5 /* unliked@2x.png */,
-			);
-			path = images;
-			sourceTree = "<group>";
-		};
 		AC63515223F922E5007FABA5 /* fonts */ = {
 			isa = PBXGroup;
 			children = (
@@ -1733,7 +1733,6 @@
 				0695D276256E83DF00F179F5 /* TestWormholeViewController.m in Sources */,
 				064C5A3623AB1A51001E80DD /* HippyModalHostViewManager.mm in Sources */,
 				0604161F256F85DD00DC7082 /* HippyUIManager+NativeVue.mm in Sources */,
-				064C5AE523AB1A59001E80DD /* task.cc in Sources */,
 				064C5A5C23AB1A51001E80DD /* HippySRWebSocket.m in Sources */,
 				064C5A4423AB1A51001E80DD /* HippyPerformanceLogger.m in Sources */,
 				064C5A1B23AB1A51001E80DD /* UIImageView+Hippy.m in Sources */,
@@ -1751,11 +1750,9 @@
 				064C59F623AB1A51001E80DD /* HippyExtAnimationModule.m in Sources */,
 				85BCD46C2578C58000638DB4 /* js_native_jsc_helper.cc in Sources */,
 				06082A7A24AB222000AF85BC /* HippyFooterRefreshManager.m in Sources */,
-				064C5AF223AB1B99001E80DD /* native-source-code-ios.cc in Sources */,
 				0695D274256E83DF00F179F5 /* MBProgressHUD.m in Sources */,
 				06041619256F85DD00DC7082 /* HippyWormholeItemManager.mm in Sources */,
 				064C5A2523AB1A51001E80DD /* HippyBaseListView.m in Sources */,
-				064C5AE123AB1A59001E80DD /* console-module.cc in Sources */,
 				06041624256F85DD00DC7082 /* HippyNVComponentTreeBuilder.mm in Sources */,
 				064C5A2523AB1A51001E80DD /* HippyBaseListView.m in Sources */,
 				064C5A3923AB1A51001E80DD /* HippyModalCustomAnimationTransition.m in Sources */,
@@ -1777,7 +1774,6 @@
 				064C59EF23AB1A51001E80DD /* MTTNode.cpp in Sources */,
 				0604162E256F85DD00DC7082 /* HippyVirtualWormholeNode.m in Sources */,
 				064C5A2823AB1A51001E80DD /* HippyView.m in Sources */,
-				064C5AE623AB1A59001E80DD /* thread-id.cc in Sources */,
 				06041638256FB92700DC7082 /* HippyVirtualList.m in Sources */,
 				064C5A4523AB1A51001E80DD /* HippyVirtualNode.m in Sources */,
 				85BCD45A2578C58000638DB4 /* javascript_task_runner.cc in Sources */,
@@ -1787,7 +1783,6 @@
 				06041628256F85DD00DC7082 /* HippyWormholeFactory.mm in Sources */,
 				064C5A0223AB1A51001E80DD /* HippyImageLoaderModule.m in Sources */,
 				064C59ED23AB1A51001E80DD /* MTTLayoutCache.cpp in Sources */,
-				06F2A77C2519EBAF000AF839 /* file.cc in Sources */,
 				06041623256F85DD00DC7082 /* HippyNVComponent.mm in Sources */,
 				064C5A2023AB1A51001E80DD /* HippyImageCache.m in Sources */,
 				064C5A5A23AB1A51001E80DD /* HippyRootShadowView.mm in Sources */,

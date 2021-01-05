@@ -26,8 +26,14 @@
 NS_ASSUME_NONNULL_BEGIN
 @class HippyWormholeViewModel;
 
+/**
+ * base shadow view of Wormhole-related shadow view.
+ */
 @interface HippyWormholeBaseShadowView : HippyShadowView<HippyWormholeProtocol>
 
+/**
+ * wormhole viewmodel of shadow view.
+ */
 @property (nonatomic, strong) HippyWormholeViewModel *viewModel;
 
 @end

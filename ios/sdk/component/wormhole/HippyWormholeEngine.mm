@@ -32,6 +32,13 @@
 #import "HippyWormholeLockDictionary.h"
 #import "HippyBridge+Private.h"
 
+NSString *const HippyWormholeRootDeletedEventName = @"Wormhole.rootDeleted";
+NSString *const HippyWormholeItemDeletedEventName = @"Wormhole.itemDeleted";
+NSString *const HippyWormholeDataReceivedEventName = @"Wormhole.dataReceived";
+
+NSString *const HippyWormholeEventDispatcherEventName = @"EventDispatcher";
+NSString *const HippyWormholeEventDispatcherModuleName = @"receiveNativeEvent";
+
 #define ITEM_DELETE_CACHE_SIZE 16
 
 static NSString * const kWormholePostMessageModuleName = @"wormhole";
@@ -169,7 +176,7 @@ enableWormholeDataSource:(BOOL)enableDataSource
     }
     
     BOOL shouldDispatchEvent = YES;
-    if ([eventName isEqualToString:@"Wormhole.itemDeleted"] && [data isKindOfClass:[NSDictionary class]])
+    if ([eventName isEqualToString:HippyWormholeItemDeletedEventName] && [data isKindOfClass:[NSDictionary class]])
     {
         NSArray *items = [((NSDictionary *)data) objectForKey:@"items"];
         NSNumber *rootTag = [((NSDictionary *)data) objectForKey:@"rootTag"];
@@ -200,8 +207,8 @@ enableWormholeDataSource:(BOOL)enableDataSource
         {
             // 缓存池满，发送deleteItem指令
             NSDictionary *sendData = @{@"rootTag": rootTag, @"items": [_deleteItemCacheDict objectForKey:rootTag]};
-            [self.businessHandler.bridge.eventDispatcher dispatchEvent:@"EventDispatcher"
-                                                            methodName:@"receiveNativeEvent"
+            [self.businessHandler.bridge.eventDispatcher dispatchEvent:HippyWormholeEventDispatcherEventName
+                                                            methodName:HippyWormholeEventDispatcherModuleName
                                                                   args:@{@"eventName": eventName, @"extra": sendData}];
             
             // 清除缓存
@@ -214,7 +221,7 @@ enableWormholeDataSource:(BOOL)enableDataSource
         }
     }
     
-    if ([eventName isEqualToString:@"Wormhole.rootDeleted"] && [data isKindOfClass:[NSDictionary class]])
+    if ([eventName isEqualToString:HippyWormholeRootDeletedEventName] && [data isKindOfClass:[NSDictionary class]])
     {
         NSArray *rootTags = [((NSDictionary *)data) objectForKey:@"rootTags"];
         
@@ -232,8 +239,8 @@ enableWormholeDataSource:(BOOL)enableDataSource
     
     if (shouldDispatchEvent)
     {
-        [self.businessHandler.bridge.eventDispatcher dispatchEvent:@"EventDispatcher"
-                                                        methodName:@"receiveNativeEvent"
+        [self.businessHandler.bridge.eventDispatcher dispatchEvent:HippyWormholeEventDispatcherEventName
+                                                        methodName:HippyWormholeEventDispatcherModuleName
                                                               args:@{@"eventName": eventName, @"extra": data}];
     }
 }
@@ -261,8 +268,8 @@ enableWormholeDataSource:(BOOL)enableDataSource
         [self dispatchWormholeEvent:kWormholePostMessageEventName data:message];
     } else {
         HippyBridge *targetBridge = [self.bridgeMap objectForKey:rootTag];
-        [targetBridge.eventDispatcher dispatchEvent:@"EventDispatcher"
-                                         methodName:@"receiveNativeEvent"
+        [targetBridge.eventDispatcher dispatchEvent:HippyWormholeEventDispatcherEventName
+                                         methodName:HippyWormholeEventDispatcherModuleName
                                                args:@{@"eventName": kWormholePostMessageEventName, @"extra": message}];
     }
 }

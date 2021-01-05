@@ -23,9 +23,10 @@
 #import <Foundation/Foundation.h>
 #import "HippyBridgeDelegate.h"
 #import "HippyWormholeProtocol.h"
+#import "HippyWormholePublicDefines.h"
 #import "HippyNativeVueManager.h"
 
-//!!IMPORTANT!!! To make sure WormholeSDK works well, pleas install NativeVueSDK first.
+//!!IMPORTANT!!! To make sure WormholeSDK works better, pleas install NativeVueSDK first.
 //pod 'NativeVueSDK', :git => "http://git.code.oa.com/NativeVue/nativevue-engine.git", :tag => '0.0.9'
 
 NS_ASSUME_NONNULL_BEGIN
@@ -36,10 +37,20 @@ NS_ASSUME_NONNULL_BEGIN
 @interface HippyWormholeEngine : NSObject
 
 /**
+ * singleton of HippyWormholeEngine.
+ */
++ (instancetype)sharedInstance;
+
+#pragma mark - Properties
+
+/**
  * load wormhole jsbundle, implement HippyWormholeDataSource / HippyWormholeDelegate.
  */
 @property (nonatomic, strong, readonly) HippyWormholeBusinessHandler *businessHandler;
 
+/**
+ * utils for memory-cache of WormholeNode, WormholeView, WrapperView and etc.
+ */
 @property (nonatomic, strong, readonly) HippyWormholeFactory *wormholeFactory;
 
 /**
@@ -47,18 +58,14 @@ NS_ASSUME_NONNULL_BEGIN
 */
 @property (nonatomic, assign, getter=isReleaseMode) BOOL releaseMode;
 
-/**
- * singleton of HippyWormholeEngine.
-*/
-+ (instancetype)sharedInstance;
-
+#pragma mark - Public Methods
 /**
  * launch Wormhole Engine.
- * @commonBundlePath: hippy commonBundlePath.
- * @indexBundlePath: hippy indexBundlePath.
- * @moduleName: name of module.
- * @replaceModules:
- * @isDebug: whether debug mode is enabled.
+ * @param commonBundlePath hippy commonBundlePath.
+ * @param indexBundlePath hippy indexBundlePath.
+ * @param moduleName name of module.
+ * @param replaceModules customized replaceModules.
+ * @param isDebug whether debug mode is enabled.
 */
 - (void)launchEngine:(NSURL *)commonBundlePath
      indexBundlePath:(NSURL *)indexBundlePath
@@ -68,12 +75,12 @@ NS_ASSUME_NONNULL_BEGIN
 
 /**
  * launch Wormhole Engine.
- * @commonBundlePath: hippy commonBundlePath.
- * @indexBundlePath: hippy indexBundlePath.
- * @nvBundlePath: native vue bundle path
- * @moduleName: name of module.
- * @replaceModules:
- * @isDebug: whether debug mode is enabled.
+ * @param commonBundlePath hippy commonBundlePath.
+ * @param indexBundlePath hippy indexBundlePath.
+ * @param nvBundlePath native vue bundle path.
+ * @param moduleName name of module.
+ * @param replaceModules customized replaceModules.
+ * @param isDebug whether debug mode is enabled.
 */
 - (void)launchEngine:(NSURL *)commonBundlePath
      indexBundlePath:(NSURL *)indexBundlePath
@@ -83,20 +90,16 @@ NS_ASSUME_NONNULL_BEGIN
              isDebug:(BOOL)isDebug;
 
 /**
- * load native vue file
- * @data: native vue dom data
- */
-- (BOOL)loadNativeVueDomData:(NSData *)data;
-
-/**
  * shutdown Wormhole Engine.
  */
 - (void)shutdownEngine;
 
 /**
  * bind Target Bridge to Wormhole Bridge, make it possible for bridges' communication(eg. Data Transmission, Event Communication).
- * @enableDelegate: whether HippyWormholeBusinessHandler is enabled to implement HippyWormholeDelegate.
- * @enableDataSource: whether HippyWormholeBusinessHandler is enabled to implement HippyWormholeDataSource.
+ * @param targetBridge business target bridge.
+ * @param rootTag root tag of target bridge.
+ * @param enableDelegate whether RCTWormholeBusinessHandler is enabled to implement RCTWormholeDelegate.
+ * @param enableDataSource whether RCTWormholeBusinessHandler is enabled to implement RCTWormholeDataSource.
  */
 - (void)bindTargetBridge:(HippyBridge *)targetBridge
                  rootTag:(NSNumber *)rootTag
@@ -105,27 +108,40 @@ enableWormholeDataSource:(BOOL)enableDataSource;
 
 /**
  * cancel bind between Target Bridge and Wormhole Bridge.
+ * @param rootTag root tag of target bridge.
  */
 - (void)cancelBindBridgeByRootTag:(NSNumber *)rootTag;
 
+/**
+ * load native vue file.
+ * @param data native vue dom data.
+ * @return whether dom data is loaded(BOOL value).
+ */
+- (BOOL)loadNativeVueDomData:(NSData *)data;
 
+/**
+ * post message to Wormhole.
+ * @param message the message body.
+ */
 - (void)postWormholeMessage:(NSDictionary *)message;
 
 /**
-* dispatch Event to Wormhole.
-* @eventName: event name.
-* @data: event data.
+ * dispatch Event to Wormhole.
+ * @param eventName event name.
+ * @param data event data.
 */
 - (void)dispatchWormholeEvent:(NSString *)eventName data:(id)data;
 
 /**
- * open / close FPS Monitor, for debug mode only.
+ * open or close FPS Monitor, for debug mode only.
+ * @param on whether FPS monitor is opened.
 */
 - (void)switchFPSMonitor:(BOOL)on;
 
 #pragma mark - For Native Case
 /**
- * create Wormhole Viewmodel with raw data. This method should not be called on main thread!
+ * @param data raw data of wormhole.
+ * @return WormholeViewModel instance.
  */
 - (HippyWormholeViewModel *)newWormholeViewModel:(NSDictionary *)data;
 

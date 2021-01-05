@@ -24,10 +24,20 @@
 
 @class HippyBridge;
 
+/**
+ * native view implement of <TKDWormhole> component.
+ */
 @interface HippyWormholeTagView : UIView
 
+/**
+ * params of <TKDWormhole> component.
+ */
 @property(nonatomic, strong) NSDictionary *params;
 
+/**
+ * sent event to wormhole.
+ * @param eventObj event data object.
+ */
 - (void)sendEventToWormholeView:(NSDictionary *)eventObj;
 
 @end

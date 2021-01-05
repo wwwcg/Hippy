@@ -50,6 +50,7 @@
 
 @implementation HippyWormholeBusinessHandler
 
+#pragma mark - Life Cycle
 - (instancetype)init
 {
     self = [super init];
@@ -200,21 +201,15 @@
     
     if (eventName)
     {
-        NSLog(@"ciro debug:[wormholeView didTrigEvent]:%@, wormholeId:%@, index:%ld", eventName, wormholeId, index);
-        
-        [self.rootView.bridge.eventDispatcher dispatchEvent:@"EventDispatcher"
-                                                 methodName:@"receiveNativeEvent"
+        [self.rootView.bridge.eventDispatcher dispatchEvent:HippyWormholeEventDispatcherEventName
+                                                 methodName:HippyWormholeEventDispatcherModuleName
                                                        args:@{@"eventName": eventName, @"extra": extraData}];
     }
 }
 
-#pragma mark - Private Methods
-
 #pragma mark - HippyBridgeDelegate
 
-
 - (void)loadSourceForBridge:(HippyBridge *)bridge onProgress:(HippySourceLoadProgressBlock)onProgress onComplete:(HippySourceLoadBlock)loadCallback{
-    //虫洞需要优先nv文件，接着加载js文件
     NSURL * bundleURL = bridge.bundleURL;
     NSURL * nvURL = [[HippyNativeVueManager shareInstance] nvFileURLWithMainBundleURL:bundleURL];
     if ([nvURL isKindOfClass:[NSURL class]]) {
@@ -279,10 +274,10 @@
         return;
     }
     
-    // 数据形式 [ {rootTag: 10, items: [data1, data2, ...]}, {rootTag: 11, items: [data3, data4, ...]} ]
+    // data style: [ {rootTag: 10, items: [data1, data2, ...]}, {rootTag: 11, items: [data3, data4, ...]} ]
     NSDictionary *singleItem = @{ @"rootTag": rootTag, @"items": @[data] };
-    [self.bridge.eventDispatcher dispatchEvent:@"EventDispatcher"
-                                    methodName:@"receiveNativeEvent"
+    [self.bridge.eventDispatcher dispatchEvent:HippyWormholeEventDispatcherEventName
+                                    methodName:HippyWormholeEventDispatcherModuleName
                                           args:@{@"eventName": @"Wormhole.dataReceived", @"extra": @[singleItem]}];
 }
 
@@ -316,7 +311,7 @@
     [self setContentViewWithWormholeId:wormholeId node:wormholeNode wrapView:wrapperView];
 }
 
-#pragma mark -
+#pragma mark - Get WormholeView by Node (IMPORTANT!!!).
 - (void)setContentViewWithWormholeId:(NSString *)wormholeId
                                 node:(HippyVirtualWormholeNode *)node
                             wrapView:(HippyWormholeWrapperView *)wrapperView
@@ -350,7 +345,6 @@
 
 #pragma mark - For Native Interfaces
 
-/// 根据原始数据生成一个WormholeViewModel
 - (HippyWormholeViewModel *)wormholeViewModelWithRawData:(NSDictionary *)rawData
 {
     HippyAssert(![NSThread isMainThread], @"Wormhole ViewModel should not be created on Main Thread!");
@@ -359,7 +353,6 @@
     return viewModel;
 }
 
-/// 添加一个WormholeViewModel至数据源
 - (void)enqueueWormholeViewModel:(HippyWormholeViewModel *)viewModel
 {
     if (!viewModel || viewModel.wormholeId.length == 0)
@@ -378,7 +371,6 @@
     [_wormholeViewModelDict setObject:viewModel forKey:wormholeId];
 }
 
-/// 移除一个WormholeViewModel从数据源
 - (void)dequeueWormholeViewModel:(HippyWormholeViewModel *)viewModel
 {
     if (!viewModel || viewModel.wormholeId.length == 0)
