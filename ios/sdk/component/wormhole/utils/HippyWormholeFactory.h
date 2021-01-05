@@ -26,6 +26,7 @@
 @class HippyWormholeWrapperView;
 @class HippyVirtualWormholeNode;
 @class HippyWormholeViewModel;
+@class HippyWormholeItem;
 
 @interface HippyWormholeFactory : NSObject
 
@@ -35,6 +36,8 @@
 - (void)setWormholeNodeWithHippyTag:(NSNumber *)hippyTag forWormholeId:(NSString *)wormholeId;
 
 - (void)setWormholeViewModel:(HippyWormholeViewModel *)model forWormholeId:(NSString *)wormholeId;
+
+- (void)setWormholeItem:(HippyWormholeItem *)wormholeItem forWormholeId:(NSString *)wormholeId;
 
 - (void)removeWormholeWrapperView:(NSString *)wormholeId;
 
@@ -59,6 +62,8 @@
 - (HippyWormholeWrapperView *)wormholeWrapperViewForWormholeId:(NSString *)wormholeId;
 
 - (HippyWormholeViewModel *)wormholeViewModelForWormholeId:(NSString *)wormholeId;
+
+- (HippyWormholeItem *)wormholeItemForWormholeId:(NSString *)wormholeId;
 
 - (NSDictionary *)nodeCache;
 - (NSMapTable *)wrapperCache;

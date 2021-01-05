@@ -321,11 +321,22 @@
                                 node:(HippyVirtualWormholeNode *)node
                             wrapView:(HippyWormholeWrapperView *)wrapperView
 {
-    UIView *wormholeView = [self.bridge.uiManager createViewFromNode:node];
+    UIView *wormholeView = nil;
+    HippyWormholeItem *cacheItem = [self.bridge.wormholeFactory wormholeItemForWormholeId:wormholeId];
+    if (cacheItem) {
+        wormholeView = cacheItem;
+    } else {
+        wormholeView = [self.bridge.uiManager createViewFromNode:node];
+    }
     wrapperView.wormholeNode = node;
     
     if (wormholeView)
     {
+        if (!cacheItem) {
+            HippyWormholeFactory *wormholeFactory = [self.bridge wormholeFactory];
+            [wormholeFactory setWormholeItem:(HippyWormholeItem *)wormholeView forWormholeId:wormholeId];
+        }
+
         [wrapperView setContentView:wormholeView];
         
         NSLog(@"ciro debug:[WormholeEvent DidAppear]. wormholeId:%@", wormholeId);

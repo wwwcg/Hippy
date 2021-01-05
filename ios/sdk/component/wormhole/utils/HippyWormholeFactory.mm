@@ -32,7 +32,8 @@ API_AVAILABLE(ios(10.0))
 @interface HippyWormholeFactory () {
     __weak HippyBridge *_bridge;
     NSMapTable *_wormholeWrapperMapTable;
-    
+    NSMapTable *_wormholeItemMapTable;
+
     HippyWormholeLockDictionary *_wormholeViewModelDict;
     HippyWormholeLockDictionary *_wormholeNodeDict;
     
@@ -52,6 +53,7 @@ API_AVAILABLE(ios(10.0))
     if (self) {
         _bridge = bridge;
         _wormholeWrapperMapTable = [NSMapTable strongToWeakObjectsMapTable];
+        _wormholeItemMapTable = [NSMapTable strongToWeakObjectsMapTable];
         _wormholeNodeDict = [HippyWormholeLockDictionary dictionary];
         _wormholeViewModelDict = [HippyWormholeLockDictionary dictionary];
         _wormholeIdCache = [NSMutableDictionary dictionary];  // (rootTag + index)为key 唯一映射 wormholeId
@@ -125,6 +127,15 @@ API_AVAILABLE(ios(10.0))
     }
 }
 
+- (void)setWormholeItem:(HippyWormholeItem *)wormholeItem forWormholeId:(NSString *)wormholeId
+{
+    if (!wormholeItem || !wormholeId) {
+        return;
+    }
+    
+    [self p_SetObject:wormholeItem forKey:wormholeId mapTable:_wormholeItemMapTable];
+}
+
 - (void)removeWormholeWrapperView:(NSString *)wormholeId
 {
     if (wormholeId.length == 0)
@@ -185,6 +196,15 @@ API_AVAILABLE(ios(10.0))
     }
     
     return (HippyWormholeViewModel *)[_wormholeViewModelDict objectForKey:wormholeId];
+}
+
+- (HippyWormholeItem *)wormholeItemForWormholeId:(NSString *)wormholeId {
+    if (wormholeId.length == 0)
+    {
+        return nil;
+    }
+    
+    return (HippyWormholeItem *)[self p_ObjectForKey:wormholeId mapTable:_wormholeItemMapTable];
 }
 
 /// 删除指定Wormhole Ids的缓存（包含wrapperView、Node、viewModel）
@@ -323,6 +343,7 @@ API_AVAILABLE(ios(10.0))
 - (void)clear
 {
     [_wormholeWrapperMapTable removeAllObjects];
+    [_wormholeItemMapTable removeAllObjects];
     [_wormholeNodeDict removeAllObjects];
     [_wormholeViewModelDict removeAllObjects];
 }
