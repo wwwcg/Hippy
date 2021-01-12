@@ -626,6 +626,7 @@ UIImage *HippyBlurredImageWithRadiusv(UIImage *inputImage, CGFloat radius)
 	image = image ? : _defaultImage;
 	if (!image) {
 		self.image = nil;
+        self.imageSourceUri = nil;
 		return;
 	}
 	

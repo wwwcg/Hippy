@@ -41,18 +41,21 @@
 #import "HippyRedBox.h"
 #import "HippyJSCWrapper.h"
 #import "HippyJSCErrorHandling.h"
+#import "HippyJSEnginesMapper.h"
+#import "HippyBridge+LocalFileSource.h"
+#include "ios_loader.h"
+#import "HippyBridge+Private.h"
 #include "js_native_api_jsc.h"
 #include "javascript_task.h"
 #include "js_native_api.h"
 #include "scope.h"
 #include "javascript_task_runner.h"
 #include "engine.h"
-#import "HippyJSEnginesMapper.h"
-#include "ios_loader.h"
-#import "HippyBridge+LocalFileSource.h"
 
 NSString *const HippyJSCThreadName = @"com.tencent.hippy.JavaScript";
 NSString *const HippyJavaScriptContextCreatedNotification = @"HippyJavaScriptContextCreatedNotification";
+NSString *const HippyJavaScriptContextCreatedNotificationBridgeKey = @"HippyJavaScriptContextCreatedNotificationBridgeKey";
+
 HIPPY_EXTERN NSString *const HippyFBJSContextClassKey = @"_HippyFBJSContextClassKey";
 HIPPY_EXTERN NSString *const HippyFBJSValueClassKey = @"_HippyFBJSValueClassKey";
 
@@ -253,9 +256,17 @@ HIPPY_EXPORT_MODULE()
 - (JSContext *)JSContext {
     if (nil == _JSContext) {
         _JSContext = [JSContext contextWithJSGlobalContextRef:[self JSGlobalContextRef]];
+        HippyBridge *bridge = self.bridge;
+        if ([bridge isKindOfClass:[HippyBatchedBridge class]]) {
+            bridge = [(HippyBatchedBridge *)bridge parentBridge];
+        }
+        NSDictionary *userInfo = nil;
+        if (bridge) {
+            userInfo = @{HippyJavaScriptContextCreatedNotificationBridgeKey: bridge};
+        }
         if (_JSContext) {
             [[NSNotificationCenter defaultCenter] postNotificationName:HippyJavaScriptContextCreatedNotification
-                                                                object:_JSContext];
+                                                                object:nil userInfo:userInfo];
         }
     }
     return _JSContext;
@@ -333,6 +344,7 @@ static void installBasicSynchronousHooksOnContext(JSContext *context)
         return;
     }
     _valid = NO;
+    self.pScope->WillExit();
     self.pScope = nullptr;
     _JSContext.name = @"HippyJSContext(delete)";
     _JSContext = nil;
