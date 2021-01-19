@@ -120,7 +120,7 @@ enableWormholeDataSource:(BOOL)enableDataSource;
 - (BOOL)loadNativeVueDomData:(NSData *)data;
 
 /**
- * post message to Wormhole.
+ * post messaging between wormholes and businesses.
  * @param message the message body.
  */
 - (void)postWormholeMessage:(NSDictionary *)message;
