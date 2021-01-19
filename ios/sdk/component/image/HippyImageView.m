@@ -32,6 +32,14 @@
 #import <Accelerate/Accelerate.h>
 #import "NSObject+NativeVue.h"
 
+NSString *const HippyImageErrorDomain = @"HippyImageErrorDomain";
+
+typedef NS_ENUM(NSUInteger, ImageDataError) {
+    ImageDataUnavailable = 1001,
+    ImageDataNotExist,
+    ImageDataReceivedError,
+};
+
 typedef struct _BorderRadiusStruct {
     CGFloat topLeftRadius;
     CGFloat topRightRadius;
@@ -124,6 +132,10 @@ UIImage *HippyBlurredImageWithRadiusv(UIImage *inputImage, CGFloat radius)
 	CGContextRelease(ctx);
 	free(buffer1.data);
 	return outputImage;
+}
+
+NSError *imageErrorFromParams(NSInteger errorCode, NSString *errorDescription){
+    return [NSError errorWithDomain:HippyImageErrorDomain code:errorCode userInfo:@{NSLocalizedDescriptionKey: errorDescription?:@""}];
 }
 
 @interface UIImage (Hippy)
@@ -308,7 +320,13 @@ UIImage *HippyBlurredImageWithRadiusv(UIImage *inputImage, CGFloat radius)
                 }
                 else {
                     UIImage *image = [instance image];
-                    [self loadImage:image url:uri error:nil needBlur:!isBlurredImage needCache:NO];
+                    if (image) {
+                        [self loadImage:image url:uri error:nil needBlur:!isBlurredImage needCache:YES];
+                    }
+                    else {
+                        NSError *theError = imageErrorFromParams(ImageDataUnavailable, @"image data unavailable");
+                        [self loadImage: nil url:uri error:theError needBlur:YES needCache:NO];
+                    }
                 }
                 return;
             }
@@ -347,11 +365,17 @@ UIImage *HippyBlurredImageWithRadiusv(UIImage *inputImage, CGFloat radius)
                 }
                 else {
                     UIImage *image = [instance image];
-                    [self loadImage:image url:source_url.absoluteString error:nil needBlur:YES needCache:YES];
+                    if (image) {
+                        [self loadImage:image url:source_url.absoluteString error:nil needBlur:YES needCache:YES];
+                    }
+                    else {
+                        NSError *theError = imageErrorFromParams(ImageDataUnavailable, @"image data unavailable");
+                        [self loadImage: nil url:source_url.absoluteString error:theError needBlur:YES needCache:NO];
+                    }
                 }
             }
             else {
-                NSError *error = [NSError errorWithDomain:HippyLocalFileReadErrorDomain code:HippyLocalFileNOFilExist userInfo:@{@"fileExist": @(fileExist), @"isDirectory": @(isDirectory), @"uri": uri}];
+                NSError *error = imageErrorFromParams(ImageDataNotExist, @"local image data not exist");
                 [self loadImage:nil url:source_url.absoluteString error:error needBlur:YES needCache:NO];
             }
             return;
@@ -378,11 +402,13 @@ UIImage *HippyBlurredImageWithRadiusv(UIImage *inputImage, CGFloat radius)
                 }
                 else {
                     UIImage *image = [instance image];
-                    NSError *error = nil;
-                    if (!image) {
-                        error = [NSError errorWithDomain: NSURLErrorDomain code: -1 userInfo: @{NSLocalizedDescriptionKey: @"base64 url is invalidated"}];
+                    if (image) {
+                        [weakSelf loadImage: image url: source[@"uri"] error: nil needBlur:YES needCache:YES];
                     }
-                    [weakSelf loadImage: image url: source[@"uri"] error: error needBlur:YES needCache:YES];
+                    else {
+                        NSError *error = imageErrorFromParams(ImageDataUnavailable, @"base64 data not available");
+                        [self loadImage: nil url:source[@"uri"] error:error needBlur:YES needCache:NO];
+                    }
                 }
             }
         };
@@ -406,11 +432,13 @@ UIImage *HippyBlurredImageWithRadiusv(UIImage *inputImage, CGFloat radius)
                 }
                 else {
                     UIImage *image = [instance image];
-                    NSError *error = nil;
-                    if (!image) {
-                        error = [NSError errorWithDomain: NSURLErrorDomain code: -1 userInfo: @{NSLocalizedDescriptionKey: @"base64 url is invalidated"}];
+                    if (image) {
+                        [weakSelf loadImage:image url:source[@"uri"] error:nil needBlur:YES needCache:YES];
                     }
-                    [weakSelf loadImage: image url: source[@"uri"] error: error needBlur:YES needCache:YES];
+                    else {
+                        NSError *error = imageErrorFromParams(ImageDataUnavailable, @"base64 data not available");
+                        [weakSelf loadImage:nil url:source[@"uri"] error:error needBlur:YES needCache:NO];
+                    }
                 }
             }];
         };
@@ -523,13 +551,13 @@ UIImage *HippyBlurredImageWithRadiusv(UIImage *inputImage, CGFloat radius)
                     [animated_image_queue() addOperation:_animatedImageOperation];
                 }
                 else {
-                    [[HippyImageCacheManager sharedInstance] setImageCacheData:_data forURLString:urlString];
                     UIImage *image = [self imageFromData:_data];;
                     if (image) {
+                        [[HippyImageCacheManager sharedInstance] setImageCacheData:_data forURLString:urlString];
                         [self loadImage: image url:urlString error:nil needBlur:YES needCache:YES];
                     } else {
-                        NSError *theError = [NSError errorWithDomain:@"imageFromDataErrorDomain" code:1 userInfo:@{@"reason": @"Error in imageFromData"}];
-                        [self loadImage: nil url:urlString error:theError needBlur:YES needCache:YES];
+                        NSError *theError = imageErrorFromParams(ImageDataUnavailable, @"image data not available");
+                        [self loadImage: nil url:urlString error:theError needBlur:YES needCache:NO];
                     }
                 }
             }
@@ -539,13 +567,13 @@ UIImage *HippyBlurredImageWithRadiusv(UIImage *inputImage, CGFloat radius)
                     NSHTTPURLResponse *httpResponse = (NSHTTPURLResponse *)response;
                     NSUInteger statusCode = [httpResponse statusCode];
                     NSString *errorMessage = [NSString stringWithFormat:@"no data received, HTTPStatusCode is %zd", statusCode];
-                    NSDictionary *userInfo = @{NSLocalizedDescriptionKey: errorMessage};
-                    NSError *error = [NSError errorWithDomain:@"ImageLoadDomain" code:1 userInfo:userInfo];
-                    [self loadImage:nil url:urlString error:error needBlur:NO needCache:NO];
+                    NSError *imgError = imageErrorFromParams(ImageDataUnavailable, errorMessage);
+                    [self loadImage:nil url:urlString error:imgError needBlur:NO needCache:NO];
                 }
             }
         } else {
-            [self loadImage:nil url:urlString error:error needBlur:YES needCache:YES];
+            NSError *imgError = imageErrorFromParams(ImageDataReceivedError, error.localizedDescription);
+            [self loadImage:nil url:urlString error:imgError needBlur:YES needCache:NO];
         }
     }
     [session finishTasksAndInvalidate];

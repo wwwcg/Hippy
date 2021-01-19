@@ -24,20 +24,23 @@
 #import <UIKit/UIKit.h>
 
 NS_ASSUME_NONNULL_BEGIN
+
 @class HippyImageTask;
 typedef void(^HippyImageResponseBlock)(UIImage *image, NSError * _Nullable error);
 
 @interface HippyImageCacheManager : NSObject
+
 + (instancetype) sharedInstance;
 - (void) setImageCacheData:(NSData *)data forURLString:(NSString *)URLString;
 - (NSData *) imageCacheDataForURLString:(NSString *)URLString;
 - (void) setImage:(UIImage *)image forURLString:(NSString *)URLString blurRadius:(CGFloat)radius;
 - (UIImage *) imageForURLString:(NSString *)URLString blurRadius:(CGFloat)radius;
+
 @end
 
 @interface HippyImageCacheManager (ImageLoader)
 
-- (UIImage *)loadImageFromCacheForURLString:(NSString *)URLString radius:(CGFloat)radius isBlurredImage:(BOOL *)isBlurredImage;
+- (UIImage *)loadImageFromCacheForURLString:(NSString *)URLString radius:(CGFloat)radius isBlurredImage:(nullable BOOL *)isBlurredImage;
 
 @end
 
@@ -64,4 +67,5 @@ typedef void(^HippyImageResponseBlock)(UIImage *image, NSError * _Nullable error
 - (void)finishTaskWithImage:(UIImage *)image error:(NSError *)error;
 
 @end
+
 NS_ASSUME_NONNULL_END
