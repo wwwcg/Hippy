@@ -68,7 +68,6 @@
 	return self;
 }
 
-
 - (void)hippySetFrame:(CGRect)frame
 {
 	self.frame = frame;
@@ -104,53 +103,38 @@
 	return NO;
 }
 
-- (BOOL)isList
-{
-	return NO;
-}
-
 - (NSString *)description
 {
-	return [NSString stringWithFormat: @"hippyTag: %@, viewName: %@, props:%@, frame:%@", self.hippyTag, self.viewName, self.props, NSStringFromCGRect(self.frame)];
+    return [NSString stringWithFormat: @"[%@:%p]hippyTag: %@, viewName: %@, props:%@, frame:%@", NSStringFromClass([self class]), self, self.hippyTag, self.viewName, self.props, NSStringFromCGRect(self.frame)];
 }
 
-- (BOOL)isListSubNode
-{
-	return [self listNode] != nil;
+- (BOOL)isLazilyLoadType {
+    return NO;
 }
 
-- (HippyVirtualNode *)cellNode
-{
-	if (_cellNode != nil) {
-		return _cellNode;
-	}
-	
-	HippyVirtualNode *cell = self;
-	if ([cell isKindOfClass: [HippyVirtualCell class]]) {
-		_cellNode = (HippyVirtualCell *)cell;
-	} else {
-		HippyVirtualNode *parent = (HippyVirtualNode *)[cell parent];
-		_cellNode = [parent cellNode];
-	}
-	
-	return _cellNode;
+- (BOOL)createViewLazily {
+    BOOL createViewLazily = NO;
+    HippyVirtualNode *pNode = [self parent];
+    while (pNode) {
+        if ([pNode createViewLazily]) {
+            createViewLazily = YES;
+            break;
+        }
+        else {
+            pNode = [pNode parent];
+        }
+    }
+    return createViewLazily;
 }
 
-- (HippyVirtualList *)listNode
-{
-	if (_listNode != nil) {
-		return _listNode;
-	}
-	
-	HippyVirtualNode *list = self;
-	if ([list isKindOfClass: [HippyVirtualList class]]) {
-		_listNode = (HippyVirtualList *)list;
-	} else {
-		HippyVirtualNode *parent = (HippyVirtualNode *)[list parent];
-		_listNode = [parent listNode];
-	}
-	
-	return _listNode;
+- (HippyVirtualNode *)firstLazilyLoadTypeParentNode {
+    HippyVirtualNode *node = [self parent];
+    BOOL isNodeLazily = [node isLazilyLoadType];
+    while (!isNodeLazily && node) {
+        node = [node parent];
+        isNodeLazily = [node isLazilyLoadType];
+    }
+    return node;
 }
 
 - (UIView *)createView:(HippyCreateViewForShadow)createBlock insertChildrens:(HippyInsertViewForShadow)insertChildrens
@@ -257,66 +241,4 @@
 	}
 }
 
-
 @end
-
-@implementation HippyVirtualList
-
-- (BOOL)isListSubNode
-{
-	return NO;
-}
-
-- (void)insertHippySubview:(id<HippyComponent>)subview atIndex:(__unused NSInteger)atIndex
-{
-	self.needFlush = YES;
-	[super insertHippySubview: subview atIndex: atIndex];
-}
-
-- (void)removeHippySubview:(id<HippyComponent>)subview
-{
-	self.needFlush = YES;
-	[super removeHippySubview: subview];
-}
-@end
-
-@implementation HippyVirtualCell
-
-- (NSString *)description
-{
-	return [NSString stringWithFormat: @"hippyTag: %@, viewName: %@, props:%@ type: %@ frame:%@", self.hippyTag, self.viewName, self.props, self.itemViewType
-					, NSStringFromCGRect(self.frame)];
-}
-
-- (instancetype)initWithTag:(NSNumber *)tag
-									 viewName:(NSString *)viewName
-											props:(NSDictionary *)props
-{
-	if (self = [super initWithTag: tag viewName: viewName props: props]) {
-		self.itemViewType = [NSString stringWithFormat: @"%@", props[@"type"]];
-		self.sticky = [props[@"sticky"] boolValue];
-	}
-	return self;
-}
-
-
-- (void)setProps:(NSDictionary *)props
-{
-	[super setProps: props];
-	
-	self.itemViewType = [NSString stringWithFormat: @"%@", props[@"type"]];
-	self.sticky = [props[@"sticky"] boolValue];
-}
-
-- (void)hippySetFrame:(CGRect)frame
-{
-	if (!CGSizeEqualToSize(self.frame.size, CGSizeZero) && !CGSizeEqualToSize(self.frame.size, frame.size)) {
-		self.listNode.needFlush = YES;
-	}
-	[super hippySetFrame: frame];
-}
-
-@end
-
-
-

@@ -68,7 +68,15 @@ return nil;                                \
 Hippy_JSON_CONVERTER(NSArray)
 Hippy_JSON_CONVERTER(NSDictionary)
 Hippy_JSON_CONVERTER(NSString)
-Hippy_JSON_CONVERTER(NSNumber)
+//Hippy_JSON_CONVERTER(NSNumber)
++ (NSNumber *)NSNumber:(id)json{
+   if ([json isKindOfClass:[NSNumber class]]) {
+       return json;
+    } else if ([json respondsToSelector:@selector(integerValue)]) {
+        return @([json integerValue]);
+    }
+    return nil;
+}
 
 Hippy_CUSTOM_CONVERTER(NSSet *, NSSet, [NSSet setWithArray:json])
 Hippy_CUSTOM_CONVERTER(NSData *, NSData, [json dataUsingEncoding:NSUTF8StringEncoding])
@@ -480,6 +488,132 @@ HIPPY_ENUM_CONVERTER(CGLineCap, (@{
 //  @"m41", @"m42", @"m43", @"m44"
 //]), nil)
 
+//adapter nativevue parse color
++ (UIColor *)convertToColor:(id)value{
+    static NSCache *colorCache;
+    static dispatch_once_t onceToken;
+    dispatch_once(&onceToken, ^{
+        colorCache = [[NSCache alloc] init];
+        colorCache.countLimit = 128;
+    });
+    if ([value isKindOfClass:[NSNull class]] || !value) {
+        return nil;
+    }
+    UIColor *color = [colorCache objectForKey:value];
+    if (color) {
+        return color;
+    }
+    BOOL success = YES;
+    double red = 255, green = 255, blue = 255, alpha = 1.0;
+    if([value isKindOfClass:[NSString class]]){
+        NSString *rgba = [self knownColorWithKey:value];
+        if (!rgba) {
+            rgba = value;
+        }
+        if ([rgba hasPrefix:@"#"]) {
+            // #fff
+            if ([rgba length] == 4) {
+                unichar f =   [rgba characterAtIndex:1];
+                unichar s =   [rgba characterAtIndex:2];
+                unichar t =   [rgba characterAtIndex:3];
+                rgba = [NSString stringWithFormat:@"#%C%C%C%C%C%C", f, f, s, s, t, t];
+            }else if([rgba length] == 9){
+                NSRange alphaRange = NSMakeRange(1, 2);
+                uint32_t alphaValue = 0;
+                sscanf([rgba substringWithRange:alphaRange].UTF8String, "#%x", &alphaValue);
+                alpha = (alphaValue & 0x0000FF) / 255.0;
+                rgba = [rgba stringByReplacingCharactersInRange:alphaRange withString:@""];
+            }
+            
+            // 3. #rrggbb
+            uint32_t colorValue = 0;
+            sscanf(rgba.UTF8String, "#%x", &colorValue);
+            red     = ((colorValue & 0xFF0000) >> 16) / 255.0;
+            green   = ((colorValue & 0x00FF00) >> 8) / 255.0;
+            blue    = (colorValue & 0x0000FF) / 255.0;
+        } else if ([rgba hasPrefix:@"rgb("]) {
+            // 4. rgb(r,g,b)
+            int r,g,b;
+            sscanf(rgba.UTF8String, "rgb(%d,%d,%d)", &r, &g, &b);
+            red = r / 255.0;
+            green = g / 255.0;
+            blue = b / 255.0;
+        } else if ([rgba hasPrefix:@"rgba("]) {
+            // 5. rgba(r,g,b,a)
+            int r,g,b;
+            sscanf(rgba.UTF8String, "rgba(%d,%d,%d,%lf)", &r, &g, &b, &alpha);
+            red = r / 255.0;
+            green = g / 255.0;
+            blue = b / 255.0;
+        }else {
+            success = NO;
+        }
+        
+    } else if([value isKindOfClass:[NSNumber class]]) {
+        NSUInteger colorValue = [value unsignedIntegerValue];
+        red     = ((colorValue & 0xFF0000) >> 16) / 255.0;
+        green   = ((colorValue & 0x00FF00) >> 8) / 255.0;
+        blue    = (colorValue & 0x0000FF) / 255.0;
+    }else {
+         success = NO;
+    }
+    if (success) {
+        color = [UIColor colorWithRed:red green:green blue:blue alpha:alpha];
+           // 6. cache color
+        if (color && value) {
+               [colorCache setObject:color forKey:value];
+        }
+    }
+   
+    
+    return color;
+}
+
++ (NSString *)knownColorWithKey:(NSString *)key{
+    static NSDictionary *knownColors;
+           static dispatch_once_t onceToken;
+           dispatch_once(&onceToken, ^{
+               knownColors = @{
+                               @"black": @"#000000",
+                               @"blue": @"#0000ff",
+                               @"brown": @"#a52a2a",
+                               @"darkgray": @"#a9a9a9",
+                               @"cyan": @"#00ffff",
+                               @"coral": @"#ff7f50",
+                               @"darkgreen": @"#006400",
+                               @"darkslategrey": @"#2f4f4f",
+                               @"gold": @"#ffd700",
+                               @"goldenrod": @"#daa520",
+                               @"gray": @"#808080",
+                               @"grey": @"#808080",
+                               @"green": @"#008000",
+                               @"greenyellow": @"#adff2f",
+                               @"honeydew": @"#f0fff0",
+                               @"lightblue": @"#add8e6",
+                               @"lightcoral": @"#f08080",
+                               @"lightgray": @"#d3d3d3",
+                               @"lightgrey": @"#d3d3d3",
+                               @"lightcyan": @"#e0ffff",
+                               @"lightgray": @"#d3d3d3",
+                               @"lightgrey": @"#d3d3d3",
+                               @"lightgreen": @"#90ee90",
+                               @"lightpink": @"#ffb6c1",
+                               @"lightskyblue": @"#87cefa",
+                               @"lightslategray": @"#778899",
+                               @"lightslategrey": @"#778899",
+                               @"lightsteelblue": @"#b0c4de",
+                               @"lightyellow": @"#ffffe0",
+                               @"white": @"#ffffff",
+                               @"whitesmoke": @"#f5f5f5",
+                               @"yellow": @"#ffff00",
+                               @"yellowgreen": @"#9acd32",
+                               @"red" : @"#dd4b39",
+                               @"transparent": @"rgba(0,0,0,0)",
+                               };
+           });
+    return knownColors[key];
+}
+
 Hippy_CGSTRUCT_CONVERTER(CGAffineTransform, (@[
                                              @"a", @"b", @"c", @"d", @"tx", @"ty"
                                              ]), nil)
@@ -504,6 +638,10 @@ Hippy_CGSTRUCT_CONVERTER(CGAffineTransform, (@[
         CGFloat b = (argb & 0xFF) / 255.0;
         return [UIColor colorWithRed:r green:g blue:b alpha:a];
     } else {
+        UIColor * color = [self convertToColor:json];
+        if(color){
+            return color;
+        }
         HippyLogConvertError(json, @"a UIColor. Did you forget to call processColor() on the JS side?");
         return nil;
     }

@@ -28,6 +28,8 @@
 #import "HippyHeaderRefresh.h"
 #import "HippyFooterRefresh.h"
 #import "UIView+AppearEvent.h"
+#import "HippyVirtualList.h"
+#import "HippyVirtualWormholeNode.h"
 #import "HippyBaseListViewCell.h"
 
 @interface HippyBaseListView() <HippyScrollProtocol, HippyRefreshDelegate>
@@ -35,7 +37,7 @@
 @end
 
 @implementation HippyBaseListView {
-	__weak HippyBridge *_bridge;
+    __weak HippyBridge *_bridge;
 	__weak HippyRootView *_rootView;
 	NSHashTable * _scrollListeners;
 	BOOL _isInitialListReady;
@@ -53,7 +55,7 @@
 {
 	if (self = [super initWithFrame: CGRectZero])
 	{
-		_bridge = bridge;
+        _bridge = bridge;
 		_scrollListeners = [NSHashTable weakObjectsHashTable];
 		_dataSource = [HippyBaseListViewDataSource new];
 		_isInitialListReady = NO;
@@ -250,7 +252,7 @@
 	if (header) {
 		NSString *type = header.itemViewType;
 		UIView *headerView =[tableView dequeueReusableHeaderFooterViewWithIdentifier: type];
-		headerView = [_bridge.uiManager createViewFromNode: header];
+		headerView = [[self bridge].uiManager createViewFromNode: header];
 		return headerView;
 	} else {
 		return nil;
@@ -273,7 +275,12 @@
 	HippyVirtualCell *node = [_dataSource cellForIndexPath: indexPath];
 	NSInteger index = [_subNodes indexOfObject: node];
 	if (self.onRowWillDisplay) {
-		self.onRowWillDisplay(@{@"index": @(index), @"frame": @{@"x":@(CGRectGetMinX(cell.frame)), @"y": @(CGRectGetMinY(cell.frame)), @"width": @(CGRectGetWidth(cell.frame)), @"height": @(CGRectGetHeight(cell.frame))}});
+		self.onRowWillDisplay(@{@"index": @(index),
+                                @"frame": @{@"x":@(CGRectGetMinX(cell.frame)),
+                                            @"y": @(CGRectGetMinY(cell.frame)),
+                                            @"width": @(CGRectGetWidth(cell.frame)),
+                                            @"height": @(CGRectGetHeight(cell.frame))}
+                              });
 	}
     
     if (self.onEndReached) {

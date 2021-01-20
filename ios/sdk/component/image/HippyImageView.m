@@ -30,6 +30,7 @@
 #import "HippyAnimatedImage.h"
 #import "HippyDefaultImageProvider.h"
 #import <Accelerate/Accelerate.h>
+#import "NSObject+NativeVue.h"
 
 NSString *const HippyImageErrorDomain = @"HippyImageErrorDomain";
 
@@ -331,6 +332,16 @@ NSError *imageErrorFromParams(NSInteger errorCode, NSString *errorDescription){
                 return;
             }
         }
+        HippyImageTask * requestingTask = [[HippyImageCacheManager sharedInstance] imageTaskForRequestingWithURLString:uri radius:_blurRadius];
+        if (requestingTask) {
+             __weak typeof(self) weakSelf = self;
+            [requestingTask addListenResponseCallbackWithBlock:^(UIImage * _Nonnull image, NSError * _Nullable error) {
+                 [weakSelf loadImage:image url:uri error:error needBlur:!isBlurredImage needCache:NO];
+            }];
+            return ;
+        }else if(self.hippy_from_nativevue){
+            [[HippyImageCacheManager sharedInstance] addImageTaskWithURLString:uri radius:_blurRadius imageView:self];
+        }
 
         NSData *uriData = [uri dataUsingEncoding:NSUTF8StringEncoding];
         if (nil == uriData) {
@@ -472,6 +483,9 @@ NSError *imageErrorFromParams(NSInteger errorCode, NSString *errorDescription){
 - (void)cancelImageLoad
 {
     self.pendingImageSourceUri = nil;
+    if (self.hippy_from_nativevue) {
+        return;
+    }
 	NSDictionary *source = [self.source firstObject];
 	if (_bridge.imageLoader) {
         [_animatedImageOperation cancel];
@@ -576,6 +590,8 @@ NSError *imageErrorFromParams(NSInteger errorCode, NSString *errorDescription){
 
 - (void)loadImage:(UIImage *)image url:(NSString *)url error:(NSError *)error needBlur:(BOOL)needBlur needCache:(BOOL)needCache
 {
+    CGFloat blurRadius = _blurRadius;
+    BOOL isFromNativeVue = self.hippy_from_nativevue;
 	if (error) {
 		if (_onError && error.code != NSURLErrorCancelled) {
 			_onError(@{@"error": error.localizedDescription});
@@ -583,6 +599,11 @@ NSError *imageErrorFromParams(NSInteger errorCode, NSString *errorDescription){
 		if (_onLoadEnd) {
 			_onLoadEnd(nil);
 		}
+        if (needCache && isFromNativeVue) {
+            HippyExecuteOnMainQueue(^{
+                  [[HippyImageCacheManager sharedInstance] finishImageTaskWithURLString:url radius:blurRadius image:image error:error];
+            });
+        }
 		return;
 	}
 	
@@ -597,10 +618,15 @@ NSError *imageErrorFromParams(NSInteger errorCode, NSString *errorDescription){
 			[weakSelf updateImage: image];
 		}
 		
-		if (weakSelf.onLoad)
+        if (weakSelf.onLoad) {
 			weakSelf.onLoad(@{@"width": @(image.size.width),@"height": @(image.size.height), @"url":url ? :@""});
-		if (weakSelf.onLoadEnd)
+        }
+        if (weakSelf.onLoadEnd) {
 			weakSelf.onLoadEnd(nil);
+        }
+        if(needCache && isFromNativeVue){
+           [[HippyImageCacheManager sharedInstance] finishImageTaskWithURLString:url radius:blurRadius image:image error:error];
+        }
 	};
     
     if (_blurRadius > 100 && [NSProcessInfo processInfo].physicalMemory <= 1024 * 1024 * 1000) {

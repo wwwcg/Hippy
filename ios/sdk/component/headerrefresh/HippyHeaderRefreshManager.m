@@ -31,16 +31,16 @@ HIPPY_EXPORT_MODULE(PullHeaderView)
 HIPPY_EXPORT_VIEW_PROPERTY(onHeaderReleased, HippyDirectEventBlock)
 HIPPY_EXPORT_VIEW_PROPERTY(onHeaderPulling, HippyDirectEventBlock)
 
-HIPPY_EXPORT_METHOD(expandPullHeader : (nonnull NSNumber *)reactTag) {
+HIPPY_EXPORT_METHOD(expandPullHeader : (nonnull NSNumber *)hippyTag) {
     [self.bridge.uiManager addUIBlock:^(HippyUIManager *uiManager, NSDictionary<NSNumber *, __kindof UIView *> *viewRegistry) {
-        HippyRefresh *refreshView = viewRegistry[reactTag];
+        HippyRefresh *refreshView = viewRegistry[hippyTag];
         [refreshView refresh];
     }];
 }
 
-HIPPY_EXPORT_METHOD(collapsePullHeader : (nonnull NSNumber *)reactTag) {
+HIPPY_EXPORT_METHOD(collapsePullHeader : (nonnull NSNumber *)hippyTag) {
     [self.bridge.uiManager addUIBlock:^(HippyUIManager *uiManager, NSDictionary<NSNumber *, __kindof UIView *> *viewRegistry) {
-        HippyRefresh *refreshView = viewRegistry[reactTag];
+        HippyRefresh *refreshView = viewRegistry[hippyTag];
         [refreshView refreshFinish];
     }];
 }

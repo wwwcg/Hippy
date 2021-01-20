@@ -452,6 +452,9 @@ HIPPY_NOT_IMPLEMENTED(- (instancetype)initWithCoder:(NSCoder *)aDecoder)
 {
   [[NSNotificationCenter defaultCenter] removeObserver:self];
   [_contentView invalidate];
+  if ([_delegate respondsToSelector:@selector(rootViewWillBePurged:)]) {
+    [_delegate rootViewWillBePurged:self];
+  }
 }
 
 - (void)cancelTouches
@@ -465,9 +468,11 @@ HIPPY_NOT_IMPLEMENTED(- (instancetype)initWithCoder:(NSCoder *)aDecoder)
 
 - (NSNumber *)allocateRootTag
 {
-  NSNumber *rootTag = objc_getAssociatedObject(self, _cmd) ?: @10;
-  objc_setAssociatedObject(self, _cmd, @(rootTag.integerValue + 10), OBJC_ASSOCIATION_RETAIN_NONATOMIC);
-  return rootTag;
+    static NSString * const token = @"allocateRootTag";
+    @synchronized (token) {
+        static NSUInteger rootTag = 0;
+        return @(rootTag += 10);
+    }
 }
 
 @end

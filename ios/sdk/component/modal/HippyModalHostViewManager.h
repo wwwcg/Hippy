@@ -28,7 +28,7 @@
 
 @protocol HippyModalHostViewInteractor;
 
-typedef void (^HippyModalViewInteractionBlock)(UIViewController *reactViewController, UIViewController *viewController, BOOL animated, dispatch_block_t completionBlock);
+typedef void (^HippyModalViewInteractionBlock)(UIViewController *hippyViewController, UIViewController *viewController, BOOL animated, dispatch_block_t completionBlock);
 
 @interface HippyModalHostViewManager : HippyViewManager <HippyInvalidating>
 

@@ -33,7 +33,6 @@
 
 @implementation HippyModalHostView
 {
-  __weak HippyBridge *_bridge;
   BOOL _isPresented;
   HippyModalHostViewController *_modalViewController;
   UIView *_hippySubview;
@@ -47,7 +46,6 @@ HIPPY_NOT_IMPLEMENTED(- (instancetype)initWithCoder:coder)
 - (instancetype)initWithBridge:(HippyBridge *)bridge
 {
   if ((self = [super initWithFrame:CGRectZero])) {
-    _bridge = bridge;
     _modalViewController = [HippyModalHostViewController new];
     UIView *containerView = [UIView new];
     containerView.autoresizingMask = UIViewAutoresizingFlexibleHeight | UIViewAutoresizingFlexibleWidth;

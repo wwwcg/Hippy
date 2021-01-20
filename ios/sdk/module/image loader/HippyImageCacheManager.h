@@ -21,9 +21,12 @@
 */
 
 #import <Foundation/Foundation.h>
-#import <UIKit/UIImage.h>
+#import <UIKit/UIKit.h>
 
 NS_ASSUME_NONNULL_BEGIN
+
+@class HippyImageTask;
+typedef void(^HippyImageResponseBlock)(UIImage *image, NSError * _Nullable error);
 
 @interface HippyImageCacheManager : NSObject
 
@@ -38,6 +41,30 @@ NS_ASSUME_NONNULL_BEGIN
 @interface HippyImageCacheManager (ImageLoader)
 
 - (UIImage *)loadImageFromCacheForURLString:(NSString *)URLString radius:(CGFloat)radius isBlurredImage:(nullable BOOL *)isBlurredImage;
+
+@end
+
+@interface HippyImageCacheManager (RequestReuse)
+
+- (HippyImageTask *)imageTaskForRequestingWithURLString:(NSString *)URLString radius:(CGFloat)radius;
+
+- (void)addImageTaskWithURLString:(NSString *)URLString radius:(CGFloat)radius imageView:(UIImageView *)imageView;
+
+- (void)finishImageTaskWithURLString:(NSString *)URLString radius:(CGFloat)radius image:(UIImage *)image error:(NSError *)error;
+
+- (BOOL)cancelImageTaskForRequestingWithURLString:(NSString *)URLString radius:(CGFloat)radius;
+
+@end
+
+@interface HippyImageTask : NSObject
+
+@property (nonatomic, assign) BOOL isRequesting;
+@property (nonatomic, strong, nullable) UIImageView * imageView;//should retain imageView util request did end
+
+
+@property (nullable, nonatomic, strong) NSMutableArray<HippyImageResponseBlock> * listenResponseCallbacks;
+- (void)addListenResponseCallbackWithBlock:(HippyImageResponseBlock)block;
+- (void)finishTaskWithImage:(UIImage *)image error:(NSError *)error;
 
 @end
 

@@ -29,6 +29,7 @@
 #import "HippyInvalidating.h"
 #import "HippyImageViewCustomLoader.h"
 #import "HippyCustomTouchHandlerProtocol.h"
+#import "HippyWormholeProtocol.h"
 #import "HippyImageProviderProtocol.h"
 
 @class JSValue;
@@ -198,6 +199,9 @@ HIPPY_EXTERN NSString *HippyBridgeModuleNameForClass(Class bridgeModuleClass);
  */
 @property (nonatomic, weak, readonly) id<HippyBridgeDelegate> delegate;
 
+@property (nonatomic, weak) id<HippyWormholeDataSource> wormholeDataSource;
+@property (nonatomic, weak) id<HippyWormholeDelegate> wormholeDelegate;
+
 @property (nonatomic, weak, readonly) HippyExtAnimationModule *animationModule;
 
 @property (nonatomic, strong, readonly) id <HippyImageViewCustomLoader> imageLoader;
@@ -255,5 +259,11 @@ HIPPY_EXTERN NSString *HippyBridgeModuleNameForClass(Class bridgeModuleClass);
  */
 - (void)bindKeys;
 
+
+@end
+
+@interface UIView(Bridge)
+
+@property(nonatomic, weak) HippyBridge *bridge;
 
 @end
