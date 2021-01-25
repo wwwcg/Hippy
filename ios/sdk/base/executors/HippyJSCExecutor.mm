@@ -255,18 +255,21 @@ HIPPY_EXPORT_MODULE()
 
 - (JSContext *)JSContext {
     if (nil == _JSContext) {
-        _JSContext = [JSContext contextWithJSGlobalContextRef:[self JSGlobalContextRef]];
-        HippyBridge *bridge = self.bridge;
-        if ([bridge isKindOfClass:[HippyBatchedBridge class]]) {
-            bridge = [(HippyBatchedBridge *)bridge parentBridge];
-        }
-        NSDictionary *userInfo = nil;
-        if (bridge) {
-            userInfo = @{HippyJavaScriptContextCreatedNotificationBridgeKey: bridge};
-        }
-        if (_JSContext) {
-            [[NSNotificationCenter defaultCenter] postNotificationName:HippyJavaScriptContextCreatedNotification
-                                                                object:nil userInfo:userInfo];
+        JSGlobalContextRef contextRef = [self JSGlobalContextRef];
+        if (contextRef) {
+            _JSContext = [JSContext contextWithJSGlobalContextRef:contextRef];
+            HippyBridge *bridge = self.bridge;
+            if ([bridge isKindOfClass:[HippyBatchedBridge class]]) {
+                bridge = [(HippyBatchedBridge *)bridge parentBridge];
+            }
+            NSDictionary *userInfo = nil;
+            if (bridge) {
+                userInfo = @{HippyJavaScriptContextCreatedNotificationBridgeKey: bridge};
+            }
+            if (_JSContext) {
+                [[NSNotificationCenter defaultCenter] postNotificationName:HippyJavaScriptContextCreatedNotification
+                                                                    object:nil userInfo:userInfo];
+            }
         }
     }
     return _JSContext;
