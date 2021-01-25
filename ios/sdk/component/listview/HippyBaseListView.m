@@ -92,6 +92,7 @@
 		if (@available(iOS 11.0, *))
 		{
 			_tableView.contentInsetAdjustmentBehavior = UIScrollViewContentInsetAdjustmentNever;
+            _tableView.insetsContentViewsToSafeArea = NO;
 		}
         
 		[self addSubview:_tableView];
