@@ -33,6 +33,18 @@
 }
 @end
 
+typedef NS_ENUM(NSUInteger, CreationType) {
+    CreationTypeUnknown,
+    CreationTypeRealTime,
+    CreationTypeAsNeeded,
+};
+
+@interface HippyVirtualNode () {
+    CreationType _creationType;
+}
+
+@end
+
 @implementation HippyVirtualNode
 
 @synthesize viewName = _viewName;
@@ -113,18 +125,30 @@
 }
 
 - (BOOL)createViewLazily {
-    BOOL createViewLazily = NO;
-    HippyVirtualNode *pNode = [self parent];
-    while (pNode) {
-        if ([pNode createViewLazily]) {
-            createViewLazily = YES;
-            break;
+    if (_creationType == CreationTypeUnknown) {
+        BOOL createViewLazily = NO;
+        HippyVirtualNode *pNode = [self parent];
+        while (pNode) {
+            if ([pNode createViewLazily]) {
+                createViewLazily = YES;
+                break;
+            }
+            else {
+                pNode = [pNode parent];
+            }
         }
-        else {
-            pNode = [pNode parent];
-        }
+        _creationType = createViewLazily ? CreationTypeAsNeeded : CreationTypeRealTime;
+        return createViewLazily;
     }
-    return createViewLazily;
+    else {
+        BOOL createViewLazily = (_creationType == CreationTypeAsNeeded);
+        return createViewLazily;
+    }
+}
+
+- (void)setParent:(id<HippyComponent>)parent {
+    _parent = parent;
+    _creationType = CreationTypeUnknown;
 }
 
 - (HippyVirtualNode *)firstLazilyLoadTypeParentNode {
