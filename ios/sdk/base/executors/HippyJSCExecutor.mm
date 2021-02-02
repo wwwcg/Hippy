@@ -435,6 +435,12 @@ HIPPY_EXPORT_METHOD(setContextName:(NSString *)contextName)
 #ifndef HIPPY_DEBUG
             @try {
 #endif
+                JSContext *context = [strongSelf JSContext];
+                JSGlobalContextRef globalContextRef = [strongSelf JSGlobalContextRef];
+                if (!context || !globalContextRef) {
+                    onComplete([NSNull null], nil);
+                    return;
+                }
                 HippyBridge *bridge = [strongSelf bridge];
                 NSString *moduleName = [bridge moduleName];
                 NSError *executeError = nil;
@@ -449,8 +455,6 @@ HIPPY_EXPORT_METHOD(setContextName:(NSString *)contextName)
                         if (jsccontext->IsFunction(method_value)) {
                             std::shared_ptr<hippy::napi::CtxValue> function_params[arguments.count];
                             if (arguments.count > 0) {
-                                JSContext *context = [strongSelf JSContext];
-                                JSGlobalContextRef globalContextRef = [strongSelf JSGlobalContextRef];
                                 for (NSUInteger i = 0; i < arguments.count; i++) {
                                     JSValueRef value = [JSValue valueWithObject:arguments[i] inContext:context].JSValueRef;
                                     function_params[i] = std::make_shared<hippy::napi::JSCCtxValue>(globalContextRef, value);
