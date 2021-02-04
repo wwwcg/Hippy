@@ -812,7 +812,7 @@ NSError *imageErrorFromParams(NSInteger errorCode, NSString *errorDescription){
     if ([instance isKindOfClass:[HippyDefaultImageProvider class]]) {
         HippyDefaultImageProvider *provider = (HippyDefaultImageProvider *)instance;
         provider.imageViewSize = _size;
-        provider.needsDownSampling = _needDownsampleing;
+        provider.downSample = _downSample;
     }
     return instance;
 }
