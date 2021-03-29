@@ -65,6 +65,11 @@ typedef void (^HippyJavaScriptCallback)(id result, NSError *error);
 - (void)flushedQueue:(HippyJavaScriptCallback)onComplete;
 
 /**
+ * called when second bundle load
+ */
+- (void)secondBundleLoadCompleted:(BOOL)success;
+
+/**
  * Executes BatchedBridge.callFunctionReturnFlushedQueue with the module name,
  * method name and optional additional arguments on the JS thread and calls the
  * given callback with JSValue, containing the next queue, and JSContext.

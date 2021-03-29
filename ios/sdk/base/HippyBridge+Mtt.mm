@@ -95,10 +95,11 @@ static const void *HippyBridgeLoadedBundlesKey = &HippyBridgeLoadedBundlesKey;
         loaded = [self.loadedBundleURLs objectForKey:key] != nil;
     }
     // 已经加载，直接返回
-    if (loaded)
-    {
-        if (completion)
-        {
+    if (loaded) {
+        if (completion) {
+            if ([self.batchedBridge.javaScriptExecutor respondsToSelector:@selector(secondBundleLoadCompleted:)]) {
+                [self.batchedBridge.javaScriptExecutor secondBundleLoadCompleted:YES];
+            }
             completion(YES);
         }
         
@@ -204,21 +205,23 @@ static const void *HippyBridgeLoadedBundlesKey = &HippyBridgeLoadedBundlesKey;
                     }
                     
                     batchedBridge.isSecondaryBundleLoading = NO;
-                    
-                    [self.performanceLogger markStopForTag: HippySecondaryStartup];
-                    
-                    if (completion)
-                    {
+
+                    [self.performanceLogger markStopForTag:HippySecondaryStartup];
+
+                    if (completion) {
+                        if ([self.batchedBridge.javaScriptExecutor respondsToSelector:@selector(secondBundleLoadCompleted:)]) {
+                            [self.batchedBridge.javaScriptExecutor secondBundleLoadCompleted:!error];
+                        }
                         completion(!error);
                     }
                     
                     [self loadNextBundle];
                 }];
-            }
-            else
-            {
-                if (completion)
-                {
+            } else {
+                if (completion) {
+                    if ([self.batchedBridge.javaScriptExecutor respondsToSelector:@selector(secondBundleLoadCompleted:)]) {
+                        [self.batchedBridge.javaScriptExecutor secondBundleLoadCompleted:NO];
+                    }
                     completion(NO);
                 }
                 
