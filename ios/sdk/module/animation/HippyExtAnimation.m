@@ -236,14 +236,16 @@
     else if (self.byValue){
         animation.byValue = self.byValue;
     }
-	animation.duration = _duration;
-	animation.beginTime = CACurrentMediaTime() + _delay;
-	animation.timingFunction = [CAMediaTimingFunction functionWithName: _timingFunction];
-	animation.repeatCount = _repeatCount;
-	animation.removedOnCompletion = NO;
-	animation.fillMode = kCAFillModeForwards;
-	
-	return animation;
+    animation.duration = _duration;
+    if (fabs(_delay) > CGFLOAT_MIN) {
+        animation.beginTime = CACurrentMediaTime() + _delay;
+    }
+    animation.timingFunction = [CAMediaTimingFunction functionWithName:_timingFunction];
+    animation.repeatCount = _repeatCount;
+    animation.removedOnCompletion = NO;
+    animation.fillMode = kCAFillModeForwards;
+
+    return animation;
 }
 
 @end
