@@ -347,6 +347,7 @@
     if (!self.needsLayoutItems) {
         return;
     }
+    self.needsLayoutItems = NO;
     if (!self.viewPagerItems.count) return;
     for (int i = 1; i < self.viewPagerItems.count; ++i) {
         UIView *lastViewPagerItem = self.viewPagerItems[i - 1];
@@ -390,15 +391,13 @@
     self.contentSize = CGSizeMake(
             lastViewPagerItem.frame.origin.x + lastViewPagerItem.frame.size.width,
             lastViewPagerItem.frame.origin.y + lastViewPagerItem.frame.size.height);
-    if (self.onPageSelected && NO == CGSizeEqualToSize(CGSizeZero, self.contentSize) && _invokeOnPageSelected) {
+    if (!CGSizeEqualToSize(CGSizeZero, self.contentSize)) {
         NSUInteger currentPageIndex = self.contentOffset.x / CGRectGetWidth(self.bounds);
         if (currentPageIndex != _lastPageIndex) {
             _lastPageIndex = currentPageIndex;
-            self.onPageSelected(@{@"position": @(currentPageIndex)});
+            [self setPage:_lastPageIndex animated:YES];
         }
     }
-    [self setPage:_lastPageIndex animated:YES];
-    self.needsLayoutItems = NO;
 }
 
 - (NSUInteger)nowPage {
