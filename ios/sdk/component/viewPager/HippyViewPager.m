@@ -370,8 +370,7 @@
     
     //如果是第一次加载，那么走initialPage的逻辑
     if (!_didFirstTimeLayout) {
-        UIView *theItem = self.viewPagerItems[self.initialPage];
-        self.contentOffset = theItem.frame.origin;
+        [self setPage:self.initialPage animated:NO];
         _didFirstTimeLayout = YES;
     }
     if (self.contentOffset.x > self.contentSize.width
@@ -391,13 +390,6 @@
     self.contentSize = CGSizeMake(
             lastViewPagerItem.frame.origin.x + lastViewPagerItem.frame.size.width,
             lastViewPagerItem.frame.origin.y + lastViewPagerItem.frame.size.height);
-    if (!CGSizeEqualToSize(CGSizeZero, self.contentSize)) {
-        NSUInteger currentPageIndex = self.contentOffset.x / CGRectGetWidth(self.bounds);
-        if (currentPageIndex != _lastPageIndex) {
-            _lastPageIndex = currentPageIndex;
-            [self setPage:_lastPageIndex animated:YES];
-        }
-    }
 }
 
 - (NSUInteger)nowPage {
