@@ -1010,11 +1010,14 @@ HIPPY_EXPORT_METHOD(createView:(nonnull NSNumber *)hippyTag
 }
 
 - (UIView *)createViewByComponentData:(HippyComponentData *)componentData
-                 hippyVirtualNode:(HippyVirtualNode *)node
-                         hippyTag:(NSNumber *)hippyTag
-                       properties:(NSDictionary *)props
-                         viewName:(NSString *)viewName {
-    UIView *view = [componentData createViewWithTag:hippyTag initProps: props];
+                     hippyVirtualNode:(HippyVirtualNode *)node
+                             hippyTag:(NSNumber *)hippyTag
+                           properties:(NSDictionary *)props
+                             viewName:(NSString *)viewName {
+    UIView *view = [self viewForHippyTag:hippyTag];
+    if (!view) {
+        view = [componentData createViewWithTag:hippyTag initProps:props];
+    }
     if (view) {
         view.viewName = viewName;
         [componentData setProps:props forView:view]; // Must be done before bgColor to prevent wrong default
