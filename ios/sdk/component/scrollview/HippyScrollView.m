@@ -221,19 +221,29 @@ HIPPY_NOT_IMPLEMENTED(- (instancetype)initWithCoder:(NSCoder *)aDecoder)
     // Does nothing
 }
 
-- (void)insertHippySubview:(UIView *)view atIndex:(NSInteger)atIndex
-{
-    [super insertHippySubview:view atIndex:atIndex];
-    HippyAssert(_contentView == nil, @"HippyScrollView may only contain a single subview");
+- (void)insertHippySubview:(UIView *)view atIndex:(NSInteger)atIndex {
+    if (view == _contentView && 0 == atIndex) {
+        return;
+    }
+    HippyAssert(0 == atIndex, @"HippyScrollView only contain one subview at index 0");
+    if (_contentView) {
+        [self removeHippySubview:_contentView];
+    }
     _contentView = view;
     [_contentView addObserver: self forKeyPath: @"frame" options: NSKeyValueObservingOptionNew context: nil];
     [view onAttachedToWindow];
     [_scrollView addSubview:view];
 }
 
-- (void)observeValueForKeyPath:(NSString *)keyPath ofObject:(id)object change:(__unused NSDictionary<NSKeyValueChangeKey,id> *)change context:(__unused void *)context
-{
-    if ([keyPath isEqualToString: @"frame"]) {
+- (NSArray<UIView *> *)hippySubviews {
+    return _contentView ? [NSMutableArray arrayWithObject:_contentView] : nil;
+}
+
+- (void)observeValueForKeyPath:(NSString *)keyPath
+                      ofObject:(id)object
+                        change:(__unused NSDictionary<NSKeyValueChangeKey, id> *)change
+                       context:(__unused void *)context {
+    if ([keyPath isEqualToString:@"frame"]) {
         if (object == _contentView) {
             [self hippyBridgeDidFinishTransaction];
         }
