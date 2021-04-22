@@ -584,22 +584,6 @@ typedef void (^ViewBlock)(UIView *view, BOOL *stop);
 }
 
 - (BOOL)canPreventGestureRecognizer:(__unused UIGestureRecognizer *)preventedGestureRecognizer {
-    UIView *gestureView = [preventedGestureRecognizer view];
-    for (UIView *view in _onInterceptTouchEventView) {
-        if ([gestureView isDescendantOfView:view] && gestureView != view && ![gestureView hippyTag]) {
-            return YES;
-        }
-    }
-    for (UIView *view in _onInterceptPullUpEventView) {
-        if ([gestureView isDescendantOfView:view] && gestureView != view && ![gestureView hippyTag]) {
-            return YES;
-        }
-    }
-    if ([preventedGestureRecognizer isKindOfClass:[self class]]) {
-        UIView *currentHandlerView = [self view];
-        BOOL canPreventGestureRecognizer = [currentHandlerView isDescendantOfView:gestureView];
-        return canPreventGestureRecognizer;
-    }
     return NO;
 }
 
