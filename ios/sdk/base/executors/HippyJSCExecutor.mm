@@ -430,9 +430,7 @@ HIPPY_EXPORT_METHOD(setContextName:(NSString *)contextName) {
                 return;
             }
 
-#ifndef HIPPY_DEBUG
             @try {
-#endif
                 HippyBridge *bridge = [strongSelf bridge];
                 NSString *moduleName = [bridge moduleName];
                 NSError *executeError = nil;
@@ -485,11 +483,14 @@ HIPPY_EXPORT_METHOD(setContextName:(NSString *)contextName) {
                     objcValue = unwrapResult ? [objc_value toObject] : objc_value;
                 }
                 onComplete(objcValue, executeError);
-#ifndef HIPPY_DEBUG
             } @catch (NSException *exception) {
-                MttHippyException(exception);
+                NSString *moduleName = strongSelf.bridge.moduleName?:@"unknown";
+                NSMutableDictionary *userInfo = [exception.userInfo mutableCopy]?:[NSMutableDictionary dictionary];
+                [userInfo setObject:moduleName forKey:HippyFatalModuleName];
+                [userInfo setObject:arguments?:[NSArray array] forKey:@"arguments"];
+                NSException *reportException = [NSException exceptionWithName:exception.name reason:exception.reason userInfo:userInfo];
+                MttHippyException(reportException);
             }
-#endif
         }
     }];
 }
