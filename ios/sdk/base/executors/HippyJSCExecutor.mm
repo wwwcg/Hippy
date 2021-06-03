@@ -198,7 +198,12 @@ HIPPY_EXPORT_MODULE()
             NSString *string = [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding];
             context->SetGlobalJsonVar("__HIPPYNATIVEGLOBAL__", [string UTF8String]);
             context->SetGlobalJsonVar("__fbBatchedBridgeConfig", [[strongSelf.bridge moduleConfig] UTF8String]);
-            context->SetGlobalStrVar("__HIPPYCURDIR__", [strongSelf.bridge.workFolder2 UTF8String]);
+            
+            const char *workFolderPath = [strongSelf.bridge.workFolder2 UTF8String];
+            HippyAssert(workFolderPath, @"work folder should not be null");
+            if (workFolderPath) {
+                context->SetGlobalStrVar("__HIPPYCURDIR__", workFolderPath);
+            }
             installBasicSynchronousHooksOnContext(jsContext);
             jsContext[@"nativeRequireModuleConfig"] = ^NSArray *(NSString *moduleName) {
                 HippyJSCExecutor *strongSelf = weakSelf;
@@ -382,7 +387,11 @@ HIPPY_EXPORT_METHOD(setContextName:(NSString *)contextName) {
 
 - (void)secondBundleLoadCompleted:(BOOL)success {
     std::shared_ptr<hippy::napi::JSCCtx> context = std::static_pointer_cast<hippy::napi::JSCCtx>(self.pScope->GetContext());
-    context->SetGlobalStrVar("__HIPPYCURDIR__", [self.bridge.workFolder2 UTF8String]);
+    const char *workFolderPath = [self.bridge.workFolder2 UTF8String];
+    HippyAssert(workFolderPath, @"work folder should not be null");
+    if (workFolderPath) {
+        context->SetGlobalStrVar("__HIPPYCURDIR__", workFolderPath);
+    }
 }
 
 - (void)flushedQueue:(HippyJavaScriptCallback)onComplete {
