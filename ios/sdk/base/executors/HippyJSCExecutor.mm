@@ -198,11 +198,13 @@ HIPPY_EXPORT_MODULE()
             NSString *string = [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding];
             context->SetGlobalJsonVar("__HIPPYNATIVEGLOBAL__", [string UTF8String]);
             context->SetGlobalJsonVar("__fbBatchedBridgeConfig", [[strongSelf.bridge moduleConfig] UTF8String]);
-            
             const char *workFolderPath = [strongSelf.bridge.workFolder2 UTF8String];
             HippyAssert(workFolderPath, @"work folder should not be null");
             if (workFolderPath) {
                 context->SetGlobalStrVar("__HIPPYCURDIR__", workFolderPath);
+            }
+            else {
+                context->SetGlobalStrVar("__HIPPYCURDIR__", "");
             }
             installBasicSynchronousHooksOnContext(jsContext);
             jsContext[@"nativeRequireModuleConfig"] = ^NSArray *(NSString *moduleName) {
@@ -391,6 +393,9 @@ HIPPY_EXPORT_METHOD(setContextName:(NSString *)contextName) {
     HippyAssert(workFolderPath, @"work folder should not be null");
     if (workFolderPath) {
         context->SetGlobalStrVar("__HIPPYCURDIR__", workFolderPath);
+    }
+    else {
+        context->SetGlobalStrVar("__HIPPYCURDIR__", "");
     }
 }
 
