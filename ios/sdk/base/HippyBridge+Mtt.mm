@@ -130,6 +130,7 @@ static const void *HippyBridgeLoadedBundlesKey = &HippyBridgeLoadedBundlesKey;
         dispatch_group_t initModulesAndLoadSource = dispatch_group_create();
         dispatch_group_enter(initModulesAndLoadSource);
         __block NSData *sourceCode = nil;
+        [self.performanceLogger markStartForTag:HippySecondaryLoadSource];
         [HippyJavaScriptLoader loadBundleAtURL:secondaryBundleURL onProgress:nil
                                     onComplete:^(NSError *error, NSData *source, __unused int64_t sourceLength) {
                                         if (!error) {
@@ -152,6 +153,7 @@ static const void *HippyBridgeLoadedBundlesKey = &HippyBridgeLoadedBundlesKey;
                                             loadBundleCompletion(error);
                                         }
 
+                                        [self.performanceLogger markStopForTag:HippySecondaryLoadSource];
                                         dispatch_group_leave(initModulesAndLoadSource);
                                     }];
 
@@ -165,6 +167,7 @@ static const void *HippyBridgeLoadedBundlesKey = &HippyBridgeLoadedBundlesKey;
 
                 HippyAssert(!strongBridge.isLoading, @"异常了common包没有加载好");
 
+                [self.performanceLogger markStartForTag:HippySecondaryExecuteSource];
                 [strongBridge enqueueApplicationScript:sourceCode url:secondaryBundleURL onComplete:^(NSError *error) {
                     if (enqueueScriptCompletion) {
                         enqueueScriptCompletion(error);
@@ -190,6 +193,7 @@ static const void *HippyBridgeLoadedBundlesKey = &HippyBridgeLoadedBundlesKey;
 
                     batchedBridge.isSecondaryBundleLoading = NO;
 
+                    [self.performanceLogger markStopForTag:HippySecondaryExecuteSource];
                     [self.performanceLogger markStopForTag:HippySecondaryStartup];
 
                     if (completion) {
