@@ -343,8 +343,32 @@
 }
 
 - (void)setContentOffset:(CGPoint)contentOffset animated:(BOOL)animated {
+    if (CGPointEqualToPoint(contentOffset, self.contentOffset)) {
+        return;
+    }
     _targetOffset = contentOffset;
-    [super setContentOffset:contentOffset animated:animated];
+    
+    /**
+     * ios 15 beta上发现个问题，feeds切换tab时有一定概率scrollView卡顿，滑动到一半卡住
+     * 目前发现只要注销调invokePageSelected方法中的onPageSelected回调就不会出现卡住
+     * 推测是UIScrollView滑动时改变了某个属性导致的（滑动时addSubView似乎并不会导致）
+     * 所以这里规避一下，如果ios15，则使用[UIView animateWithDuration:animations:]做动画
+     * 等ios15正式发布看看是否存在这个问题，再合入到github上。
+     */
+    if (@available(iOS 15, *)) {
+        if (animated) {
+            [UIView animateWithDuration:.3f
+                             animations:^{
+                [super setContentOffset:contentOffset];
+            }];
+        }
+        else {
+            [super setContentOffset:contentOffset];
+        }
+    }
+    else {
+        [super setContentOffset:contentOffset animated:animated];
+    }
 }
 
 - (void)hippyBridgeDidFinishTransaction {
