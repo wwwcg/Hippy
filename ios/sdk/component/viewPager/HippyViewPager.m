@@ -357,10 +357,25 @@
      */
     if (@available(iOS 15, *)) {
         if (animated) {
-            [UIView animateWithDuration:.3f
-                             animations:^{
-                [super setContentOffset:contentOffset];
-            }];
+            static NSUInteger viewPagerSetContentoffsetFrames = 10;
+            static CGFloat keyFramesAnimatonDuration = .5f;
+            CGFloat eachXOffset = (contentOffset.x - self.contentOffset.x) / viewPagerSetContentoffsetFrames;
+            CGFloat eachYOffset = (contentOffset.y - self.contentOffset.y) / viewPagerSetContentoffsetFrames;
+            CGPoint currentOffset = self.contentOffset;
+            [UIView animateKeyframesWithDuration:keyFramesAnimatonDuration delay:0 options:UIViewKeyframeAnimationOptionCalculationModeLinear animations:^{
+                CGFloat durationForEachKeyFrameAnimation = keyFramesAnimatonDuration / viewPagerSetContentoffsetFrames;
+                for (NSUInteger i = 0; i < viewPagerSetContentoffsetFrames; i++) {
+                    CGFloat startTimeForAnimation = i * (keyFramesAnimatonDuration / viewPagerSetContentoffsetFrames);
+                    CGPoint keyFrameContentOffset =
+                        CGPointMake(currentOffset.x + eachXOffset * (i + 1),
+                                    currentOffset.y + eachYOffset * (i + 1));
+                    [UIView addKeyframeWithRelativeStartTime:startTimeForAnimation
+                                            relativeDuration:durationForEachKeyFrameAnimation
+                                                  animations:^{
+                        [super setContentOffset:keyFrameContentOffset];
+                    }];
+                }
+            } completion:NULL];
         }
         else {
             [super setContentOffset:contentOffset];
