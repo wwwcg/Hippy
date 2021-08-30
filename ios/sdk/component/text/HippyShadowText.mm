@@ -31,7 +31,6 @@
 #import "HippyUIManager.h"
 #import "HippyUtils.h"
 #import "HippyVirtualTextNode.h"
-#import "HippyI18nUtils.h"
 
 NSString *const HippyShadowViewAttributeName = @"HippyShadowViewAttributeName";
 NSString *const HippyIsHighlightedAttributeName = @"IsHighlightedAttributeName";
@@ -45,7 +44,7 @@ CGFloat const HippyTextAutoSizeGranularity = 0.001f;
 @implementation HippyShadowText
 // MTTlayout
 static MTTSize x5MeasureFunc(
-    MTTNodeRef node, float width, MeasureMode widthMeasureMode, __unused float height, __unused MeasureMode heightMeasureMode, void *layoutContext) {
+    MTTNodeRef node, float width, MeasureMode widthMeasureMode, __unused float height, __unused MeasureMode heightMeasureMode) {
     HippyShadowText *shadowText = (__bridge HippyShadowText *)MTTNodeGetContext(node);
     NSTextStorage *textStorage = [shadowText buildTextStorageForWidth:width widthMode:widthMeasureMode];
     [shadowText calculateTextFrame:textStorage];
@@ -112,13 +111,9 @@ static void resetFontAttribute(NSTextStorage *textStorage) {
         _cachedTextStorageWidth = -1;
         _cachedTextStorageWidthMode = -1;
         _fontSizeMultiplier = 1.0;
-        _textAlign = NSTextAlignmentLeft;
-        if (NSWritingDirectionRightToLeft ==  [[HippyI18nUtils sharedInstance] writingDirectionForCurrentAppLanguage]) {
-            self.textAlign = NSTextAlignmentRight;
-        }
+        _textAlign = NSTextAlignmentNatural;
         // MTTlayout
         MTTNodeSetMeasureFunc(self.nodeRef, x5MeasureFunc);
-        MTTNodeSetContext(self.nodeRef, (__bridge void *)self);
         [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(contentSizeMultiplierDidChange:)
                                                      name:HippyUIManagerWillUpdateViewsDueToContentSizeMultiplierChangeNotification
                                                    object:nil];
@@ -388,10 +383,7 @@ static void resetFontAttribute(NSTextStorage *textStorage) {
             [child setTextComputed];
         } else {
             // MTTlayout
-            NSWritingDirection direction = [[HippyI18nUtils sharedInstance] writingDirectionForCurrentAppLanguage];
-            MTTDirection nodeDirection = (NSWritingDirectionRightToLeft == direction) ? DirectionRTL : DirectionLTR;
-            nodeDirection = self.layoutDirection != DirectionInherit ? self.layoutDirection : nodeDirection;
-            MTTNodeDoLayout(child.nodeRef, NAN, NAN, nodeDirection);
+            MTTNodeDoLayout(child.nodeRef, NAN, NAN);
             float width = MTTNodeLayoutGetWidth(child.nodeRef);
             float height = MTTNodeLayoutGetHeight(child.nodeRef);
             if (isnan(width) || isnan(height)) {
@@ -458,7 +450,7 @@ static void resetFontAttribute(NSTextStorage *textStorage) {
 
     // check if we have lineHeight set on self
     __block BOOL hasParagraphStyle = NO;
-    if (_lineHeight || _textAlignSet) {
+    if (_lineHeight || _textAlign) {
         hasParagraphStyle = YES;
     }
 
@@ -676,6 +668,7 @@ HIPPY_TEXT_PROPERTY(LetterSpacing, _letterSpacing, CGFloat)
 HIPPY_TEXT_PROPERTY(LineHeight, _lineHeight, CGFloat)
 HIPPY_TEXT_PROPERTY(NumberOfLines, _numberOfLines, NSUInteger)
 HIPPY_TEXT_PROPERTY(EllipsizeMode, _ellipsizeMode, NSLineBreakMode)
+HIPPY_TEXT_PROPERTY(TextAlign, _textAlign, NSTextAlignment)
 HIPPY_TEXT_PROPERTY(TextDecorationColor, _textDecorationColor, UIColor *);
 HIPPY_TEXT_PROPERTY(TextDecorationLine, _textDecorationLine, HippyTextDecorationLineType);
 HIPPY_TEXT_PROPERTY(TextDecorationStyle, _textDecorationStyle, NSUnderlineStyle);
@@ -683,12 +676,6 @@ HIPPY_TEXT_PROPERTY(Opacity, _opacity, CGFloat)
 HIPPY_TEXT_PROPERTY(TextShadowOffset, _textShadowOffset, CGSize);
 HIPPY_TEXT_PROPERTY(TextShadowRadius, _textShadowRadius, CGFloat);
 HIPPY_TEXT_PROPERTY(TextShadowColor, _textShadowColor, UIColor *);
-
-- (void)setTextAlign:(NSTextAlignment)textAlign {
-    _textAlign = textAlign;
-    _textAlignSet = YES;
-    [self dirtyText];
-}
 
 /*
  * text类型控件会响应用户输入交互，但是并不会更新shadowText中的props属性，
