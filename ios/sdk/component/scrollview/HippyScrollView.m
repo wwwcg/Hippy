@@ -27,11 +27,10 @@
 #import "HippyConvert.h"
 #import "HippyEventDispatcher.h"
 #import "HippyUIManager.h"
+#import "HippyUtils.h"
 #import "UIView+Private.h"
 #import "UIView+Hippy.h"
 #import "HippyInvalidating.h"
-#import "HippyI18nUtils.h"
-#import "objc/runtime.h"
 
 @interface HippyCustomScrollView : UIScrollView <UIGestureRecognizerDelegate>
 
@@ -195,9 +194,6 @@
         _contentOffsetCache = [NSMutableDictionary dictionaryWithCapacity:32];
         [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(didReceiveMemoryWarning) name:UIApplicationDidReceiveMemoryWarningNotification object:nil];
         [self addSubview:_scrollView];
-        if ([self needsLayoutForRTL]) {
-            _scrollView.transform = CGAffineTransformMakeRotation(M_PI);
-        }
     }
     return self;
 }
@@ -260,9 +256,6 @@ HIPPY_NOT_IMPLEMENTED(-(instancetype)initWithCoder : (NSCoder *)aDecoder)
     if ([keyPath isEqualToString:@"frame"]) {
         if (object == _contentView) {
             [self hippyBridgeDidFinishTransaction];
-            if ([self needsLayoutForRTL]) {
-                _contentView.transform = CGAffineTransformMakeRotation(M_PI);
-            }
         }
     }
 }
@@ -679,13 +672,6 @@ HIPPY_NOT_IMPLEMENTED(-(instancetype)initWithCoder : (NSCoder *)aDecoder)
     }
 }
 
-- (void)setHorizontal:(BOOL)horizontal {
-    _horizontal = horizontal;
-    if ([self needsLayoutForRTL]) {
-        _scrollView.transform = CGAffineTransformMakeRotation(M_PI);
-    }
-}
-
 - (CGSize)_calculateViewportSize {
     CGSize viewportSize = self.bounds.size;
     if (_automaticallyAdjustContentInsets) {
@@ -747,9 +733,8 @@ HIPPY_NOT_IMPLEMENTED(-(instancetype)initWithCoder : (NSCoder *)aDecoder)
         return CGSizeZero;
     } else {
         CGSize singleSubviewSize = _contentView.frame.size;
-//        CGPoint singleSubviewPosition = _contentView.frame.origin;
-//        return (CGSize) { singleSubviewSize.width + singleSubviewPosition.x, singleSubviewSize.height + singleSubviewPosition.y };
-        return singleSubviewSize;
+        CGPoint singleSubviewPosition = _contentView.frame.origin;
+        return (CGSize) { singleSubviewSize.width + singleSubviewPosition.x, singleSubviewSize.height + singleSubviewPosition.y };
     }
 }
 
@@ -770,10 +755,6 @@ HIPPY_NOT_IMPLEMENTED(-(instancetype)initWithCoder : (NSCoder *)aDecoder)
     if ([changedProps containsObject:@"contentOffset"]) {
         _didSetContentOffset = YES;
     }
-}
-
-- (BOOL)needsLayoutForRTL {
-    return NSWritingDirectionRightToLeft ==  [[HippyI18nUtils sharedInstance] writingDirectionForCurrentAppLanguage] && _horizontal;
 }
 
 // Note: setting several properties of UIScrollView has the effect of

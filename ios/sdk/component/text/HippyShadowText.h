@@ -40,7 +40,6 @@ extern NSString *const HippyShadowViewAttributeName;
     CGFloat _cachedTextStorageWidthMode;
     NSAttributedString *_cachedAttributedString;
     CGFloat _effectiveLetterSpacing;
-    BOOL _textAlignSet;
 }
 
 @property (nonatomic, strong) UIColor *color;
