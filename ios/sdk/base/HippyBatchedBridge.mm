@@ -1023,7 +1023,8 @@ HIPPY_NOT_IMPLEMENTED(-(instancetype)initWithBundleURL
 }
 
 - (void)partialBatchDidFlush {
-    for (HippyModuleData *moduleData in _moduleDataByID) {
+    NSArray<HippyModuleData *> *moduleDataByID = _valid ? _moduleDataByID : [_moduleDataByID copy];
+    for (HippyModuleData *moduleData in moduleDataByID) {
         if (moduleData.hasInstance && moduleData.implementsPartialBatchDidFlush) {
             [self dispatchBlock:^{
                 [moduleData.instance partialBatchDidFlush];
@@ -1033,8 +1034,8 @@ HIPPY_NOT_IMPLEMENTED(-(instancetype)initWithBundleURL
 }
 
 - (void)batchDidComplete {
-    // TODO: batchDidComplete is only used by HippyUIManager - can we eliminate this special case?
-    for (HippyModuleData *moduleData in _moduleDataByID) {
+    NSArray<HippyModuleData *> *moduleDataByID = _valid ? _moduleDataByID : [_moduleDataByID copy];
+    for (HippyModuleData *moduleData in moduleDataByID) {
         if (moduleData.hasInstance && moduleData.implementsBatchDidComplete) {
             [self dispatchBlock:^{
                 [moduleData.instance batchDidComplete];
