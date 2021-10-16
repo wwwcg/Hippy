@@ -21,7 +21,7 @@
  */
 
 #import "HippyViewManager.h"
-
+#include "MTTFlex.h"
 #import "HippyBridge.h"
 #import "HippyBorderStyle.h"
 #import "HippyConvert.h"
@@ -85,6 +85,8 @@ HIPPY_EXPORT_VIEW_PROPERTY(backgroundPositionX, CGFloat)
 HIPPY_EXPORT_VIEW_PROPERTY(backgroundPositionY, CGFloat)
 HIPPY_EXPORT_VIEW_PROPERTY(onInterceptTouchEvent, BOOL)
 HIPPY_EXPORT_VIEW_PROPERTY(onInterceptPullUpEvent, BOOL)
+HIPPY_EXPORT_VIEW_PROPERTY(onAttachedToWindow, HippyDirectEventBlock)
+HIPPY_EXPORT_VIEW_PROPERTY(onDetachedFromWindow, HippyDirectEventBlock)
 
 HIPPY_CUSTOM_VIEW_PROPERTY(backgroundImage, NSString, HippyView) {
     if (json) {
@@ -333,8 +335,12 @@ HIPPY_EXPORT_VIEW_PROPERTY(onTouchCancel, HippyDirectEventBlock)
 
 HIPPY_EXPORT_SHADOW_PROPERTY(zIndex, NSInteger)
 
-HIPPY_EXPORT_VIEW_PROPERTY(onAttachedToWindow, HippyDirectEventBlock)
-HIPPY_EXPORT_VIEW_PROPERTY(onDetachedFromWindow, HippyDirectEventBlock)
+HIPPY_CUSTOM_VIEW_PROPERTY(direction, MTTDirection, HippyShadowView) {
+    if (json) {
+        MTTDirection dir = (MTTDirection)[HippyConvert int:json];
+        view.layoutDirection = dir;
+    }
+}
 
 @end
 
