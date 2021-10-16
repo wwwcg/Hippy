@@ -38,6 +38,7 @@ typedef void (*MTTDirtiedFunc)(MTTNodeRef node);
 class MTTNode {
  public:
   MTTNode();
+  MTTNode(float sf);
   virtual ~MTTNode();
   void initLayoutResult();
   bool reset();
@@ -102,9 +103,12 @@ class MTTNode {
   void setLayoutDirection(MTTDirection direction);
   MTTDirection getLayoutDirection();
   FlexAlign getNodeAlign(MTTNodeRef item);
-  static void setScaleFactor(float scaleFactor) {
-    MTTNode::scaleFactor = scaleFactor;
+  void setScaleFactor(float sf) {
+    scaleFactor = sf;
   };
+  float getScaleFactor() {
+    return scaleFactor;
+  }
 
  protected:
   MTTDirection resolveDirection(MTTDirection parentDirection);
@@ -158,7 +162,7 @@ class MTTNode {
   MTTLayoutCache layoutCache;
   // layout result is in initial state or not
   bool inInitailState;
-  static float scaleFactor;
+  float scaleFactor;
 #ifdef LAYOUT_TIME_ANALYZE
   int fetchCount;
 #endif

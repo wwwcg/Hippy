@@ -68,6 +68,16 @@ MTTNode::MTTNode() {
 
   initLayoutResult();
   inInitailState = true;
+  scaleFactor = 1.f;
+}
+
+MTTNode::MTTNode(float sf):scaleFactor(sf) {
+  context = nullptr;
+  parent = nullptr;
+  measure = nullptr;
+  dirtiedFunc = nullptr;
+  initLayoutResult();
+  inInitailState = true;
 }
 
 MTTNode::~MTTNode() {
@@ -597,7 +607,7 @@ void MTTNode::layout(float parentWidth,
   // node 's layout is complete
   // convert its and its descendants position and size to a integer value.
 #ifndef ANDROID
-  convertLayoutResult(0.0f, 0.0f, MTTNode::scaleFactor);  // layout result convert has been taken in
+  convertLayoutResult(0.0f, 0.0f, scaleFactor);  // layout result convert has been taken in
                                     // java . 3.8.2018. ianwang..
 #endif
 
@@ -1547,5 +1557,3 @@ void MTTNode::convertLayoutResult(float absLeft, float absTop, float scaleFactor
     item->convertLayoutResult(absLeft, absTop, scaleFactor);
   }
 }
-
-float MTTNode::scaleFactor = 1.0f;
