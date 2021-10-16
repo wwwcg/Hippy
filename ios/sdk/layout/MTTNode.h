@@ -102,6 +102,9 @@ class MTTNode {
   void setLayoutDirection(MTTDirection direction);
   MTTDirection getLayoutDirection();
   FlexAlign getNodeAlign(MTTNodeRef item);
+  static void setScaleFactor(float scaleFactor) {
+    MTTNode::scaleFactor = scaleFactor;
+  };
 
  protected:
   MTTDirection resolveDirection(MTTDirection parentDirection);
@@ -135,7 +138,7 @@ class MTTNode {
   void layoutFixedItems(MTTSizeMode measureMode, void *layoutContext);
   void calculateFixedItemPosition(MTTNodeRef item, FlexDirection axis);
 
-  void convertLayoutResult(float absLeft, float absTop);
+  void convertLayoutResult(float absLeft, float absTop, float scaleFactor);
 
  public:
   MTTStyle style;
@@ -155,6 +158,7 @@ class MTTNode {
   MTTLayoutCache layoutCache;
   // layout result is in initial state or not
   bool inInitailState;
+  static float scaleFactor;
 #ifdef LAYOUT_TIME_ANALYZE
   int fetchCount;
 #endif
