@@ -347,43 +347,7 @@
         return;
     }
     _targetOffset = contentOffset;
-    
-    /**
-     * ios 15 beta上发现个问题，feeds切换tab时有一定概率scrollView卡顿，滑动到一半卡住
-     * 目前发现只要注销调invokePageSelected方法中的onPageSelected回调就不会出现卡住
-     * 推测是UIScrollView滑动时改变了某个属性导致的（滑动时addSubView似乎并不会导致）
-     * 所以这里规避一下，如果ios15，则使用[UIView animateWithDuration:animations:]做动画
-     * 等ios15正式发布看看是否存在这个问题，再合入到github上。
-     */
-    if (@available(iOS 15, *)) {
-        if (animated) {
-            static NSUInteger viewPagerSetContentoffsetFrames = 10;
-            static CGFloat keyFramesAnimatonDuration = .54f;
-            CGFloat eachXOffset = (contentOffset.x - self.contentOffset.x) / viewPagerSetContentoffsetFrames;
-            CGFloat eachYOffset = (contentOffset.y - self.contentOffset.y) / viewPagerSetContentoffsetFrames;
-            CGPoint currentOffset = self.contentOffset;
-            [UIView animateKeyframesWithDuration:keyFramesAnimatonDuration delay:0 options:UIViewKeyframeAnimationOptionCalculationModeLinear animations:^{
-                CGFloat durationForEachKeyFrameAnimation = keyFramesAnimatonDuration / viewPagerSetContentoffsetFrames;
-                for (NSUInteger i = 0; i < viewPagerSetContentoffsetFrames; i++) {
-                    CGFloat startTimeForAnimation = i * (keyFramesAnimatonDuration / viewPagerSetContentoffsetFrames);
-                    CGPoint keyFrameContentOffset =
-                        CGPointMake(currentOffset.x + eachXOffset * (i + 1),
-                                    currentOffset.y + eachYOffset * (i + 1));
-                    [UIView addKeyframeWithRelativeStartTime:startTimeForAnimation
-                                            relativeDuration:durationForEachKeyFrameAnimation
-                                                  animations:^{
-                        [super setContentOffset:keyFrameContentOffset];
-                    }];
-                }
-            } completion:NULL];
-        }
-        else {
-            [super setContentOffset:contentOffset];
-        }
-    }
-    else {
-        [super setContentOffset:contentOffset animated:animated];
-    }
+    [super setContentOffset:contentOffset animated:animated];
 }
 
 - (void)hippyBridgeDidFinishTransaction {

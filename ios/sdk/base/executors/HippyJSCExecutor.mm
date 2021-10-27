@@ -88,7 +88,7 @@ static bool defaultDynamicLoadAction(const unicode_string_view& uri, std::functi
     NSURL *url = HippyURLWithString(URIString, NULL);
     if ([url isFileURL]) {
         NSString *result = [NSString stringWithContentsOfURL:url encoding:NSUTF8StringEncoding error:nil];
-        u8string content(reinterpret_cast<const unicode_string_view::char8_t_*>([result UTF8String]));
+        u8string content(reinterpret_cast<const unicode_string_view::char8_t_*>([result UTF8String]?:""));
         cb(std::move(content));;
     }
     else {
@@ -99,7 +99,7 @@ static bool defaultDynamicLoadAction(const unicode_string_view& uri, std::functi
             }
             else {
                 NSString *result = [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding];
-                u8string content(reinterpret_cast<const unicode_string_view::char8_t_*>([result UTF8String]));
+                u8string content(reinterpret_cast<const unicode_string_view::char8_t_*>([result UTF8String]?:""));
                 cb(std::move(content));
             }
         }] resume];
@@ -114,7 +114,7 @@ static bool loadFunc(const unicode_string_view& uri, std::function<void(u8string
     if ([strongBridge.delegate respondsToSelector:@selector(dynamicLoad:URI:completion:)]) {
         NSString *URIString = [NSString stringWithCharacters:(const unichar *)u16Uri.c_str() length:u16Uri.length()];
         BOOL delegateCallRet = [strongBridge.delegate dynamicLoad:strongBridge URI:URIString completion:^(NSString *result) {
-          u8string content(reinterpret_cast<const unicode_string_view::char8_t_*>([result UTF8String]));
+          u8string content(reinterpret_cast<const unicode_string_view::char8_t_*>([result UTF8String]?:""));
           cb(std::move(content));
         }];
         return delegateCallRet?:defaultDynamicLoadAction(uri, cb);
