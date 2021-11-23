@@ -299,7 +299,7 @@
             cellView = [_bridge.uiManager createViewFromNode:indexNode];
         }
     }
-    NSAssert([cellView conformsToProtocol:@protocol(ViewAppearStateProtocol)],
+    HippyAssert([cellView conformsToProtocol:@protocol(ViewAppearStateProtocol)],
         @"subviews of HippyBaseListViewCell must conform to protocol ViewAppearStateProtocol");
     cell.cellView = (UIView<ViewAppearStateProtocol> *)cellView;
     cell.node = indexNode;

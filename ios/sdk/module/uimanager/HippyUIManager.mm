@@ -1518,9 +1518,7 @@ static UIView *_jsResponder;
 - (UIView *)createViewFromNode:(HippyVirtualNode *)node {
     UIView *result = nil;
     NSMutableArray *tranctions = [NSMutableArray new];
-#ifndef HIPPY_DEBUG
     @try {
-#endif
         result = [node createView:^UIView *(HippyVirtualNode *subNode) {
             NSString *viewName = subNode.viewName;
             NSNumber *tag = subNode.hippyTag;
@@ -1548,11 +1546,9 @@ static UIView *_jsResponder;
         for (UIView *view in tranctions) {
             [view hippyBridgeDidFinishTransaction];
         }
-#ifndef HIPPY_DEBUG
     } @catch (NSException *exception) {
         MttHippyException(exception);
     }
-#endif
     return result;
 }
 
