@@ -108,7 +108,10 @@ UIImage *HippyBlurredImageWithRadiusv(UIImage *inputImage, CGFloat radius, NSErr
         size_t bytes = buffer1.rowBytes * buffer1.height;
         buffer1.data = malloc(bytes);
         buffer2.data = malloc(bytes);
-
+        if (NULL == buffer1.data ||
+            NULL == buffer2.data) {
+            return inputImage;
+        }
         // A description of how to compute the box kernel width from the Gaussian
         // radius (aka standard deviation) appears in the SVG spec:
         // http://www.w3.org/TR/SVG/filters.html#feGaussianBlurElement
@@ -126,9 +129,19 @@ UIImage *HippyBlurredImageWithRadiusv(UIImage *inputImage, CGFloat radius, NSErr
         dataSource = NULL;
 
         // perform blur
-        vImageBoxConvolve_ARGB8888(&buffer1, &buffer2, tempBuffer, 0, 0, boxSize, boxSize, NULL, kvImageEdgeExtend);
-        vImageBoxConvolve_ARGB8888(&buffer2, &buffer1, tempBuffer, 0, 0, boxSize, boxSize, NULL, kvImageEdgeExtend);
-        vImageBoxConvolve_ARGB8888(&buffer1, &buffer2, tempBuffer, 0, 0, boxSize, boxSize, NULL, kvImageEdgeExtend);
+        vImage_Error error;
+        error = vImageBoxConvolve_ARGB8888(&buffer1, &buffer2, tempBuffer, 0, 0, boxSize, boxSize, NULL, kvImageEdgeExtend);
+        if (error) {
+            return inputImage;
+        }
+        error = vImageBoxConvolve_ARGB8888(&buffer2, &buffer1, tempBuffer, 0, 0, boxSize, boxSize, NULL, kvImageEdgeExtend);
+        if (error) {
+            return inputImage;
+        }
+        error = vImageBoxConvolve_ARGB8888(&buffer1, &buffer2, tempBuffer, 0, 0, boxSize, boxSize, NULL, kvImageEdgeExtend);
+        if (error) {
+            return inputImage;
+        }
 
         // free buffers
         free(buffer2.data);
@@ -136,10 +149,22 @@ UIImage *HippyBlurredImageWithRadiusv(UIImage *inputImage, CGFloat radius, NSErr
         free(tempBuffer);
         tempBuffer = NULL;
 
+        CGColorSpaceRef colorSpace = CGColorSpaceCreateDeviceRGB();
+        CGBitmapInfo bitmapInfo = kCGBitmapByteOrderDefault;
+        CGImageAlphaInfo alphaInfo = CGImageGetAlphaInfo(imageRef);
+        if (alphaInfo == kCGImageAlphaNone || alphaInfo == kCGImageAlphaOnly) {
+            alphaInfo = kCGImageAlphaNoneSkipFirst;
+        } else if (alphaInfo == kCGImageAlphaFirst) {
+            alphaInfo = kCGImageAlphaPremultipliedFirst;
+        } else if (alphaInfo == kCGImageAlphaLast) {
+            alphaInfo = kCGImageAlphaPremultipliedLast;
+        }
+        // "The constants for specifying the alpha channel information are declared with the `CGImageAlphaInfo` type but can be passed to this parameter safely." (source: docs)
+        bitmapInfo |= alphaInfo;
         // create image context from buffer
         ctx = CGBitmapContextCreate(
-            buffer1.data, buffer1.width, buffer1.height, 8, buffer1.rowBytes, CGImageGetColorSpace(imageRef), CGImageGetBitmapInfo(imageRef));
-
+            buffer1.data, buffer1.width, buffer1.height, 8, buffer1.rowBytes, colorSpace, bitmapInfo);
+        CGColorSpaceRelease(colorSpace);
         // create image from context
         blurredImageRef = CGBitmapContextCreateImage(ctx);
         UIImage *outputImage = [UIImage imageWithCGImage:blurredImageRef scale:imageScale orientation:imageOrientation];
