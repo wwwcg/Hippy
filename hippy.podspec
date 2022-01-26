@@ -25,12 +25,13 @@ Pod::Spec.new do |s|
   s.homepage         = 'http://hippyjs.org'
   s.license          = { :type => 'Apache2', :file => 'LICENSE' }
   s.author           = { 'mengyanluo' => 'mengyanluo@tencent.com' }
-  s.source           = {:git => 'https://github.com/Tencent/Hippy.git', :tag => s.version}
+  s.source           = {:git => 'http://git.code.oa.com/hippy/HippyGithubMirror.git', :tag => s.version}
   s.ios.deployment_target = '9.0'
   s.source_files = 'ios/sdk/**/*.{h,m,c,mm,s,cpp,cc}'
   s.public_header_files = 'ios/sdk/**/*.h'
   s.default_subspec = 'core'
-
+  s.user_target_xcconfig = {'OTHER_LDFLAGS' => '-force_load "${PODS_CONFIGURATION_BUILD_DIR}/hippy/libhippy.a"'}
+  
   s.subspec 'core' do |cores|
     puts 'hippy subspec \'core\' read begins'
     cores.source_files = 'core/**/*.{h,cc}'
