@@ -112,6 +112,7 @@ UIImage *HippyBlurredImageWithRadiusv(UIImage *inputImage, CGFloat radius, NSErr
         }
         buffer2.data = malloc(bytes);
         if (NULL == buffer2.data) {
+            free(buffer1.data);
             return inputImage;
         }
         // A description of how to compute the box kernel width from the Gaussian
