@@ -36,18 +36,12 @@ static JSValue *objectToJSValueInContext(id obj, JSContext *context) {
 
 - (JSValue *)toJSValueInContext:(JSContext *)context {
     NSUInteger size = [self count];
-    JSValueRef valueRefs[size];
-    for (NSUInteger idx = 0; idx < size; idx++) {
-        id obj = [self objectAtIndex:idx];
-        JSValueRef valueRef = objectToJSValueInContext(obj, context).JSValueRef;
-        JSValueProtect(context.JSGlobalContextRef, valueRef);
-        valueRefs[idx] = valueRef;
-    }
+    JSValueRef *valueRefs = malloc(size * sizeof(JSValueRef));
+    [self enumerateObjectsUsingBlock:^(id  _Nonnull obj, NSUInteger idx, BOOL * _Nonnull stop) {
+        valueRefs[idx] = objectToJSValueInContext(obj, context).JSValueRef;
+    }];
     JSObjectRef object = JSObjectMakeArray(context.JSGlobalContextRef, size, valueRefs, NULL);
-    for (NSUInteger idx = 0; idx < size; idx++) {
-        JSValueRef valueRef = valueRefs[idx];
-        JSValueUnprotect(context.JSGlobalContextRef, valueRef);
-    }
+    free(valueRefs);
     return [JSValue valueWithJSValueRef:object inContext:context];
 }
 
@@ -56,7 +50,15 @@ static JSValue *objectToJSValueInContext(id obj, JSContext *context) {
 @implementation NSSet (HPObjToJSValue)
 
 - (JSValue *)toJSValueInContext:(JSContext *)context {
-    return [[self allObjects] toJSValueInContext:context];
+    NSUInteger size = [self count];
+    JSValueRef *valueRefs = malloc(size * sizeof(JSValueRef));
+    __block NSUInteger idx = 0;
+    [self enumerateObjectsUsingBlock:^(id  _Nonnull obj, BOOL * _Nonnull stop) {
+        valueRefs[idx++] = objectToJSValueInContext(obj, context).JSValueRef;
+    }];
+    JSObjectRef object = JSObjectMakeArray(context.JSGlobalContextRef, size, valueRefs, NULL);
+    free(valueRefs);
+    return [JSValue valueWithJSValueRef:object inContext:context];
 }
 
 @end
@@ -64,7 +66,14 @@ static JSValue *objectToJSValueInContext(id obj, JSContext *context) {
 @implementation NSHashTable (HPObjToJSValue)
 
 - (JSValue *)toJSValueInContext:(JSContext *)context {
-    return [[self allObjects] toJSValueInContext:context];
+    NSUInteger size = [self count];
+    JSValueRef *valueRefs = malloc(size * sizeof(JSValueRef));
+    [[self allObjects] enumerateObjectsUsingBlock:^(id  _Nonnull obj, NSUInteger idx, BOOL * _Nonnull stop) {
+        valueRefs[idx++] = objectToJSValueInContext(obj, context).JSValueRef;
+    }];
+    JSObjectRef object = JSObjectMakeArray(context.JSGlobalContextRef, size, valueRefs, NULL);
+    free(valueRefs);
+    return [JSValue valueWithJSValueRef:object inContext:context];
 }
 
 @end
@@ -94,7 +103,20 @@ static JSValue *objectToJSValueInContext(id obj, JSContext *context) {
 @implementation NSMapTable (HPObjToJSValue)
 
 - (JSValue *)toJSValueInContext:(JSContext *)context {
-    return [[self dictionaryRepresentation] toJSValueInContext:context];
+    JSValue *objectDic = [JSValue valueWithNewObjectInContext:context];
+    [[self dictionaryRepresentation] enumerateKeysAndObjectsUsingBlock:^(id  _Nonnull key, id  _Nonnull obj, BOOL * _Nonnull stop) {
+        HippyAssert([key isKindOfClass:[NSString class]], @"key must be a string");
+        if ([key isKindOfClass:[NSString class]]) {
+            NSString *keyString = (NSString *)key;
+            JSStringRef stringRef = JSStringCreateWithUTF8CString([keyString UTF8String]);
+            JSValueRef objectRef = objectToJSValueInContext(obj, context).JSValueRef;
+            if (JSValueIsObject(context.JSGlobalContextRef, objectDic.JSValueRef)) {
+                JSObjectRef objRef = (JSObjectRef)objectDic.JSValueRef;
+                JSObjectSetProperty(context.JSGlobalContextRef, objRef, stringRef, objectRef, kJSPropertyAttributeNone, NULL);
+            }
+        }
+    }];
+    return objectDic;
 }
 
 @end
