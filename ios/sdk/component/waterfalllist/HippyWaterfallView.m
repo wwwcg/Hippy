@@ -120,6 +120,11 @@ typedef NS_ENUM(NSInteger, HippyScrollState) { ScrollStateStop, ScrollStateDragi
     }
 }
 
+- (void)dealloc {
+    [_headerRefreshView unsetFromScrollView];
+    [_footerRefreshView unsetFromScrollView];
+}
+
 - (void)setScrollEventThrottle:(double)scrollEventThrottle {
     _scrollEventThrottle = scrollEventThrottle;
 }
