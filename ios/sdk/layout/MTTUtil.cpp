@@ -110,8 +110,9 @@ float MTTRoundValueToPixelGrid(float value, float scaleFactor, bool forceCeil, b
     scaleValue = scaleValue - fractial;
   } else {
     // Finally we just round the value
+    // +0.0003 fix round bug.
     scaleValue = scaleValue - fractial +
-      (fractial > 0.5f || FloatIsEqual(fractial, 0.5f) ? 1.0f : 0.0f);
+      (fractial + 0.0003 > 0.5f ? 1.0f : 0.0f);
   }
   return scaleValue / scaleFactor;
 }
