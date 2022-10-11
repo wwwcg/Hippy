@@ -29,7 +29,7 @@
 #ifdef DEBUG
 #define HippyLOG_ENABLED 1
 #else
-#define HippyLOG_ENABLED 0
+#define HippyLOG_ENABLED 1
 #endif
 #endif
 
