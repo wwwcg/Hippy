@@ -176,6 +176,9 @@ typedef NS_ENUM(NSInteger, HippyScrollState) { ScrollStateStop, ScrollStateDragi
 }
 
 - (void)addScrollListener:(NSObject<UIScrollViewDelegate> *)scrollListener {
+    if (!scrollListener) {
+        return;
+    }
     [_scrollListeners addObject:scrollListener];
 }
 
