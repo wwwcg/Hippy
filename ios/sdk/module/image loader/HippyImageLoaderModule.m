@@ -55,13 +55,13 @@ HIPPY_EXPORT_METHOD(getSize:(NSString *)urlString resolver:(HippyPromiseResolveB
              NSError *error = [NSError errorWithDomain:@"ImageLoaderModuleDomain" code:1 userInfo:@{@"reason": @"url parse error"}];
              reject(@"2", @"url request error", error);
          } else {
-             if (!cached) {
-                 [[HippyImageCacheManager sharedInstance] setImageCacheData:data forURLString:urlString];
-             }
              Class<HippyImageProviderProtocol> ipClass = imageProviderClassFromBridge(data,self.bridge);
              id<HippyImageProviderProtocol> instance = [ipClass imageProviderInstanceForData:data];
              UIImage *image = [instance image];
              if (image) {
+                 if (!cached) {
+                     [[HippyImageCacheManager sharedInstance] setImageCacheData:data forURLString:urlString];
+                 }
                NSDictionary *dic = @{@"width": @(image.size.width), @"height": @(image.size.height)};
                resolve(dic);
              } else {
