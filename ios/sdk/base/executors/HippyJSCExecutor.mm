@@ -438,11 +438,18 @@ static void installBasicSynchronousHooksOnContext(JSContext *context) {
 
 // clang-format off
 HIPPY_EXPORT_METHOD(setContextName:(NSString *)contextName) {
+    __weak HippyJSCExecutor *weakSelf = self;
     [self executeBlockOnJavaScriptQueue:^{
-        [[self JSContext] setName:contextName];
-        dispatch_async(dispatch_get_global_queue(0, 0), ^{
-            [self.bridge setUpDevClientWithName:contextName];
-        });
+        @autoreleasepool {
+            HippyJSCExecutor *strongSelf = weakSelf;
+            if (!strongSelf) {
+                return;
+            }
+            [[strongSelf JSContext] setName:contextName];
+            dispatch_async(dispatch_get_global_queue(0, 0), ^{
+                [strongSelf.bridge setUpDevClientWithName:contextName];
+            });
+        }
     }];
 }
 // clang-format on
@@ -484,11 +491,13 @@ HIPPY_EXPORT_METHOD(setContextName:(NSString *)contextName) {
     }
     __weak HippyJSCExecutor *weakSelf = self;
     [self executeBlockOnJavaScriptQueue:^{
-        HippyJSCExecutor *strongSelf = weakSelf;
-        if (!strongSelf || !strongSelf.isValid || nullptr == strongSelf.pScope) {
-            return;
+        @autoreleasepool {
+            HippyJSCExecutor *strongSelf = weakSelf;
+            if (!strongSelf || !strongSelf.isValid || nullptr == strongSelf.pScope) {
+                return;
+            }
+            [strongSelf addInfoToGlobalObject:[secondaryGlobal copy]];
         }
-        [strongSelf addInfoToGlobalObject:[secondaryGlobal copy]];
     }];
 }
 
@@ -628,21 +637,21 @@ HIPPY_EXPORT_METHOD(setContextName:(NSString *)contextName) {
             return;
         }
     }
-
-    // HippyProfileBeginFlowEvent();
+    __weak HippyJSCExecutor *weakSelf = self;
     [self executeBlockOnJavaScriptQueue:^{
-        // HippyProfileEndFlowEvent();
-        if (!self.isValid) {
-            return;
-        }
+        @autoreleasepool {
+            HippyJSCExecutor *strongSelf = weakSelf;
+            if (!strongSelf || !strongSelf.isValid) {
+                return;
+            }
+            if (isRAMBundle) {
+                registerNativeRequire([strongSelf JSContext], strongSelf);
+            }
 
-        if (isRAMBundle) {
-            registerNativeRequire([self JSContext], self);
-        }
-
-        NSError *error = executeApplicationScript(script, sourceURL, self->_performanceLogger, [self JSGlobalContextRef]);
-        if (onComplete) {
-            onComplete(error);
+            NSError *error = executeApplicationScript(script, sourceURL, strongSelf->_performanceLogger, [strongSelf JSGlobalContextRef]);
+            if (onComplete) {
+                onComplete(error);
+            }
         }
     }];
 }
@@ -752,41 +761,36 @@ static NSError *executeApplicationScript(NSData *script, NSURL *sourceURL, Hippy
     }
 
     __weak HippyJSCExecutor *weakSelf = self;
-    // HippyProfileBeginFlowEvent();
     [self executeBlockOnJavaScriptQueue:^{
-        // HippyProfileEndFlowEvent();
-
-        HippyJSCExecutor *strongSelf = weakSelf;
-        if (!strongSelf || !strongSelf.isValid) {
-            return;
-        }
-
-        // HIPPY_PROFILE_BEGIN_EVENT(0, @"injectJSONText", @{@"objectName": objectName});
-        JSStringRef execJSString = JSStringCreateWithCFString((__bridge CFStringRef)script);
-        JSGlobalContextRef ctx = [strongSelf JSGlobalContextRef];
-        JSValueRef valueToInject = JSValueMakeFromJSONString(ctx, execJSString);
-        JSStringRelease(execJSString);
-
-        NSError *error;
-        if (!valueToInject) {
-            NSString *errorMessage = [NSString stringWithFormat:@"Can't make JSON value from script '%@'", script];
-            error = [NSError errorWithDomain:HippyErrorDomain code:2 userInfo:@ { NSLocalizedDescriptionKey: errorMessage }];
-            HippyLogError(@"%@", errorMessage);
-        } else {
-            JSObjectRef globalObject = JSContextGetGlobalObject(ctx);
-            JSStringRef JSName = JSStringCreateWithCFString((__bridge CFStringRef)objectName);
-            JSValueRef jsError = NULL;
-            JSObjectSetProperty(ctx, globalObject, JSName, valueToInject, kJSPropertyAttributeNone, &jsError);
-            JSStringRelease(JSName);
-
-            if (jsError) {
-                error = HippyNSErrorFromJSErrorRef(jsError, ctx);
+        @autoreleasepool {
+            HippyJSCExecutor *strongSelf = weakSelf;
+            if (!strongSelf || !strongSelf.isValid) {
+                return;
             }
-        }
-        // HIPPY_PROFILE_END_EVENT(0, @"js_call,json_call");
+            JSStringRef execJSString = JSStringCreateWithCFString((__bridge CFStringRef)script);
+            JSGlobalContextRef ctx = [strongSelf JSGlobalContextRef];
+            JSValueRef valueToInject = JSValueMakeFromJSONString(ctx, execJSString);
+            JSStringRelease(execJSString);
 
-        if (onComplete) {
-            onComplete(error);
+            NSError *error;
+            if (!valueToInject) {
+                NSString *errorMessage = [NSString stringWithFormat:@"Can't make JSON value from script '%@'", script];
+                error = [NSError errorWithDomain:HippyErrorDomain code:2 userInfo:@ { NSLocalizedDescriptionKey: errorMessage }];
+                HippyLogError(@"%@", errorMessage);
+            } else {
+                JSObjectRef globalObject = JSContextGetGlobalObject(ctx);
+                JSStringRef JSName = JSStringCreateWithCFString((__bridge CFStringRef)objectName);
+                JSValueRef jsError = NULL;
+                JSObjectSetProperty(ctx, globalObject, JSName, valueToInject, kJSPropertyAttributeNone, &jsError);
+                JSStringRelease(JSName);
+
+                if (jsError) {
+                    error = HippyNSErrorFromJSErrorRef(jsError, ctx);
+                }
+            }
+            if (onComplete) {
+                onComplete(error);
+            }
         }
     }];
 }
