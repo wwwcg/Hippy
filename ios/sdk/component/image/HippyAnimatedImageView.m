@@ -385,10 +385,9 @@ static NSUInteger gcd(NSUInteger a, NSUInteger b) {
     }
 }
 
-+ (NSString *)defaultRunLoopMode {
++ (NSRunLoopMode)defaultRunLoopMode {
     // Key off `activeProcessorCount` (as opposed to `processorCount`) since the system could shut down cores in certain situations.
-    //    return [NSProcessInfo processInfo].activeProcessorCount > 1 ? NSRunLoopCommonModes : NSDefaultRunLoopMode;
-    return (__bridge NSString *)(kCFRunLoopDefaultMode);
+    return [NSProcessInfo processInfo].activeProcessorCount > 1 ? NSRunLoopCommonModes : NSDefaultRunLoopMode;
 }
 
 #pragma mark - CALayerDelegate (Informal)
