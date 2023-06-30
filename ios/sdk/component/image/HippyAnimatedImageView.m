@@ -94,12 +94,20 @@
 - (void)setAnimatedImage:(HippyAnimatedImage *)animatedImage {
     if (![_animatedImage isEqual:animatedImage]) {
         if (animatedImage) {
-            // Clear out the image.
-            super.image = nil;
+            if (super.image) {
+                // UIImageView's `setImage:` will internally call its layer's `setContentsTransform:` based on the `image.imageOrientation`.
+                // The `contentsTransform` will affect layer rendering rotation because the CGImage's bitmap buffer does not actually take rotation.
+                // However, when calling `setImage:nil`, this `contentsTransform` will not be reset to identity.
+                // Further animation frame will be rendered as rotated. So we must set it to the poster image to clear the previous state.
+                // See more here: https://github.com/Flipboard/FLAnimatedImage/issues/100
+                super.image = animatedImage.posterImage;
+                // Clear out the image.
+                super.image = nil;
+            }
             // Ensure disabled highlighting; it's not supported (see `-setHighlighted:`).
             super.highlighted = NO;
-            // UIImageView seems to bypass some accessors when calculating its intrinsic content size, so this ensures its intrinsic content size
-            // comes from the animated image.
+            // UIImageView seems to bypass some accessors when calculating its intrinsic content size,
+            // so this ensures its intrinsic content size comes from the animated image.
             [self invalidateIntrinsicContentSize];
         } else {
             // Stop animating before the animated image gets cleared out.
@@ -353,9 +361,8 @@ static NSUInteger gcd(NSUInteger a, NSUInteger b) {
                 [self.layer setNeedsDisplay];
                 self.needsDisplayWhenImageBecomesAvailable = NO;
             }
-            if (@available(iOS 10, *)) {
-                self.accumulator += displayLink.targetTimestamp - displayLink.timestamp;
-            }
+            self.accumulator += displayLink.targetTimestamp - displayLink.timestamp;
+
             // While-loop first inspired by & good Karma to: https://github.com/ondalabs/OLImageView/blob/master/OLImageView.m
             while (self.accumulator >= delayTime) {
                 self.accumulator -= delayTime;

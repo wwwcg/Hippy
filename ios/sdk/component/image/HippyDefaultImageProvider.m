@@ -58,7 +58,9 @@ HIPPY_EXPORT_MODULE(defaultImageProvider)
     self = [super init];
     if (self) {
         if ([[self class] isAnimatedImage:data]) {
-            _imageSourceRef = CGImageSourceCreateWithData((__bridge CFDataRef)data, NULL);
+            NSDictionary *options = @{ (NSString *)kCGImageSourceShouldCache: @(NO) };
+            _imageSourceRef = CGImageSourceCreateWithData((__bridge CFDataRef)data,
+                                                          (__bridge CFDictionaryRef)options);
         } else {
             _data = data;
         }
