@@ -24,11 +24,14 @@
 #import "HippyDefaultImageProvider.h"
 #import "NSData+DataType.h"
 #import <CoreServices/CoreServices.h>
+#import <SDWebImage/SDImageAPNGCoder.h>
 
 @interface HippyDefaultImageProvider () {
     NSData *_data;
     UIImage *_image;
     CGImageSourceRef _imageSourceRef;
+    
+    SDImageAPNGCoder *_sdCoder;
 }
 
 @end
@@ -58,7 +61,9 @@ HIPPY_EXPORT_MODULE(defaultImageProvider)
     self = [super init];
     if (self) {
         if ([[self class] isAnimatedImage:data]) {
-            _imageSourceRef = CGImageSourceCreateWithData((__bridge CFDataRef)data, NULL);
+            //_imageSourceRef = CGImageSourceCreateWithData((__bridge CFDataRef)data, NULL);
+            
+            _sdCoder = [[SDImageAPNGCoder alloc] initWithAnimatedImageData:data options:nil];
         } else {
             _data = data;
         }
@@ -113,6 +118,7 @@ HIPPY_EXPORT_MODULE(defaultImageProvider)
 }
 
 - (UIImage *)imageAtFrame:(NSUInteger)index {
+    return [_sdCoder animatedImageFrameAtIndex:index];
     if (_imageSourceRef) {
         NSDictionary *options = @{ (NSString *)kCGImageSourceShouldCache: @(NO) };
         CGImageRef imageRef = CGImageSourceCreateImageAtIndex(_imageSourceRef, index, (__bridge CFDictionaryRef)options);
@@ -126,6 +132,7 @@ HIPPY_EXPORT_MODULE(defaultImageProvider)
 }
 
 - (NSUInteger)imageCount {
+    return [_sdCoder animatedImageFrameCount];
     if (_imageSourceRef) {
         return CGImageSourceGetCount(_imageSourceRef);
     }
@@ -133,6 +140,7 @@ HIPPY_EXPORT_MODULE(defaultImageProvider)
 }
 
 - (NSUInteger)loopCount {
+    return [_sdCoder animatedImageLoopCount];
     if (_imageSourceRef) {
         CFStringRef imageSourceContainerType = CGImageSourceGetType(_imageSourceRef);
         NSString *imagePropertyKey = (NSString *)kCGImagePropertyGIFDictionary;
@@ -154,6 +162,7 @@ HIPPY_EXPORT_MODULE(defaultImageProvider)
 }
 
 - (NSTimeInterval)delayTimeAtFrame:(NSUInteger)frame {
+    return [_sdCoder animatedImageDurationAtIndex:frame];
     const NSTimeInterval kDelayTimeIntervalDefault = 0.1;
     if (_imageSourceRef) {
         NSDictionary *frameProperties = CFBridgingRelease(CGImageSourceCopyPropertiesAtIndex(_imageSourceRef, frame, NULL));

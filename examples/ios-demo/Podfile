@@ -9,5 +9,6 @@ target 'HippyDemo' do
 
   # Pods for HippyDemo
   pod 'hippy', :path=>'../../'
+  pod 'SDWebImage'
 
 end
