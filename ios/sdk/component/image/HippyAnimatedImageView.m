@@ -361,7 +361,8 @@ static NSUInteger gcd(NSUInteger a, NSUInteger b) {
                 [self.layer setNeedsDisplay];
                 self.needsDisplayWhenImageBecomesAvailable = NO;
             }
-            self.accumulator += displayLink.targetTimestamp - displayLink.timestamp;
+             self.accumulator += displayLink.targetTimestamp - CACurrentMediaTime();
+//            self.accumulator += displayLink.targetTimestamp - displayLink.timestamp;
 
             // While-loop first inspired by & good Karma to: https://github.com/ondalabs/OLImageView/blob/master/OLImageView.m
             while (self.accumulator >= delayTime) {

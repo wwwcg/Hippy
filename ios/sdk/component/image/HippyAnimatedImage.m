@@ -55,25 +55,44 @@ typedef NS_ENUM(NSUInteger, HippyAnimatedImageFrameCacheSize) {
 };
 
 @interface HippyAnimatedImage ()
-@property (nonatomic, assign, readonly)
-    NSUInteger frameCacheSizeOptimal;  // The optimal number of frames to cache based on image size & number of frames; never changes
-@property (nonatomic, assign, readonly, getter=isPredrawingEnabled) BOOL predrawingEnabled;  // Enables predrawing of images to improve performance.
-@property (nonatomic, assign)
-    NSUInteger frameCacheSizeMaxInternal;  // Allow to cap the cache size e.g. when memory warnings occur; 0 means no specific limit (default)
-@property (nonatomic, assign) NSUInteger requestedFrameIndex;              // Most recently requested frame index
-@property (nonatomic, assign, readonly) NSUInteger posterImageFrameIndex;  // Index of non-purgable poster image; never changes
+
+/// The optimal number of frames to cache based on image size & number of frames; never changes
+@property (nonatomic, assign, readonly) NSUInteger frameCacheSizeOptimal;
+
+/// Enables predrawing of images to improve performance.
+@property (nonatomic, assign, readonly, getter=isPredrawingEnabled) BOOL predrawingEnabled;
+
+/// Allow to cap the cache size e.g. when memory warnings occur; 0 means no specific limit (default)
+@property (nonatomic, assign) NSUInteger frameCacheSizeMaxInternal;
+
+/// Most recently requested frame index
+@property (nonatomic, assign) NSUInteger requestedFrameIndex;
+
+/// Index of non-purgable poster image; never changes
+@property (nonatomic, assign, readonly) NSUInteger posterImageFrameIndex;
+
 @property (nonatomic, strong, readonly) NSMutableDictionary *cachedFramesForIndexes;
-@property (nonatomic, strong, readonly) NSMutableIndexSet *cachedFrameIndexes;     // Indexes of cached frames
-@property (nonatomic, strong, readonly) NSMutableIndexSet *requestedFrameIndexes;  // Indexes of frames that are currently produced in the background
-@property (nonatomic, strong, readonly) NSIndexSet *allFramesIndexSet;             // Default index set with the full range of indexes; never changes
+
+/// Indexes of cached frames
+@property (nonatomic, strong, readonly) NSMutableIndexSet *cachedFrameIndexes;
+
+/// Indexes of frames that are currently produced in the background
+@property (nonatomic, strong, readonly) NSMutableIndexSet *requestedFrameIndexes;
+
+/// Default index set with the full range of indexes; never changes
+@property (nonatomic, strong, readonly) NSIndexSet *allFramesIndexSet;
+
 @property (nonatomic, assign) NSUInteger memoryWarningCount;
+
 @property (nonatomic, strong, readonly) dispatch_queue_t serialQueue;
+
 @property (nonatomic, strong, readonly) __attribute__((NSObject)) CGImageSourceRef imageSource;
 
 // The weak proxy is used to break retain cycles with delayed actions from memory warnings.
 // We are lying about the actual type here to gain static type checking and eliminate casts.
 // The actual type of the object is `HippyWeakProxy`.
 @property (nonatomic, strong, readonly) HippyAnimatedImage *weakProxy;
+
 @property (nonatomic, strong) id<HippyImageProviderProtocol> imageProvider;
 
 @end
@@ -167,7 +186,7 @@ static NSHashTable *allAnimatedImagesWeak;
 }
 
 - (instancetype)initWithAnimatedImageProvider:(id<HippyImageProviderProtocol>)imageProvider {
-    return [self initWithAnimatedImageProvider:imageProvider optimalFrameCacheSize:9 predrawingEnabled:NO];
+    return [self initWithAnimatedImageProvider:imageProvider optimalFrameCacheSize:100 predrawingEnabled:NO];
 }
 
 - (instancetype)initWithAnimatedImageProvider:(id<HippyImageProviderProtocol>)imageProvider
@@ -187,7 +206,7 @@ static NSHashTable *allAnimatedImagesWeak;
         _cachedFrameIndexes = [[NSMutableIndexSet alloc] init];
         _requestedFrameIndexes = [[NSMutableIndexSet alloc] init];
 
-        // loop count
+        // Get LoopCount
         if ([imageProvider respondsToSelector:@selector(loopCount)]) {
             _loopCount = [imageProvider loopCount];
         }

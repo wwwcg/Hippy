@@ -58,9 +58,7 @@ HIPPY_EXPORT_MODULE(defaultImageProvider)
     self = [super init];
     if (self) {
         if ([[self class] isAnimatedImage:data]) {
-            NSDictionary *options = @{ (NSString *)kCGImageSourceShouldCache: @(NO) };
-            _imageSourceRef = CGImageSourceCreateWithData((__bridge CFDataRef)data,
-                                                          (__bridge CFDictionaryRef)options);
+            _imageSourceRef = CGImageSourceCreateWithData((__bridge CFDataRef)data, NULL);
         } else {
             _data = data;
         }
@@ -116,7 +114,8 @@ HIPPY_EXPORT_MODULE(defaultImageProvider)
 
 - (UIImage *)imageAtFrame:(NSUInteger)index {
     if (_imageSourceRef) {
-        CGImageRef imageRef = CGImageSourceCreateImageAtIndex(_imageSourceRef, index, NULL);
+        NSDictionary *options = @{ (NSString *)kCGImageSourceShouldCache: @(NO) };
+        CGImageRef imageRef = CGImageSourceCreateImageAtIndex(_imageSourceRef, index, (__bridge CFDictionaryRef)options);
         UIImage *image = [UIImage imageWithCGImage:imageRef];
         CGImageRelease(imageRef);
         return image;
@@ -128,8 +127,7 @@ HIPPY_EXPORT_MODULE(defaultImageProvider)
 
 - (NSUInteger)imageCount {
     if (_imageSourceRef) {
-        size_t count = CGImageSourceGetCount(_imageSourceRef);
-        return count;
+        return CGImageSourceGetCount(_imageSourceRef);
     }
     return 0;
 }

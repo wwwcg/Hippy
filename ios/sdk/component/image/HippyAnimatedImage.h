@@ -43,16 +43,26 @@ extern const NSTimeInterval kHippyAnimatedImageDelayTimeIntervalMinimum;
 //
 @interface HippyAnimatedImage : NSObject
 
-@property (nonatomic, strong, readonly) UIImage *posterImage;  // Guaranteed to be loaded; usually equivalent to `-imageLazilyCachedAtIndex:0`
-@property (nonatomic, assign, readonly) CGSize size;           // The `.posterImage`'s `.size`
+/// Guaranteed to be loaded; usually equivalent to `-imageLazilyCachedAtIndex:0`
+@property (nonatomic, strong, readonly) UIImage *posterImage;
 
-@property (nonatomic, assign, readonly) NSUInteger loopCount;                // 0 means repeating the animation indefinitely
-@property (nonatomic, strong, readonly) NSDictionary *delayTimesForIndexes;  // Of type `NSTimeInterval` boxed in `NSNumber`s
-@property (nonatomic, assign, readonly) NSUInteger frameCount;               // Number of valid frames; equal to `[.delayTimes count]`
+/// The `.posterImage`'s `.size`
+@property (nonatomic, assign, readonly) CGSize size;
 
-@property (nonatomic, assign, readonly)
-    NSUInteger frameCacheSizeCurrent;  // Current size of intelligently chosen buffer window; can range in the interval [1..frameCount]
-@property (nonatomic, assign) NSUInteger frameCacheSizeMax;  // Allow to cap the cache size; 0 means no specific limit (default)
+/// 0 means repeating the animation indefinitely
+@property (nonatomic, assign, readonly) NSUInteger loopCount;
+
+/// Of type `NSTimeInterval` boxed in `NSNumber`s
+@property (nonatomic, strong, readonly) NSDictionary *delayTimesForIndexes;
+
+/// Number of valid frames; equal to `[.delayTimes count]`
+@property (nonatomic, assign, readonly) NSUInteger frameCount;
+
+/// Current size of intelligently chosen buffer window; can range in the interval [1..frameCount]
+@property (nonatomic, assign, readonly) NSUInteger frameCacheSizeCurrent;
+
+/// Allow to cap the cache size; 0 means no specific limit (default)
+@property (nonatomic, assign) NSUInteger frameCacheSizeMax;
 
 // Intended to be called from main thread synchronously; will return immediately.
 // If the result isn't cached, will return `nil`; the caller should then pause playback, not increment frame counter and keep polling.
@@ -70,15 +80,20 @@ extern const NSTimeInterval kHippyAnimatedImageDelayTimeIntervalMinimum;
                             predrawingEnabled:(BOOL)isPredrawingEnabled;
 + (instancetype)animatedImageWithAnimatedImageProvider:(id<HippyImageProviderProtocol>)imageProvider;
 
-// On success, the initializers return an `HippyAnimatedImage` with all fields initialized, on failure they return `nil` and an error will be logged.
+// On success, the initializers return an `HippyAnimatedImage` with all fields initialized,
+// on failure they return `nil` and an error will be logged.
 - (instancetype)initWithAnimatedGIFData:(NSData *)data;
+
 // Pass 0 for optimalFrameCacheSize to get the default, predrawing is enabled by default.
 - (instancetype)initWithAnimatedGIFData:(NSData *)data
                   optimalFrameCacheSize:(NSUInteger)optimalFrameCacheSize
                       predrawingEnabled:(BOOL)isPredrawingEnabled;
+
 + (instancetype)animatedImageWithGIFData:(NSData *)data;
 
-@property (nonatomic, strong, readonly) NSData *data;  // The data the receiver was initialized with; read-only
+/// The data the receiver was initialized with; read-only
+@property (nonatomic, strong, readonly) NSData *data;
+
 @property (nonatomic, strong, readonly) id<HippyImageProviderProtocol> imageProvider;
 
 @end
