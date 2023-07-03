@@ -73,6 +73,7 @@ Pod::Spec.new do |s|
     ss.dependency 'hippy/core'
     ss.dependency 'hippy/coreThirdParty'
     ss.dependency 'hippy/MTTLayout'
+    ss.dependency 'SDWebImage'
     ss.frameworks = 'UIKit', 'Foundation', 'QuartzCore', 'CFNetwork', 'CoreGraphics', 'CoreTelephony', 
     'ImageIO', 'WebKit', 'SystemConfiguration', 'Security', 'CoreServices', 'Accelerate'
     ss.public_header_files = 'ios/sdk/**/*.h'
