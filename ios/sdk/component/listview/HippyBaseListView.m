@@ -31,6 +31,8 @@
 #import "HippyBaseListViewCell.h"
 #import "HippyVirtualList.h"
 
+static NSString *kCellIdentifier = @"cellIdentifier";
+
 @interface HippyBaseListView () <HippyScrollProtocol, HippyRefreshDelegate>
 
 @end
@@ -59,7 +61,7 @@
         _isInitialListReady = NO;
         _preNumberOfRows = 0;
         _preloadItemNumber = 1;
-        _cachedItems = [NSMutableDictionary dictionaryWithCapacity:64];
+        _cachedItems = [NSMutableDictionary dictionaryWithCapacity:256];
         [[NSNotificationCenter defaultCenter] addObserver:self
                                                  selector:@selector(didReceiveMemoryWarning)
                                                      name:UIApplicationDidReceiveMemoryWarningNotification object:nil];
@@ -88,6 +90,7 @@
         _tableView.allowsSelection = NO;
         _tableView.estimatedRowHeight = 0;
         _tableView.separatorStyle = UITableViewCellSeparatorStyleNone;
+        [_tableView registerClass:[HippyBaseListViewCell class] forCellReuseIdentifier:kCellIdentifier];
 #ifdef __IPHONE_15_0
         if (@available(iOS 15.0, *)) {
             [_tableView setSectionHeaderTopPadding:0.0f];
@@ -295,7 +298,11 @@
             }
         });
     }
-
+    HippyBaseListViewCell *hippyCell = (HippyBaseListViewCell *)cell;
+    UIView *cellView = hippyCell.cellView;
+    if (cellView) {
+        [_cachedItems removeObjectForKey:indexPath];
+    }
     if (self.onEndReached) {
         NSInteger lastSectionIndex = [self numberOfSectionsInTableView:tableView] - 1;
         NSInteger lastRowIndexInSection = [self tableView:tableView numberOfRowsInSection:lastSectionIndex] - _preloadItemNumber;
@@ -323,7 +330,7 @@
 - (UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath {
     HippyVirtualCell *indexNode = [_dataSource cellForIndexPath:indexPath];
     NSString *identifier = indexNode.itemViewType;
-    HippyBaseListViewCell *cell = (HippyBaseListViewCell *)[tableView dequeueReusableCellWithIdentifier:identifier];
+    HippyBaseListViewCell *cell = (HippyBaseListViewCell *)[tableView dequeueReusableCellWithIdentifier:kCellIdentifier forIndexPath:indexPath];
     if (nil == cell) {
         Class cls = [self listViewCellClass];
         NSAssert([cls isSubclassOfClass:[HippyBaseListViewCell class]], @"listViewCellClass must return a subclass of HippyBaseListViewCell");
@@ -336,9 +343,6 @@
     cell.cellView = (UIView<ViewAppearStateProtocol> *)cellView;
     cell.node = indexNode;
     cell.node.cell = cell;
-    if (cellView) {
-        [_cachedItems removeObjectForKey:indexPath];
-    }
     return cell;
 }
 
