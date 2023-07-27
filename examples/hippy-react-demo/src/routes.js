@@ -1,11 +1,7 @@
 import * as components from './components';
-import * as modules from './modules';
-import * as externals from './externals';
 
 const PAGE_LIST = {
   ...components,
-  ...modules,
-  ...externals,
 };
 
 export default [
@@ -13,14 +9,6 @@ export default [
     path: '/View',
     name: 'View 组件',
     component: PAGE_LIST.View,
-    meta: {
-      style: 1,
-    },
-  },
-  {
-    path: '/BoxShadow',
-    name: 'BoxShadow 范例',
-    component: PAGE_LIST.BoxShadow,
     meta: {
       style: 1,
     },
@@ -37,6 +25,14 @@ export default [
     path: '/Image',
     name: 'Image 组件',
     component: PAGE_LIST.Image,
+    meta: {
+      style: 1,
+    },
+  },
+  {
+    path: '/ScrollView',
+    name: 'ScrollView 组件',
+    component: PAGE_LIST.ScrollView,
     meta: {
       style: 1,
     },
@@ -74,14 +70,6 @@ export default [
     },
   },
   {
-    path: '/ScrollView',
-    name: 'ScrollView 组件',
-    component: PAGE_LIST.ScrollView,
-    meta: {
-      style: 1,
-    },
-  },
-  {
     path: '/ViewPager',
     name: 'ViewPager 组件',
     component: PAGE_LIST.ViewPager,
@@ -106,30 +94,6 @@ export default [
     },
   },
   {
-    path: '/Slider',
-    name: 'Slider 组件',
-    component: PAGE_LIST.Slider,
-    meta: {
-      style: 1,
-    },
-  },
-  {
-    path: '/TabHost',
-    name: 'TabHost 组件',
-    component: PAGE_LIST.TabHost,
-    meta: {
-      style: 1,
-    },
-  },
-  {
-    path: '/NestedScroll',
-    name: 'Nested Scroll 示例',
-    component: PAGE_LIST.NestedScroll,
-    meta: {
-      style: 1,
-    },
-  },
-  {
     path: '/WebView',
     name: 'WebView 组件',
     component: PAGE_LIST.WebView,
@@ -143,70 +107,6 @@ export default [
     component: PAGE_LIST.RippleViewAndroid,
     meta: {
       style: 1,
-    },
-  },
-  {
-    path: '/WebSocket',
-    name: 'WebSocket 模块',
-    component: PAGE_LIST.WebSocket,
-    meta: {
-      style: 2,
-    },
-  },
-  {
-    path: '/Animation',
-    name: 'Animation 组件',
-    component: PAGE_LIST.Animation,
-    meta: {
-      style: 2,
-    },
-  },
-  {
-    path: '/NetInfo',
-    name: 'Network 能力',
-    component: PAGE_LIST.NetInfo,
-    meta: {
-      style: 2,
-    },
-  },
-  {
-    path: '/UIManagerModule',
-    name: 'UIManagerModule 模块',
-    component: PAGE_LIST.UIManagerModule,
-    meta: {
-      style: 2,
-    },
-  },
-  {
-    path: '/SetNativeProps',
-    name: 'setNativeProps能力',
-    component: PAGE_LIST.SetNativeProps,
-    meta: {
-      style: 2,
-    },
-  },
-  {
-    path: '/DynamicImport',
-    name: 'DynamicImport 能力',
-    component: PAGE_LIST.DynamicImport,
-    meta: {
-      style: 2,
-    },
-  },
-  {
-    path: '/Localization',
-    name: 'Localization 信息',
-    component: PAGE_LIST.Localization,
-    meta: {
-      style: 2,
-    },
-  },
-  {
-    path: '/Turbo',
-    name: 'Turbo',
-    component: PAGE_LIST.Turbo,
-    meta: {
-      style: 2,
     },
   },
 ];

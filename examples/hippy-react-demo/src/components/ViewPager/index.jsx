@@ -4,6 +4,7 @@ import {
   View,
   Text,
   ViewPager,
+  ScrollView,
 } from '@hippy/react';
 import { CirclePagerView, SquarePagerView, TrianglePagerView } from '../../shared/PagerItemView';
 
@@ -34,7 +35,9 @@ const styles = StyleSheet.create({
     backgroundColor: '#000000',
   },
   container: {
-    height: 500,
+    height: 900,
+    backgroundColor: 'grey',
+    flex: 1,
   },
   buttonContainer: {
     flexDirection: 'row',
@@ -46,7 +49,7 @@ const styles = StyleSheet.create({
     width: 120,
     height: 36,
     backgroundColor: '#4c9afa',
-    borderRadius: 18,
+    borderRadius: 4,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -98,26 +101,31 @@ export default class PagerExample extends React.Component {
               <Text style={styles.buttonText}>直接滑到第1页</Text>
             </View>
           </View>
+          <ScrollView style={{ flex: 1, display: 'flex'}}
+                      // contentContainerStyle={{flex: 1}}
+          >
           <ViewPager
             ref={(ref) => {
               this.viewpager = ref;
             }}
             style={styles.container}
             initialPage={0}
+            // direction={'vertical'}
             keyboardDismissMode="none"
-            scrollEnabled
+            scrollEnabled={true}
             onPageSelected={this.onPageSelected}
             onPageScrollStateChanged={this.onPageScrollStateChanged}
             onPageScroll={this.onPageScroll}
           >
             {
               [
-                SquarePagerView('squarePager'),
-                TrianglePagerView('TrianglePager'),
-                CirclePagerView('CirclePager'),
+                SquarePagerView('1 SquarePager'),
+                TrianglePagerView('2 TrianglePager'),
+                CirclePagerView('3 CirclePager'),
               ]
             }
           </ViewPager>
+          </ScrollView>
           <View style={styles.dotContainer}>
             {
               new Array(PAGE_COUNT).fill(0)

@@ -1,7 +1,7 @@
 import React from 'react';
 import {
   Animation,
-  AnimationSet,
+  AnimationSet, Image,
   Platform,
   ScrollView,
   StyleSheet,
@@ -16,6 +16,18 @@ const SKIN_COLOR = {
 };
 
 const styles = StyleSheet.create({
+  itemTitle: {
+    alignItems: 'flex-start',
+    justifyContent: 'center',
+    height: 40,
+    borderWidth: 1,
+    borderStyle: 'solid',
+    borderColor: '#e0e0e0',
+    borderRadius: 2,
+    backgroundColor: '#fafafa',
+    padding: 10,
+    marginVertical: 10,
+  },
   container: {
     paddingHorizontal: 10,
   },
@@ -25,19 +37,20 @@ const styles = StyleSheet.create({
     backgroundColor: SKIN_COLOR.otherLight,
   },
   showArea: {
-    height: 150,
+    flexDirection: 'row',
+    height: 80,
     marginVertical: 10,
   },
   button: {
     borderColor: SKIN_COLOR.mainLight,
-    borderWidth: 2,
+    borderWidth: 1,
     borderStyle: 'solid',
     justifyContent: 'center',
     alignItems: 'center',
     width: 70,
-    borderRadius: 8,
-    height: 50,
-    marginTop: 20,
+    height: 30,
+    borderRadius: 4,
+    marginTop: 0,
     marginRight: 8,
   },
   buttonText: {
@@ -72,7 +85,7 @@ export default class AnimationExample extends React.Component {
     this.horizonAnimation = new Animation({
       startValue: 150, // 开始值
       toValue: 20, // 动画结束值
-      duration: 1000, // 动画持续时长
+      duration: 3000, // 动画持续时长
       delay: 500, // 至动画真正开始的延迟时间
       mode: 'timing', // 动画模式
       timingFunction: 'linear', // 动画缓动函数
@@ -80,11 +93,21 @@ export default class AnimationExample extends React.Component {
     });
     this.verticalAnimation = new Animation({
       startValue: 80, // 动画开始值
-      toValue: 40, // 动画结束值
-      duration: 1000, // 动画持续时长
+      toValue: 0, // 动画结束值
+      duration: 3000, // 动画持续时长
       delay: 0, // 至动画真正开始的延迟时间
       mode: 'timing', // 动画模式
       timingFunction: 'linear', // 动画缓动函数,
+      direction: 'top',
+      repeatCount: 'loop',
+    });
+    this.verticalMoveAnimation = new Animation({
+      startValue: 0, // 开始值
+      toValue: -80, // 动画结束值
+      duration: 3000, // 动画持续时长
+      delay: 0, // 至动画真正开始的延迟时间
+      mode: 'timing', // 动画模式
+      timingFunction: 'linear', // 动画缓动函数
       repeatCount: 'loop',
     });
 
@@ -94,7 +117,7 @@ export default class AnimationExample extends React.Component {
           animation: new Animation({
             startValue: 1,
             toValue: 1.2,
-            duration: 1000,
+            duration: 3000,
             delay: 0,
             mode: 'timing',
             timingFunction: 'linear',
@@ -105,7 +128,7 @@ export default class AnimationExample extends React.Component {
           animation: new Animation({
             startValue: 1.2,
             toValue: 0.2,
-            duration: 1000,
+            duration: 3000,
             delay: 0,
             mode: 'timing',
             timingFunction: 'linear',
@@ -208,7 +231,7 @@ export default class AnimationExample extends React.Component {
             startValue: 'red',
             toValue: 'yellow',
             valueType: 'color', // 颜色动画需显式指定color单位
-            duration: 1000,
+            duration: 3000,
             delay: 0,
             mode: 'timing',
             timingFunction: 'linear',
@@ -219,7 +242,7 @@ export default class AnimationExample extends React.Component {
           animation: new Animation({
             startValue: 'yellow',
             toValue: 'blue',
-            duration: 1000,
+            duration: 3000,
             valueType: 'color',
             delay: 0,
             mode: 'timing',
@@ -230,15 +253,27 @@ export default class AnimationExample extends React.Component {
       ],
       repeatCount: 'loop',
     });
+
+    this.bgColorAnimation2 = new Animation({
+      startValue: 'rgba(60,60,60, 0.7)',
+      toValue: '#FFFFFF',
+      valueType: 'color', // 颜色动画需显式指定color单位
+      duration: 3000,
+      delay: 0,
+      mode: 'timing',
+      timingFunction: 'linear',
+      repeatCount: 'loop',
+    });
+
     // TODO iOS暂不支持文字颜色渐变动画
     this.txtColorAnimationSet = new AnimationSet({
       children: [
         {
           animation: new Animation({
             startValue: 'white',
-            toValue: 'yellow',
+            toValue: 'red',
             valueType: 'color', // 颜色动画需显式指定color单位
-            duration: 1000,
+            duration: 3000,
             delay: 0,
             mode: 'timing',
             timingFunction: 'linear',
@@ -247,9 +282,9 @@ export default class AnimationExample extends React.Component {
         },
         {
           animation: new Animation({
-            startValue: 'yellow',
+            startValue: 'red',
             toValue: 'white',
-            duration: 1000,
+            duration: 3000,
             valueType: 'color',
             delay: 0,
             mode: 'timing',
@@ -268,7 +303,7 @@ export default class AnimationExample extends React.Component {
           animation: new Animation({
             startValue: 0,
             toValue: 1,
-            duration: 1000,
+            duration: 3000,
             delay: 0,
             mode: 'timing',
             timingFunction: 'cubic-bezier(.45,2.84,.38,.5)',
@@ -279,7 +314,7 @@ export default class AnimationExample extends React.Component {
           animation: new Animation({
             startValue: 1,
             toValue: 0,
-            duration: 1000,
+            duration: 3000,
             mode: 'timing',
             timingFunction: 'cubic-bezier(.17,1.45,.78,.14)',
           }),
@@ -288,7 +323,152 @@ export default class AnimationExample extends React.Component {
       ],
       repeatCount: 'loop',
     });
+
+    // Width+位移组合动画demo
+    this.parentWidthAnimation = new Animation({
+      startValue: 180, // 动画开始值
+      toValue: 40, // 动画结束值
+      duration: 3000, // 动画持续时长
+      delay: 0, // 至动画真正开始的延迟时间
+      mode: 'timing', // 动画模式
+      timingFunction: 'linear', // 动画缓动函数,
+      repeatCount: 'loop',
+    });
+    this.parentWidthAnimation2 = new Animation({
+      startValue: 180, // 动画开始值
+      toValue: 40, // 动画结束值
+      duration: 3000, // 动画持续时长
+      delay: 0, // 至动画真正开始的延迟时间
+      mode: 'timing', // 动画模式
+      timingFunction: 'linear', // 动画缓动函数,
+      repeatCount: 'loop',
+    });
+    this.imageLeftMoveAnimation = new Animation({
+      startValue: 0, // 动画开始值
+      toValue: -70, // 动画结束值
+      duration: 3000, // 动画持续时长
+      delay: 0, // 至动画真正开始的延迟时间
+      mode: 'timing', // 动画模式
+      timingFunction: 'linear', // 动画缓动函数,
+      repeatCount: 'loop',
+    });
+
+    // 宽度增加动画、高度增加动画、向右移动动画、向上移动动画
+    this.getBiggerAnimation1 = new Animation({
+      startValue: 40, // 动画开始值
+      toValue: 100, // 动画结束值
+      duration: 3000, // 动画持续时长
+      delay: 0, // 至动画真正开始的延迟时间
+      mode: 'timing', // 动画模式
+      timingFunction: 'linear', // 动画缓动函数,
+      repeatCount: 'loop',
+    });
+    this.getBiggerAnimation2 = new Animation({
+      startValue: 40, // 动画开始值
+      toValue: 100, // 动画结束值
+      duration: 3000, // 动画持续时长
+      delay: 0, // 至动画真正开始的延迟时间
+      mode: 'timing', // 动画模式
+      timingFunction: 'linear', // 动画缓动函数,
+      repeatCount: 'loop',
+    });
+    this.moveRightAnimation = new Animation({
+      startValue: 0, // 动画开始值
+      toValue: 100, // 动画结束值
+      duration: 3000, // 动画持续时长
+      delay: 0, // 至动画真正开始的延迟时间
+      mode: 'timing', // 动画模式
+      timingFunction: 'linear', // 动画缓动函数,
+      repeatCount: 'loop',
+    });
+    this.moveUpAnimation = new Animation({
+      startValue: 0, // 动画开始值
+      toValue: 80, // 动画结束值
+      duration: 3000, // 动画持续时长
+      delay: 0, // 至动画真正开始的延迟时间
+      mode: 'timing', // 动画模式
+      timingFunction: 'linear', // 动画缓动函数,
+      repeatCount: 'loop',
+    });
+
+    this.bottomIconMarginLeftAnimation = new Animation({
+      startValue: -30, // 动画开始值
+      toValue: 100, // 动画结束值
+      duration: 3000, // 动画持续时长
+      delay: 0, // 至动画真正开始的延迟时间
+      mode: 'timing', // 动画模式
+      timingFunction: 'linear', // 动画缓动函数,
+      repeatCount: 'loop',
+    });
+    this.bottomIconMarginBottomAnimation = new Animation({
+      startValue: -30, // 动画开始值
+      toValue: 80, // 动画结束值
+      duration: 3000, // 动画持续时长
+      delay: 0, // 至动画真正开始的延迟时间
+      mode: 'timing', // 动画模式
+      timingFunction: 'linear', // 动画缓动函数,
+      repeatCount: 'loop',
+    });
+    this.bottomIconWidthAnimation = new Animation({
+      startValue: 40, // 动画开始值
+      toValue: 100, // 动画结束值
+      duration: 3000, // 动画持续时长
+      delay: 0, // 至动画真正开始的延迟时间
+      mode: 'timing', // 动画模式
+      timingFunction: 'linear', // 动画缓动函数,
+      repeatCount: 'loop',
+    });
+    this.bottomIconHeightAnimation = new Animation({
+      startValue: 40, // 动画开始值
+      toValue: 100, // 动画结束值
+      duration: 3000, // 动画持续时长
+      delay: 0, // 至动画真正开始的延迟时间
+      mode: 'timing', // 动画模式
+      timingFunction: 'linear',
+      repeatCount: 'loop',
+    });
+
+    this.cardScaleAnimation = new Animation({
+      startValue: 0,
+      toValue: 1,
+      duration: 3000,
+      mode: 'timing',
+      timingFunction: 'ease-in-out',
+    });
+    this.cardRotateYAnimation = new Animation({
+      startValue: 180,
+      toValue: 360,
+      duration: 3000,
+      valueType: 'deg',
+      mode: 'timing',
+      timingFunction: 'ease-in-out',
+      repeatCount: 'loop',
+    });
+    this.cardRotateYAnimation2 = new Animation({
+      startValue: 360,
+      toValue: 360,
+      duration: 1000000, // 非常大的值，保证不会执行结束
+      delay: 0,
+      valueType: 'deg',
+      mode: 'timing',
+      timingFunction: 'linear',
+    });
+
+    this.cardRotateAnimationSet = new AnimationSet({
+      children: [
+        {
+          animation: this.cardRotateYAnimation,
+          follow: false, // 配置子动画的执行是否跟随执行
+        },
+        {
+          animation: this.cardRotateYAnimation2,
+          follow: true,
+        },
+      ],
+      repeatCount: 'none',
+    });
   }
+
 
   componentDidMount() {
     //  动画参数的设置（只有转换web情况需要调用setRef方法）
@@ -353,40 +533,27 @@ export default class AnimationExample extends React.Component {
   }
 
   render() {
+    const renderTitle = title => (
+      <View style={styles.itemTitle}>
+        <Text>{title}</Text>
+      </View>
+    );
     return (
       <ScrollView style={styles.container}>
-        <Text style={styles.title}>水平位移动画</Text>
+        {renderTitle('水平位移动画')}
         <View style={styles.buttonContainer}>
-          <View
-            style={styles.button}
-            onClick={() => {
-              this.horizonAnimation.start();
-            }}
-          >
+          <View style={styles.button} onClick={() => {this.horizonAnimation.start();}}>
             <Text style={styles.buttonText}>开始</Text>
           </View>
-          <View
-            style={[styles.button]}
-            onClick={() => {
-              this.horizonAnimation.pause();
-            }}
-          >
+          <View style={[styles.button]} onClick={() => {this.horizonAnimation.pause();}}>
             <Text style={styles.buttonText}>暂停</Text>
           </View>
-          <View
-            style={styles.button}
-            onClick={() => {
-              this.horizonAnimation.resume();
-            }}
-          >
+          <View style={styles.button} onClick={() => {this.horizonAnimation.resume();}}>
             <Text style={styles.buttonText}>继续</Text>
           </View>
-          <View
-            style={styles.button}
-            onClick={() => {
-              this.horizonAnimation.updateAnimation({ startValue: 50, toValue: 100 });
-            }}
-          >
+          <View style={styles.button} onClick={() => {
+            this.horizonAnimation.updateAnimation({ startValue: 50, toValue: 100 });
+          }}>
             <Text style={styles.buttonText}>更新</Text>
           </View>
         </View>
@@ -402,34 +569,22 @@ export default class AnimationExample extends React.Component {
             }]}
           />
         </View>
-        <Text style={styles.title}>高度形变动画</Text>
+        {renderTitle('高度形变动画')}
         <View style={styles.buttonContainer}>
-          <View
-            style={styles.button}
-            onClick={() => {
-              this.verticalAnimation.start();
-            }}
-          >
+          <View style={styles.button} onClick={() => {
+            this.verticalAnimation.start();
+            this.verticalMoveAnimation.start();
+          }}>
             <Text style={styles.buttonText}>开始</Text>
           </View>
-          <View
-            style={[styles.button]}
-            onClick={() => {
-              this.verticalAnimation.pause();
-            }}
-          >
+          <View style={[styles.button]} onClick={() => {this.verticalAnimation.pause();}}>
             <Text style={styles.buttonText}>暂停</Text>
           </View>
-          <View
-            style={styles.button}
-            onClick={() => {
-              this.verticalAnimation.resume();
-            }}
-          >
+          <View style={styles.button} onClick={() => {this.verticalAnimation.resume();}}>
             <Text style={styles.buttonText}>继续</Text>
           </View>
         </View>
-        <View style={styles.showArea}>
+        <View style={[styles.showArea, {flexDirection: 'column', height: 200}]}>
           <View
             ref={(ref) => {
               this.verticalRef = ref;
@@ -438,31 +593,23 @@ export default class AnimationExample extends React.Component {
               height: this.verticalAnimation,
             }]}
           />
+          <View style={{
+            backgroundColor: 'green',
+            width: 50,
+            height: 50,
+            // top: this.verticalMoveAnimation,
+          }}
+          ></View>
         </View>
-        <Text style={styles.title}>旋转动画</Text>
+        {renderTitle('旋转动画')}
         <View style={styles.buttonContainer}>
-          <View
-            style={styles.button}
-            onClick={() => {
-              this.rotateAnimationSet.start();
-            }}
-          >
+          <View style={styles.button} onClick={() => {this.rotateAnimationSet.start();}}>
             <Text style={styles.buttonText}>开始</Text>
           </View>
-          <View
-            style={[styles.button]}
-            onClick={() => {
-              this.rotateAnimationSet.pause();
-            }}
-          >
+          <View style={[styles.button]} onClick={() => {this.rotateAnimationSet.pause();}}>
             <Text style={styles.buttonText}>暂停</Text>
           </View>
-          <View
-            style={styles.button}
-            onClick={() => {
-              this.rotateAnimationSet.resume();
-            }}
-          >
+          <View style={styles.button} onClick={() => {this.rotateAnimationSet.resume();}}>
             <Text style={styles.buttonText}>继续</Text>
           </View>
         </View>
@@ -478,33 +625,24 @@ export default class AnimationExample extends React.Component {
             }]}
           />
         </View>
-        <Text style={styles.title}>倾斜动画</Text>
+        {renderTitle('倾斜动画')}
         <View style={styles.buttonContainer}>
-          <View
-            style={styles.button}
-            onClick={() => {
-              this.skewXAnimationSet.start();
-              this.skewYAnimationSet.start();
-            }}
-          >
+          <View style={styles.button} onClick={() => {
+            this.skewXAnimationSet.start();
+            this.skewYAnimationSet.start();
+          }}>
             <Text style={styles.buttonText}>开始</Text>
           </View>
-          <View
-            style={[styles.button]}
-            onClick={() => {
-              this.skewXAnimationSet.pause();
-              this.skewYAnimationSet.pause();
-            }}
-          >
+          <View style={[styles.button]} onClick={() => {
+            this.skewXAnimationSet.pause();
+            this.skewYAnimationSet.pause();
+          }}>
             <Text style={styles.buttonText}>暂停</Text>
           </View>
-          <View
-            style={styles.button}
-            onClick={() => {
-              this.skewXAnimationSet.resume();
-              this.skewYAnimationSet.resume();
-            }}
-          >
+          <View style={styles.button} onClick={() => {
+            this.skewXAnimationSet.resume();
+            this.skewYAnimationSet.resume();
+          }}>
             <Text style={styles.buttonText}>继续</Text>
           </View>
         </View>
@@ -516,36 +654,21 @@ export default class AnimationExample extends React.Component {
             style={[styles.square, {
               transform: [{
                 skewX: this.skewXAnimationSet,
-              }, {
                 skewY: this.skewYAnimationSet,
               }],
             }]}
           />
         </View>
-        <Text style={styles.title}>缩放动画</Text>
+
+        {renderTitle('缩放动画')}
         <View style={styles.buttonContainer}>
-          <View
-            style={styles.button}
-            onClick={() => {
-              this.scaleAnimationSet.start();
-            }}
-          >
+          <View style={styles.button} onClick={() => {this.scaleAnimationSet.start();}}>
             <Text style={styles.buttonText}>开始</Text>
           </View>
-          <View
-            style={[styles.button]}
-            onClick={() => {
-              this.scaleAnimationSet.pause();
-            }}
-          >
+          <View style={styles.button} onClick={() => {this.scaleAnimationSet.pause();}}>
             <Text style={styles.buttonText}>暂停</Text>
           </View>
-          <View
-            style={styles.button}
-            onClick={() => {
-              this.scaleAnimationSet.resume();
-            }}
-          >
+          <View style={styles.button} onClick={() => {this.scaleAnimationSet.resume();}}>
             <Text style={styles.buttonText}>继续</Text>
           </View>
         </View>
@@ -561,87 +684,74 @@ export default class AnimationExample extends React.Component {
             }]}
           />
         </View>
-        <Text style={styles.title}>颜色渐变动画（文字渐变仅Android支持）</Text>
+
+        {renderTitle('颜色渐变动画（文字渐变仅Android支持）')}
         <View style={styles.buttonContainer}>
-          <View
-              style={styles.button}
-              onClick={() => {
-                this.bgColorAnimationSet.start();
-                this.txtColorAnimationSet.start();
-              }}
-          >
+          <View style={styles.button} onClick={() => {
+            this.bgColorAnimationSet.start();
+            this.txtColorAnimationSet.start();
+            this.bgColorAnimation2.start();
+          }}>
             <Text style={styles.buttonText}>开始</Text>
           </View>
-          <View
-              style={[styles.button]}
-              onClick={() => {
-                this.bgColorAnimationSet.pause();
-                this.txtColorAnimationSet.pause();
-              }}
-          >
+          <View style={[styles.button]} onClick={() => {
+            this.bgColorAnimationSet.pause();
+            this.txtColorAnimationSet.pause();
+            this.bgColorAnimation2.pause();
+          }}>
             <Text style={styles.buttonText}>暂停</Text>
           </View>
-          <View
-              style={styles.button}
-              onClick={() => {
-                this.bgColorAnimationSet.resume();
-                this.txtColorAnimationSet.resume();
-              }}
-          >
-            <Text style={styles.buttonText}>继续</Text>
-          </View>
-        </View>
-        <View style={[styles.showArea, { marginVertical: 20 }]}>
-          <View
-              ref={(ref) => {
-                this.bgColorRef = ref;
-              }}
-              style={[styles.square, {
-                justifyContent: 'center',
-                alignItems: 'center',
-              },
-              {
-                backgroundColor: this.bgColorAnimationSet,
-              }]}
-
-          ><Text ref={(ref) => {
-            this.textColorRef = ref;
-          }} style={[styles.colorText, {
-            // TODO iOS暂不支持文字颜色渐变动画
-            color: Platform.OS === 'android' ? this.txtColorAnimationSet : 'white',
-          }]}>颜色渐变背景和文字</Text></View>
-        </View>
-
-        <Text style={styles.title}>贝塞尔曲线动画</Text>
-        <View style={styles.buttonContainer}>
-          <View
-              style={styles.button}
-              onClick={() => {
-                this.cubicBezierScaleAnimationSet.start();
-              }}
-          >
-            <Text style={styles.buttonText}>开始</Text>
-          </View>
-          <View
-              style={[styles.button]}
-              onClick={() => {
-                this.cubicBezierScaleAnimationSet.pause();
-              }}
-          >
-            <Text style={styles.buttonText}>暂停</Text>
-          </View>
-          <View
-              style={styles.button}
-              onClick={() => {
-                this.cubicBezierScaleAnimationSet.resume();
-              }}
-          >
+          <View style={styles.button} onClick={() => {
+            this.bgColorAnimationSet.resume();
+            this.txtColorAnimationSet.resume();
+            this.bgColorAnimation2.resume();
+          }}>
             <Text style={styles.buttonText}>继续</Text>
           </View>
         </View>
         <View style={[styles.showArea, { marginVertical: 20 }]}>
           <View
             ref={(ref) => {
+              this.bgColorRef = ref;
+            }}
+            style={[styles.square, {
+              justifyContent: 'center',
+              alignItems: 'center',
+              backgroundColor: this.bgColorAnimationSet,
+            }]}
+          >
+            <Text ref={(ref) => {this.textColorRef = ref;}} style={[styles.colorText, {
+              color: this.txtColorAnimationSet, // TODO iOS暂不支持文字颜色渐变动画
+            }]}>颜色渐变背景和文字</Text>
+          </View>
+          <View ref={(ref) => {
+              this.bgColorRef = ref;
+            }}
+            style={[styles.square, {
+              marginLeft: 20,
+              justifyContent: 'center',
+              alignItems: 'center',
+              backgroundColor: this.bgColorAnimation2,
+            }]}
+          ><Text ref={(ref) => {
+            this.textColorRef = ref;
+          }} style={styles.colorText}>灰色背景</Text></View>
+        </View>
+
+        {renderTitle('贝塞尔曲线动画')}
+        <View style={styles.buttonContainer}>
+          <View style={styles.button} onClick={() => {this.cubicBezierScaleAnimationSet.start();}}>
+            <Text style={styles.buttonText}>开始</Text>
+          </View>
+          <View style={[styles.button]} onClick={() => {this.cubicBezierScaleAnimationSet.pause();}}>
+            <Text style={styles.buttonText}>暂停</Text>
+          </View>
+          <View style={styles.button} onClick={() => {this.cubicBezierScaleAnimationSet.resume();}}>
+            <Text style={styles.buttonText}>继续</Text>
+          </View>
+        </View>
+        <View style={[styles.showArea, { marginVertical: 20 }]}>
+          <View ref={(ref) => {
               this.cubicBezierScaleRef = ref;
             }}
             style={[styles.square, {
@@ -650,6 +760,242 @@ export default class AnimationExample extends React.Component {
               }],
             }]}
           />
+        </View>
+
+        {renderTitle('宽度+位移组合动画')}
+        <View style={styles.buttonContainer}>
+          <View style={styles.button} onClick={() => {
+            this.parentWidthAnimation.start();
+            this.parentWidthAnimation2.start();
+            this.imageLeftMoveAnimation.start();
+          }}>
+            <Text style={styles.buttonText}>开始</Text>
+          </View>
+          <View style={[styles.button]} onClick={() => {
+            this.parentWidthAnimation.pause();
+            this.parentWidthAnimation2.pause();
+            this.imageLeftMoveAnimation.pause();
+          }}>
+            <Text style={styles.buttonText}>暂停</Text>
+          </View>
+          <View style={styles.button} onClick={() => {
+            this.parentWidthAnimation.resume();
+            this.parentWidthAnimation2.resume();
+            this.imageLeftMoveAnimation.resume();
+          }}>
+            <Text style={styles.buttonText}>继续</Text>
+          </View>
+        </View>
+        <View style={[styles.showArea, { height: 180, marginVertical: 20 }]}>
+          <View style={{
+            width: 180,
+            height: 180,
+            backgroundColor: '#ff0',
+            justifyContent: 'center',
+            alignItems: 'center',
+          }}>
+            <View
+              ref={(ref) => {
+                this.verticalRef = ref;
+              }}
+              style={[styles.square, {
+                width: this.parentWidthAnimation2,
+                justifyContent: 'center',
+                alignItems: 'center',
+                overflow: 'hidden',
+              }]}
+            >
+              <View style={{backgroundColor: 'pink', width: 180, height: 80}}>
+                <Text style={{
+                  backgroundColor: 'green',
+                  color: '#fff',
+                  fontSize: 20,
+                  width: 160,
+                  height: 60,
+                }} >正常情况下我应该是固定不动的</Text>
+              </View>
+            </View>
+          </View>
+          <View style={{
+            width: 180,
+            height: 180,
+            marginLeft: 10,
+            backgroundColor: '#ff0',
+            justifyContent: 'center',
+            alignItems: 'center',
+          }}>
+            <View
+              ref={(ref) => {
+                this.verticalRef = ref;
+              }}
+              style={[styles.square, {
+                width: this.parentWidthAnimation,
+                justifyContent: 'center',
+                alignItems: 'center',
+                overflow: 'hidden',
+              }]}
+            >
+              <View style={{backgroundColor: 'pink', width: 180, height: 80}}>
+                <Text style={{
+                  backgroundColor: 'green',
+                  color: '#fff',
+                  fontSize: 20,
+                  width: 160,
+                  height: 60,
+                  left: this.imageLeftMoveAnimation,
+                }} >Hippy 2.x iOS兼容方案</Text>
+              </View>
+            </View>
+          </View>
+        </View>
+
+        {renderTitle('宽高+位移组合动画2')}
+        <View style={styles.buttonContainer}>
+          <View style={styles.button} onClick={() => {
+            this.getBiggerAnimation1.start();
+            this.getBiggerAnimation2.start();
+            this.moveUpAnimation.start();
+            this.moveRightAnimation.start();
+            this.bottomIconMarginLeftAnimation.start();
+            this.bottomIconMarginBottomAnimation.start();
+            this.bottomIconWidthAnimation.start();
+            this.bottomIconHeightAnimation.start();
+          }}>
+            <Text style={styles.buttonText}>开始</Text>
+          </View>
+          <View style={[styles.button]} onClick={() => {
+            this.getBiggerAnimation1.pause();
+            this.getBiggerAnimation2.pause();
+            this.moveUpAnimation.pause();
+            this.moveRightAnimation.pause();
+            this.bottomIconMarginLeftAnimation.pause();
+            this.bottomIconMarginBottomAnimation.pause();
+            this.bottomIconWidthAnimation.pause();
+            this.bottomIconHeightAnimation.pause();
+          }}>
+            <Text style={styles.buttonText}>暂停</Text>
+          </View>
+          <View style={styles.button} onClick={() => {
+            this.getBiggerAnimation1.resume();
+            this.getBiggerAnimation2.resume();
+            this.moveRightAnimation.resume();
+            this.moveUpAnimation.resume();
+            this.bottomIconMarginLeftAnimation.resume();
+            this.bottomIconMarginBottomAnimation.resume();
+            this.bottomIconWidthAnimation.resume();
+            this.bottomIconHeightAnimation.resume();
+          }}>
+            <Text style={styles.buttonText}>继续</Text>
+          </View>
+        </View>
+        <View style={[styles.showArea, { height: 180, marginVertical: 20, backgroundColor: '#ff0', }]}>
+          <Text>一般写法</Text>
+          <View style={[styles.square, {
+            position: 'absolute',
+            width: this.getBiggerAnimation1,
+            height: this.getBiggerAnimation2,
+            left: this.moveRightAnimation,
+            bottom: this.moveUpAnimation,
+          }]}/>
+          <View style={{
+            width: 100,
+            height: 100,
+            left: 100,
+            bottom: 80,
+            position: 'absolute',
+            borderColor: '#f00',
+            borderWidth: 1,
+          }}/>
+        </View>
+        <View style={[styles.showArea, { height: 180, marginVertical: 20, backgroundColor: '#ff0', }]}>
+          <Text>Hippy 2.x iOS兼容写法</Text>
+          <View style={{ position: 'absolute', width: 100, height: 100,
+            backgroundColor: 'green',
+            justifyContent: 'center',
+            alignItems: 'center',
+            left: this.bottomIconMarginLeftAnimation,
+            bottom: this.bottomIconMarginBottomAnimation,
+          }}>
+            <View style={[styles.square, {
+              position: 'absolute',
+              width: this.bottomIconWidthAnimation,
+              height: this.bottomIconHeightAnimation,
+              // left: this.moveRightAnimation,
+              // bottom: this.moveUpAnimation,
+            }]}/>
+          </View>
+          <View style={{
+            width: 100,
+            height: 100,
+            left: 100,
+            bottom: 80,
+            position: 'absolute',
+            borderColor: '#f00',
+            borderWidth: 1,
+          }}/>
+        </View>
+
+        {renderTitle('旋转+缩放组合动画')}
+        <View style={styles.buttonContainer}>
+          <View style={styles.button} onClick={() => {
+            // this.cardRotateYAnimation.start();
+            // this.cardScaleAnimation.start();
+            this.cardRotateYAnimation2.updateAnimation({
+              startValue: 360,
+              toValue: 360,
+              duration: 1000000, // 非常大的值，保证不会执行结束
+              valueType: 'deg',
+              mode: 'timing',
+              timingFunction: 'linear',
+            });
+            this.cardRotateAnimationSet.start();
+          }}>
+            <Text style={styles.buttonText}>开始</Text>
+          </View>
+          <View style={[styles.button]} onClick={() => {
+            this.cardRotateYAnimation.pause();
+            this.cardScaleAnimation.pause();
+            this.cardRotateAnimationSet.pause();
+          }}>
+            <Text style={styles.buttonText}>暂停</Text>
+          </View>
+          <View style={styles.button} onClick={() => {
+            this.cardRotateYAnimation.resume();
+            this.cardScaleAnimation.resume();
+            this.cardRotateAnimationSet.resume();
+          }}>
+            <Text style={styles.buttonText}>继续</Text>
+          </View>
+          <View style={styles.button} onClick={() => {
+            // this.cardRotateYAnimation.destroy();
+            // this.cardScaleAnimation.destroy();
+            // this.cardRotateAnimationSet.destroy();
+            this.cardRotateYAnimation2.updateAnimation({
+              startValue: 360,
+              toValue: 360,
+              duration: 1,
+              valueType: 'deg',
+              mode: 'timing',
+              timingFunction: 'linear',
+            });
+          }}>
+            <Text style={styles.buttonText}>重置</Text>
+          </View>
+        </View>
+        <View style={[styles.showArea, { height: 180, marginVertical: 20, backgroundColor: '#ff0', }]}>
+          <View style={[styles.square, {
+            // position: 'absolute',
+            adjustSelf: 'center',
+            width: 100,
+            height: 150,
+            transform: [
+              {
+                // scale: this.cardScaleAnimation,
+                // rotateY: this.cardRotateYAnimation,
+                rotateY: this.cardRotateAnimationSet,
+              },
+            ],
+          }]}/>
         </View>
       </ScrollView>
     );

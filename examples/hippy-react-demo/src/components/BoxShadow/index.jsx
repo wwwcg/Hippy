@@ -38,8 +38,8 @@ const stylesNoOffset = StyleSheet.create({
     position: 'absolute',
     left: 50,
     top: 50,
-    width: 170,
-    height: 170,
+    width: 130,
+    height: 130,
     boxShadowOpacity: 0.6,
     boxShadowRadius: 5,
     boxShadowColor: '#4c9afa',
@@ -53,8 +53,8 @@ const stylesNoOffset = StyleSheet.create({
     // android 设置left和top偏移来遮挡阴影实体背景
     left: 5,
     top: 5,
-    width: 160,
-    height: 160,
+    width: 120,
+    height: 120,
     backgroundColor: 'grey',
     borderRadius: 5,
     display: 'flex',
@@ -64,10 +64,10 @@ const stylesNoOffset = StyleSheet.create({
   // ios boxShadow style
   shadowDemoCubeIos: {
     position: 'absolute',
-    left: 50,
+    left: 200,
     top: 50,
-    width: 160,
-    height: 160,
+    width: 120,
+    height: 120,
     boxShadowOpacity: 0.6,
     boxShadowRadius: 5,
     // spread attr is only supported on iOS
@@ -77,8 +77,8 @@ const stylesNoOffset = StyleSheet.create({
     borderRadius: 5,
   },
   shadowDemoContentIos: {
-    width: 160,
-    height: 160,
+    width: 120,
+    height: 120,
     backgroundColor: 'grey',
     borderRadius: 5,
     display: 'flex',
@@ -106,9 +106,9 @@ const stylesOffset = StyleSheet.create({
   shadowDemoCubeAndroid: {
     position: 'absolute',
     left: 50,
-    top: 300,
-    width: 175,
-    height: 175,
+    top: 200,
+    width: 135,
+    height: 135,
     boxShadowOpacity: 0.6,
     boxShadowRadius: 5,
     boxShadowOffsetX: 15,
@@ -116,8 +116,8 @@ const stylesOffset = StyleSheet.create({
     boxShadowColor: '#4c9afa',
   },
   shadowDemoContentAndroid: {
-    width: 160,
-    height: 160,
+    width: 120,
+    height: 120,
     backgroundColor: 'grey',
     display: 'flex',
     justifyContent: 'center',
@@ -126,10 +126,10 @@ const stylesOffset = StyleSheet.create({
   // ios boxShadow style
   shadowDemoCubeIos: {
     position: 'absolute',
-    left: 50,
-    top: 300,
-    width: 160,
-    height: 160,
+    left: 200,
+    top: 200,
+    width: 120,
+    height: 120,
     boxShadowOpacity: 0.6,
     boxShadowRadius: 5,
     boxShadowOffsetX: 10,
@@ -140,8 +140,8 @@ const stylesOffset = StyleSheet.create({
     boxShadowColor: '#4c9afa',
   },
   shadowDemoContentIos: {
-    width: 160,
-    height: 160,
+    width: 120,
+    height: 120,
     backgroundColor: 'grey',
     display: 'flex',
     justifyContent: 'center',
@@ -155,32 +155,32 @@ const stylesOffset = StyleSheet.create({
 export default function BoxShadowExpo() {
   return (
     <View style={stylesNoOffset.shadowDemo}>
-      {Platform.OS === 'android' ? (
+      {/*{Platform.OS === 'android' ? (*/}
         <View style={stylesNoOffset.shadowDemoCubeAndroid}>
           <View style={stylesNoOffset.shadowDemoContentAndroid}>
-            <Text style={stylesNoOffset.text}>没有偏移阴影样式</Text>
+            <Text style={stylesNoOffset.text}>无偏移阴影样式-Android写法</Text>
           </View>
         </View>
-      ) : (
+      {/*) : (*/}
         <View style={stylesNoOffset.shadowDemoCubeIos}>
           <View style={stylesNoOffset.shadowDemoContentIos}>
-            <Text style={stylesNoOffset.text}>没有偏移阴影样式</Text>
+            <Text style={stylesNoOffset.text}>无偏移阴影样式-iOS写法</Text>
           </View>
         </View>
-      )}
-      {Platform.OS === 'android' ? (
+      {/*)}*/}
+      {/*{Platform.OS === 'android' ? (*/}
         <View style={stylesOffset.shadowDemoCubeAndroid}>
           <View style={stylesOffset.shadowDemoContentAndroid}>
-            <Text style={stylesOffset.text}>偏移阴影样式</Text>
+            <Text style={stylesOffset.text}>偏移阴影样式-Android写法</Text>
           </View>
         </View>
-      ) : (
+      {/*) : (*/}
         <View style={stylesOffset.shadowDemoCubeIos}>
           <View style={stylesOffset.shadowDemoContentIos}>
-            <Text style={stylesOffset.text}>偏移阴影样式</Text>
+            <Text style={stylesOffset.text}>偏移阴影样式-iOS写法</Text>
           </View>
         </View>
-      )}
+      {/*)}*/}
     </View>
   );
 }

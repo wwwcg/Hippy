@@ -8,12 +8,11 @@ import {
   Text,
   View,
 } from '@hippy/react';
-import routes from '../routes';
+import routes2 from '../routes2';
 
 const SKIN_COLOR = {
   mainLight: '#4c9afa',
-  mainLight2: '#faac4c',
-  otherLight: '#f44837',
+  otherLight: '#fa4c9a',
   textWhite: '#fff',
 };
 
@@ -44,7 +43,7 @@ export class Gallery extends Component {
     super(props);
     this.state = {
       pressItem: '',
-      dataSource: [...routes],
+      dataSource: [...routes2],
     };
     this.renderRow = this.renderRow.bind(this);
     this.getRowType = this.getRowType.bind(this);

@@ -6,13 +6,16 @@ import {
   ConsoleModule,
 } from '@hippy/react';
 import HomeEntry from './pages/entry';
+import Entry2 from './pages/entry2';
 import RemoteDebug from './pages/remote-debug';
 import SafeAreaView from './shared/SafeAreaView';
+// import VConsole from '@tencent/hippy-react-vconsole'
+import Utils from "./utils";
 
 const styles = StyleSheet.create({
   buttonContainer: {
-    height: 48,
-    backgroundColor: 'white',
+    height: Utils.isiPhoneX() ? 48 + 30 : 48 ,
+    backgroundColor: '#e6e6e6',
     flexDirection: 'row',
   },
   button: {
@@ -20,7 +23,7 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#fff',
+    backgroundColor: '#e6e6e6',
     borderTopWidth: 1,
     borderStyle: 'solid',
     borderTopColor: '#eee',
@@ -44,7 +47,11 @@ export default class App extends Component {
   }
 
   componentDidMount() {
-    ConsoleModule.log('~~~~~~~~~~~~~~~~~ This is a log from ConsoleModule ~~~~~~~~~~~~~~~~~');
+    ConsoleModule.debug('~~~~~~~~~~~~~~~~~ This is a debug log from ConsoleModule ~~~~~~~~~~~~~~~~~');
+    ConsoleModule.warn('~~~~~~~~~~~~~~~~~ This is a warn log from ConsoleModule ~~~~~~~~~~~~~~~~~');
+    ConsoleModule.info('~~~~~~~~~~~~~~~~~ This is a info log from ConsoleModule ~~~~~~~~~~~~~~~~~');
+    ConsoleModule.error('~~~~~~~~~~~~~~~~~ This is a error log from ConsoleModule ~~~~~~~~~~~~~~~~~');
+    ConsoleModule.log('~~~~~~~~~~~~~~~~~ This is a normal log from ConsoleModule ~~~~~~~~~~~~~~~~~');
   }
 
   render() {
@@ -56,6 +63,8 @@ export default class App extends Component {
         case 0:
           return <HomeEntry />;
         case 1:
+          return <Entry2 />;
+        case 2:
           return <RemoteDebug instanceId={instanceId} />;
         default:
           return <View style={styles.blankPage} />;
@@ -63,7 +72,7 @@ export default class App extends Component {
     };
 
     const renderButton = () => {
-      const buttonArray = ['API', '调试'];
+      const buttonArray = ['基础组件', '扩展组件及模块', '调试'];
       return (
         buttonArray.map((text, i) => (
           <View
@@ -88,6 +97,7 @@ export default class App extends Component {
         <View style={styles.buttonContainer}>
           {renderButton()}
         </View>
+        {/*<VConsole />*/}
       </SafeAreaView>
     );
   }

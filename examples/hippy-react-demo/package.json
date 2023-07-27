@@ -1,13 +1,13 @@
 {
-  "name": "hippy-react-demo",
-  "version": "2.0.0",
+  "name": "next-hippy-react-demo",
+  "version": "1.0.0",
   "private": true,
-  "main": "src/main.js",
-  "webMain": "src/main.web.js",
+  "main": "./src/main.js",
+  "webMain": "./src/main.web.js",
   "author": "OpenHippy Team",
   "license": "Apache-2.0",
-  "description": "Demo app for hippy-react",
-  "repository": "https://github.com/Tencent/Hippy/tree/master/examples/hippy-react-demo",
+  "description": "Next demo app for hippy-react",
+  "repository": "https://github.com/Tencent/Hippy/tree/master/examples/next-hippy-react-demo",
   "scripts": {
     "serve": "node ./scripts/env-polyfill.js webpack serve --config ./scripts/hippy-webpack.web.dev.js",
     "build": "node ./scripts/env-polyfill.js webpack --config ./scripts/hippy-webpack.web.js",
@@ -34,7 +34,10 @@
     "react-router": "~5.1.2",
     "react-router-dom": "~5.1.2",
     "regenerator-runtime": "^0.13.5",
-    "swiper": "^6.7.0"
+    "swiper": "^6.7.0",
+    "@tencent/hippy-react": "latest",
+    "@tencent/hippy-react-vconsole": "latest",
+    "@tencent/hippy-react-svg": "latest"
   },
   "devDependencies": {
     "@babel/core": "^7.12.0",

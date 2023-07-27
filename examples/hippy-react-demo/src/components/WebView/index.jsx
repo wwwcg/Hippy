@@ -36,11 +36,11 @@ export default function WebViewExample() {
       <WebView
         source={{
           uri: 'https://hippyjs.org',
+          method: 'GET',
+          userAgent: 'Mozilla/5.0 (Linux; U; Android 5.1.1; '
+          + 'zh-cn; vivo X7 Build/LMY47V) AppleWebKit/537.36 (KHTML, like Gecko)Version/4.0 Chrome/37.0.0.0 MQQBrowser/8.2 '
+          + 'Mobile Safari/537.36',
         }}
-        method={'get'}
-        userAgent={'Mozilla/5.0 (Linux; U; Android 5.1.1; '
-        + 'zh-cn; vivo X7 Build/LMY47V) AppleWebKit/537.36 (KHTML, like Gecko)Version/4.0 Chrome/37.0.0.0 MQQBrowser/8.2 '
-        + 'Mobile Safari/537.36'}
         style={styles.webViewStyle}
         onLoad={({ url }) => console.log('webview onload', url)}
         onLoadStart={({ url }) => console.log('webview onLoadStart', url)}

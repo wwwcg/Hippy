@@ -8,6 +8,7 @@ import {
 
 import imageUrl from './defaultSource.jpg';
 
+const hippyBlue = '#4c9afa'
 const styles = StyleSheet.create({
   itemTitle: {
     alignItems: 'flex-start',
@@ -22,9 +23,11 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
   rectangle: {
-    width: 160,
+    width: 100,
     height: 80,
     marginVertical: 10,
+    borderColor: 'black',
+    borderWidth: 1
   },
   bigRectangle: {
     width: 200,
@@ -50,8 +53,26 @@ export default function ViewExpo() {
   );
   return (
     <ScrollView style={{ paddingHorizontal: 10 }}>
+      {renderTitle('opacity : 0.0 vs 0.5 vs 1.0')}
+      <View style={{flexDirection: 'row', alignItems: 'center', backgroundColor: 'lightgray' }}>
+        <View style={[styles.rectangle, { backgroundColor: hippyBlue }]} opacity={0.0} />
+        <View style={[styles.rectangle, { backgroundColor: hippyBlue, marginLeft: 20 }]} opacity={0.5} />
+        <View style={[styles.rectangle, { backgroundColor: hippyBlue, marginLeft: 20 }]} opacity={1.0} />
+      </View>
+      {renderTitle('overflow : default vs hidden vs visible')}
+      <View style={{flexDirection: 'row', alignItems: 'center', backgroundColor: 'lightgray' }}>
+        <View style={[styles.rectangle, { backgroundColor: 'orange', paddingLeft: 10 }]} >
+          <View style={[styles.rectangle, { backgroundColor: hippyBlue, opacity: 0.5 }]} />
+        </View>
+        <View style={[styles.rectangle, { backgroundColor: 'orange', marginLeft: 20, paddingLeft: 10, overflow: 'hidden' }]} >
+          <View style={[styles.rectangle, { backgroundColor: hippyBlue, opacity: 0.5 }]} />
+        </View>
+        <View style={[styles.rectangle, { backgroundColor: 'orange', marginLeft: 20, paddingLeft: 10, overflow: 'visible' }]} >
+          <View style={[styles.rectangle, { backgroundColor: hippyBlue, opacity: 0.5 }]} />
+        </View>
+      </View>
       {renderTitle('backgroundColor')}
-      <View style={[styles.rectangle, { backgroundColor: '#4c9afa' }]} />
+      <View style={[styles.rectangle, { backgroundColor: hippyBlue }]} />
       {renderTitle('backgroundImage')}
       <View style={[styles.rectangle, {
         alignItems: 'center',

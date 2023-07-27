@@ -120,12 +120,45 @@ export default class AsyncStorageExpo extends React.Component {
           <Text style={styles.infoStyle}>Key:</Text>
           <TextInput style={styles.inputStyle} onChangeText={this.onTextChangeKey} />
         </View>
-        <View style={[styles.viewGroupStyle, { display: 'none' }]}>
+        <View style={[styles.viewGroupStyle]}>
           <Text style={styles.infoStyle}>Value:</Text>
           <Text style={[styles.infoStyle, { width: 200 }]}>{result}</Text>
         </View>
         <View style={styles.itemGroupStyle} onClick={this.onClickGet}>
           <Text style={styles.buttonStyle}>Get</Text>
+        </View>
+        <View style={styles.itemGroupStyle} onClick={() => {
+          AsyncStorage.removeItem(this.state.key);
+        }}>
+          <Text style={styles.buttonStyle}>remove</Text>
+        </View>
+        <View style={styles.itemGroupStyle} onClick={() => {
+          AsyncStorage.getAllKeys().then(res => this.setState({ result: res.toString() }));
+        }}>
+          <Text style={styles.buttonStyle}>GetAllKey</Text>
+        </View>
+
+        <View style={styles.itemGroupStyle} onClick={() => {
+          AsyncStorage.multiSet([
+            ['c', '5'], ['d', '6'], ['e', '7'],
+          ]);
+        }}>
+          <Text style={styles.buttonStyle}>multiset</Text>
+        </View>
+
+        <View style={styles.itemGroupStyle} onClick={() => {
+          AsyncStorage.multiGet(['a', 'b', 'c', 'd'])
+            .then(res => this.setState({
+              result: JSON.stringify(res),
+            }));
+        }}>
+          <Text style={styles.buttonStyle}>multiget</Text>
+        </View>
+
+        <View style={styles.itemGroupStyle} onClick={() => {
+          AsyncStorage.multiRemove(['b', 'c', 'd']);
+        }}>
+          <Text style={styles.buttonStyle}>multiremove</Text>
         </View>
       </ScrollView>
     );
