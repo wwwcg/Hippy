@@ -27,6 +27,15 @@ const styles = StyleSheet.create({
     padding: 10,
     marginTop: 10,
   },
+  button_style: {
+    borderColor: 'black',
+    borderWidth: 2,
+    borderRadius: 8,
+    alignSelf: 'center',
+    textAlign: 'center',
+    margin: 5,
+    paddingHorizontal: 4,
+  },
   itemContent: {
     alignItems: 'flex-start',
     justifyContent: 'center',
@@ -41,6 +50,13 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 18,
     color: 'black',
+  },
+  textBlock: {
+    width: 200,
+    height: 30,
+    lineHeight: 30,
+    backgroundColor: '#ccc',
+    margin: 5,
   },
   buttonBar: {
     flexDirection: 'row',
@@ -58,7 +74,15 @@ const styles = StyleSheet.create({
   buttonText: {
     lineHeight: 24,
     textAlign: 'center',
-    paddingHorizontal: 20,
+    paddingHorizontal: 10,
+  },
+  case_style: {
+    marginTop: 10,
+    marginLeft: 16,
+  },
+  title_style: {
+    textAlign: 'center',
+    fontSize: 12,
   },
   customFont: {
     color: '#0052d9',
@@ -66,25 +90,47 @@ const styles = StyleSheet.create({
     fontFamily: 'TTTGB',
   },
 });
+
 let i = 0;
 export default class TextExpo extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
       fontSize: 16,
-      textShadowColor: 'grey',
+      textShadowColor: 'green',
       textShadowOffset: {
-        x: 1,
-        y: 1,
+        x: 3,
+        y: 3,
       },
+      breakStrategy: null,
       numberOfLines: 2,
-      ellipsizeMode: undefined,
+      ellipsizeMode: null,
+      opacity: .5,
+      verticalAlign: null,
     };
     this.incrementFontSize = this.incrementFontSize.bind(this);
     this.decrementFontSize = this.decrementFontSize.bind(this);
-    this.incrementLine = this.incrementLine.bind(this);
-    this.decrementLine = this.decrementLine.bind(this);
-    this.changeMode = this.changeMode.bind(this);
+  }
+
+  changeNumberOfLines(delta) {
+    const numberOfLines = Math.max(0, Math.min(this.state.numberOfLines + delta, 3));
+    this.setState({ numberOfLines })
+  }
+
+  changeEllipsizeMode(ellipsizeMode) {
+    this.setState({ ellipsizeMode });
+  }
+
+  changeBreakStrategy(breakStrategy) {
+    this.setState({ breakStrategy });
+  }
+
+  changeOpacity(opacity) {
+    this.setState({ opacity });
+  }
+
+  changeVerticalAlign(align) {
+    this.setState({ verticalAlign: align });
   }
 
   incrementFontSize() {
@@ -107,203 +153,85 @@ export default class TextExpo extends React.Component {
     });
   }
 
-  incrementLine() {
-    const { numberOfLines } = this.state;
-    if (numberOfLines < 6) {
-      this.setState({
-        numberOfLines: numberOfLines + 1,
-      });
-    }
-  }
-
-  decrementLine() {
-    const { numberOfLines } = this.state;
-    if (numberOfLines > 1) {
-      this.setState({
-        numberOfLines: numberOfLines - 1,
-      });
-    }
-  }
-
-  changeMode(mode) {
-    this.setState({ ellipsizeMode: mode });
-  }
-
-  changeBreakStrategy(breakStrategy) {
-    this.setState({ breakStrategy });
-  }
-
   render() {
-    const { fontSize, textShadowColor, textShadowOffset, numberOfLines, ellipsizeMode, breakStrategy } = this.state;
+    const {
+      fontSize,
+      textShadowColor,
+      textShadowOffset,
+      textShadowRadius,
+      breakStrategy,
+      numberOfLines,
+      ellipsizeMode,
+      opacity,
+      verticalAlign,
+    } = this.state;
     const renderTitle = title => (
       <View style={styles.itemTitle}>
         <Text style>{title}</Text>
       </View>
     );
+    const verticalAlignAttr = verticalAlign ? { verticalAlign } : {}
     return (
       <ScrollView style={{ paddingHorizontal: 10 }}>
-        {renderTitle('shadow')}
-        <View style={[styles.itemContent, { height: 60 }]} onClick={() => {
-          let textShadowColor = 'red';
-          let textShadowOffset = { x: 10, y: 1 };
-          if (i % 2 === 1) {
-            textShadowColor = 'grey';
-            textShadowOffset = { x: 1, y: 1 };
-          }
-          i += 1;
-          this.setState({
-            textShadowColor,
-            textShadowOffset,
-          });
-        }}>
-          <Text style={[styles.normalText,
-            { color: '#242424',
-              textShadowOffset,
-              // support declaring textShadowOffsetX & textShadowOffsetY separately
-              // textShadowOffsetX: 1,
-              // textShadowOffsetY: 1,
-              textShadowRadius: 3,
-              textShadowColor,
-            }]}>Text shadow is grey with radius 3 and offset 1</Text>
-        </View>
-        {renderTitle('color')}
-        <View style={[styles.itemContent, { height: 80 }]}>
-          <Text style={[styles.normalText, { color: '#242424' }]}>Text color is black</Text>
-          <Text style={[styles.normalText, { color: 'blue' }]}>Text color is blue</Text>
-          <Text style={[styles.normalText, { color: 'rgb(228,61,36)' }]}>This is red</Text>
-        </View>
-        {renderTitle('fontSize')}
-        <View style={[styles.itemContent, { height: 100 }]}>
-          <Text style={[styles.normalText, { fontSize }]}>
-            { `Text fontSize is ${fontSize}` }
-          </Text>
-          <View style={styles.button} onClick={this.incrementFontSize}>
-            <Text style={styles.buttonText}>放大字体</Text>
-          </View>
-          <View style={styles.button} onClick={this.decrementFontSize}>
-            <Text style={styles.buttonText}>缩小字体</Text>
-          </View>
-        </View>
-        {renderTitle('fontStyle')}
-        <View style={[styles.itemContent, { height: 100 }]}>
-          <Text style={[styles.normalText, { fontStyle: 'normal' }]}>Text fontStyle is normal</Text>
-          <Text style={[styles.normalText, { fontStyle: 'italic' }]}>Text fontStyle is italic</Text>
-        </View>
-        {renderTitle('numberOfLines and ellipsizeMode')}
-        <View style={[styles.itemContent]}>
-          <Text style={[styles.normalText, { marginBottom: 10 }]}>
-            {`numberOfLines=${numberOfLines} | ellipsizeMode=${ellipsizeMode}`}
-          </Text>
-          <Text numberOfLines={numberOfLines} ellipsizeMode={ellipsizeMode} style={
-            [styles.normalText,
-              { lineHeight: undefined, backgroundColor: '#4c9afa', marginBottom: 10, paddingHorizontal: 10, paddingVertical: 5 }]}>
-            <Text style={{ fontSize: 19, color: 'white' }}>先帝创业未半而中道崩殂，今天下三分，益州疲弊，此诚危急存亡之秋也。</Text>
-            <Text>然侍卫之臣不懈于内，忠志之士忘身于外者，盖追先帝之殊遇，欲报之于陛下也。</Text>
-          </Text>
-          <Text numberOfLines={numberOfLines} ellipsizeMode={ellipsizeMode} style={[
-            styles.normalText, { backgroundColor: '#4c9afa', marginBottom: 10, color: 'white', paddingHorizontal: 10, paddingVertical: 5 }]}>
-            {'line 1\n\nline 3\n\nline 5'}
-          </Text>
-          <Text numberOfLines={numberOfLines} ellipsizeMode={ellipsizeMode} style={[styles.normalText,
-            { lineHeight: undefined, backgroundColor: '#4c9afa', marginBottom: 10,
-              paddingHorizontal: 10, paddingVertical: 5, verticalAlign: 'middle' }]}>
-            <Image style={{ width: 24, height: 24 }} source={{ uri: imgURL2 }} />
-            <Image style={{ width: 24, height: 24 }} source={{ uri: imgURL3 }} />
-            <Text>Text + Attachment</Text>
-          </Text>
-          <View style={styles.buttonBar}>
-            <View style={styles.button} onClick={this.incrementLine}>
-              <Text style={styles.buttonText}>加一行</Text>
-            </View>
-            <View style={styles.button} onClick={this.decrementLine}>
-              <Text style={styles.buttonText}>减一行</Text>
-            </View>
-          </View>
-          <View style={styles.buttonBar}>
-            <View style={styles.button} onClick={() => this.changeMode('clip')}>
-              <Text style={styles.buttonText}>clip</Text>
-            </View>
-            <View style={styles.button} onClick={() => this.changeMode('head')}>
-              <Text style={styles.buttonText}>head</Text>
-            </View>
-            <View style={styles.button} onClick={() => this.changeMode('middle')}>
-              <Text style={styles.buttonText}>middle</Text>
-            </View>
-            <View style={styles.button} onClick={() => this.changeMode('tail')}>
-              <Text style={styles.buttonText}>tail</Text>
-            </View>
-          </View>
-        </View>
-        {renderTitle('textDecoration')}
-        <View style={[styles.itemContent, { height: 100 }]}>
-          <Text numberOfLines={1} style={[styles.normalText, { textDecorationLine: 'underline', textDecorationStyle: 'dotted' }]}>
-            underline
-          </Text>
-          <Text numberOfLines={1} style={[styles.normalText, { textDecorationLine: 'line-through', textDecorationColor: 'red' }]}>
-            line-through
-          </Text>
-        </View>
-        {renderTitle('LetterSpacing')}
-        <View style={[styles.itemContent, { height: 100 }]}>
-          <Text numberOfLines={1} style={[styles.normalText, { letterSpacing: -1 }]}>
-            Text width letter-spacing -1
-          </Text>
-          <Text numberOfLines={1} style={[styles.normalText, { letterSpacing: 5 }]}>
-            Text width letter-spacing 5
-          </Text>
-        </View>
-        {renderTitle('Nest Text')}
-        <View style={[styles.itemContent, { height: 100 }]}>
-          <Text numberOfLines={3}>
-            <Text numberOfLines={3} style={[styles.normalText, { color: '#4c9afa' }]}>#SpiderMan#</Text>
-            <Text numberOfLines={3} style={styles.normalText}>
-              Hello world, I am a spider man and I have five friends in other universe.
+        {Platform.OS === 'ios' && renderTitle('adjustsFontSizeToFit and minimumFontScale（iOS）')}
+        {Platform.OS === 'ios' && (
+          <View style={[styles.itemContent, { flexDirection: 'column' }]}>
+            <Text style={{ fontSize: 12 }}>adjustsFontSizeToFit=默认值 | minimumFontScale=默认值</Text>
+            <Text
+              style={[styles.textBlock, { fontSize: 50 }]}>
+              Text to scale
             </Text>
-          </Text>
-        </View>
-        {renderTitle('Custom font')}
-        <View style={[styles.itemContent, { height: 100 }]}>
-          <Text numberOfLines={1} style={styles.customFont}>Hippy 跨端框架</Text>
-        </View>
-        <View style={[styles.itemContent, { height: 100 }]}>
-          <Text numberOfLines={1} style={[styles.customFont, { fontWeight: 'bold' }]}>Hippy 跨端框架 粗体</Text>
-        </View>
-        <View style={[styles.itemContent, { height: 100 }]}>
-          <Text numberOfLines={1} style={[styles.customFont, { fontStyle: 'italic' }]}>Hippy 跨端框架 斜体</Text>
-        </View>
-        <View style={[styles.itemContent, { height: 100 }]}>
-          <Text numberOfLines={1} style={[styles.customFont, { fontWeight: 'bold', fontStyle: 'italic' }]}>Hippy 跨端框架 粗斜体</Text>
-        </View>
-        {renderTitle('Text Nested')}
-        <View style={[styles.itemContent, { height: 150 }]}>
-          <Text style={{ height: 100, lineHeight: 50 }}>
-            <Text numberOfLines={1} style={styles.normalText}>后面有张图片</Text>
-            <Image style={{ width: 70, height: 35 }} source={{ uri: imgURL }} />
-            <Text numberOfLines={1} style={styles.customFont}>前面有张图片</Text>
-          </Text>
-          <View
-            style={{
-              flexDirection: 'row',
-              alignItems: 'center',
-              justifyContent: 'center',
-              paddingHorizontal: 10,
-              paddingVertical: 5,
-              backgroundColor: '#4c9afa',
-            }}>
-            <Image style={{ width: 24, height: 24, alignSelf: 'center' }} source={{ uri: imgURL2 }} />
-            <Text style={{ fontSize: 15, alignItems: 'center', justifyContent: 'center' }}>Image+Text</Text>
+            <Text style={{ fontSize: 12 }}>adjustsFontSizeToFit=true | minimumFontScale=默认值</Text>
+            <Text
+              style={[styles.textBlock, { fontSize: 50 }]}
+              adjustsFontSizeToFit={true}>
+              Text to scale
+            </Text>
+            <Text style={{ fontSize: 12 }}>adjustsFontSizeToFit=true | minimumFontScale=0.1</Text>
+            <Text
+              style={[styles.textBlock, { fontSize: 50 }]}
+              adjustsFontSizeToFit={true}
+              minimumFontScale={0.1}>
+              Text to scale
+            </Text>
+            <Text style={{ fontSize: 12 }}>adjustsFontSizeToFit=true | minimumFontScale=0.75</Text>
+            <Text
+              style={[styles.textBlock, { fontSize: 50 }]}
+              adjustsFontSizeToFit={true}
+              minimumFontScale={0.75}>
+              Text to scale
+            </Text>
+            <Text style={{ fontSize: 12 }}>adjustsFontSizeToFit=false | minimumFontScale=默认值</Text>
+            <Text
+              style={[styles.textBlock, { fontSize: 50 }]}
+              adjustsFontSizeToFit={false}>
+              Text to scale
+            </Text>
           </View>
-        </View>
-        {Platform.OS === 'android' && renderTitle('breakStrategy')}
+        )}
+
+        {Platform.OS === 'ios' && renderTitle('allowFontScaling（iOS）')}
+        {Platform.OS === 'ios' && (
+          <View style={styles.itemContent}>
+            <Text allowFontScaling={true}>true</Text>
+            <Text allowFontScaling={false}>false</Text>
+            <Text>default</Text>
+          </View>
+        )}
+
+        {Platform.OS === 'android' && renderTitle('breakStrategy（Android）')}
         {Platform.OS === 'android' && (
           <View style={styles.itemContent}>
             <Text
-              style={[styles.normalText, { borderWidth: 1, borderColor: 'gray' }]}
+              style={[styles.normalText, { borderWidth: 1, borderColor: 'gray', width: 300 }]}
               breakStrategy={breakStrategy}>
               {DEFAULT_VALUE}
             </Text>
-            <Text style={styles.normalText}>{`breakStrategy: ${breakStrategy}`}</Text>
+            <Text style={styles.normalText}>{`breakStrategy: ${breakStrategy || '默认值'}`}</Text>
             <View style={styles.buttonBar}>
+              <View style={styles.button} onClick={() => this.changeBreakStrategy(null)}>
+                <Text style={styles.buttonText}>默认值</Text>
+              </View>
               <View style={styles.button} onClick={() => this.changeBreakStrategy('simple')}>
                 <Text style={styles.buttonText}>simple</Text>
               </View>
@@ -316,10 +244,176 @@ export default class TextExpo extends React.Component {
             </View>
           </View>
         )}
+
+        {renderTitle('numberOfLines and ellipsizeMode')}
+        <View style={[styles.itemContent]}>
+          <Text style={[styles.normalText, { marginBottom: 10 }]}>
+            {`numberOfLines=${numberOfLines || '默认值'} | ellipsizeMode=${ellipsizeMode || '默认值'}`}
+          </Text>
+          <Text
+            numberOfLines={numberOfLines}
+            ellipsizeMode={ellipsizeMode}
+            style={{
+              backgroundColor: '#4c9afa',
+              marginBottom: 10,
+              paddingHorizontal: 10,
+              paddingVertical: 5,
+              verticalAlign: 'middle',
+              width: 300,
+            }}>
+            <Image style={{ width: 24, height: 24 }} source={{ uri: imgURL2 }} />
+            <Text style={{ fontSize: 19, color: 'white' }}>大段富文本大段富文本大段富文本大段富文本</Text>
+            <Text>大段富文本大段富文本大段富文本大段富文本大段富文本</Text>
+            <Image style={{ width: 24, height: 24 }} source={{ uri: imgURL3 }} />
+          </Text>
+          <Text
+            numberOfLines={numberOfLines}
+            ellipsizeMode={ellipsizeMode}
+            style={{
+              backgroundColor: '#4c9afa',
+              marginBottom: 10,
+              paddingHorizontal: 10,
+              paddingVertical: 5,
+              color: 'white',
+            }}>
+            {'简单文本加换行\n\n简单文本加换行'}
+          </Text>
+          <Text
+            numberOfLines={numberOfLines}
+            ellipsizeMode={ellipsizeMode}
+            style={{
+              backgroundColor: '#4c9afa',
+              marginBottom: 10,
+              paddingHorizontal: 10,
+              paddingVertical: 5,
+              verticalAlign: 'middle',
+            }}>
+            <Text>图片加换行</Text>
+            <Image style={{ width: 24, height: 24 }} source={{ uri: imgURL2 }} />
+            <Text>{'\n'}</Text>
+            <Image style={{ width: 24, height: 24 }} source={{ uri: imgURL3 }} />
+            <Text>图片加换行</Text>
+          </Text>
+          <Text
+            numberOfLines={1}
+            ellipsizeMode={ellipsizeMode}
+            style={{
+              backgroundColor: '#4c9afa',
+              marginBottom: 10,
+              paddingHorizontal: 10,
+              paddingVertical: 5,
+              lineHeight: 50,
+              width: 160,
+            }}>单行加大lineHeight、单行加大lineHeight</Text>
+          <View style={styles.buttonBar}>
+            <View style={styles.button} onClick={() => this.changeNumberOfLines(1)}>
+              <Text style={styles.buttonText}>加一行</Text>
+            </View>
+            <View style={styles.button} onClick={() => this.changeNumberOfLines(-1)}>
+              <Text style={styles.buttonText}>减一行</Text>
+            </View>
+          </View>
+          <View style={styles.buttonBar}>
+            <View style={styles.button} onClick={() => this.changeEllipsizeMode(null)}>
+              <Text style={styles.buttonText}>默认值</Text>
+            </View>
+            <View style={styles.button} onClick={() => this.changeEllipsizeMode('clip')}>
+              <Text style={styles.buttonText}>clip</Text>
+            </View>
+            <View style={styles.button} onClick={() => this.changeEllipsizeMode('head')}>
+              <Text style={styles.buttonText}>head</Text>
+            </View>
+            <View style={styles.button} onClick={() => this.changeEllipsizeMode('middle')}>
+              <Text style={styles.buttonText}>middle</Text>
+            </View>
+            <View style={styles.button} onClick={() => this.changeEllipsizeMode('tail')}>
+              <Text style={styles.buttonText}>tail</Text>
+            </View>
+          </View>
+        </View>
+
+        {Platform.OS === 'android' && renderTitle('enableScale（Android）')}
+        {Platform.OS === 'android' && (
+          <View style={[styles.itemContent, { flexDirection: 'column' }]}>
+            <Text style={styles.textBlock} enableScale={true}>true</Text>
+            <Text style={styles.textBlock} enableScale={false}>false</Text>
+            <Text style={styles.textBlock}>default</Text>
+          </View>
+        )}
+
+        {Platform.OS === 'ios' && renderTitle('isHighlighted（iOS）')}
+        {Platform.OS === 'ios' && (
+          <View style={styles.itemContent}>
+            <Text isHighlighted={true}>true</Text>
+            <Text isHighlighted={false}>false</Text>
+            <Text>default</Text>
+          </View>
+        )}
+
+        {renderTitle('opacity')}
+        <View style={[styles.itemContent]}>
+          <Text opacity={opacity}>Demo Text</Text>
+          <Text>opacity={opacity == null ? '默认值' : opacity}</Text>
+          <View style={styles.buttonBar}>
+            <View style={styles.button} onClick={() => this.changeOpacity(null)}>
+              <Text style={styles.buttonText}>默认值</Text>
+            </View>
+            <View style={styles.button} onClick={() => this.changeOpacity(0)}>
+              <Text style={styles.buttonText}>0</Text>
+            </View>
+            <View style={styles.button} onClick={() => this.changeOpacity(.5)}>
+              <Text style={styles.buttonText}>.5</Text>
+            </View>
+            <View style={styles.button} onClick={() => this.changeOpacity(1)}>
+              <Text style={styles.buttonText}>1</Text>
+            </View>
+          </View>
+        </View>
+
         {renderTitle('verticalAlign')}
+        <View style={[styles.itemContent]}>
+          <Text key={`${verticalAlign}`} {...verticalAlignAttr} style={[styles.textBlock, { height: 50, lineHeight: 50 }]}>
+            <Text style={{ fontSize: 36 }}>大</Text>
+            <Text style={{ fontSize: 24 }}>中</Text>
+            <Text style={{ fontSize: 12 }}>小</Text>
+          </Text>
+          <Text>verticalAlign={verticalAlign || '默认值'}</Text>
+          <View style={styles.buttonBar}>
+            <View style={styles.button} onClick={() => this.changeVerticalAlign(null)}>
+              <Text style={styles.buttonText}>默认值</Text>
+            </View>
+            <View style={styles.button} onClick={() => this.changeVerticalAlign('top')}>
+              <Text style={styles.buttonText}>top</Text>
+            </View>
+            <View style={styles.button} onClick={() => this.changeVerticalAlign('middle')}>
+              <Text style={styles.buttonText}>middle</Text>
+            </View>
+            <View style={styles.button} onClick={() => this.changeVerticalAlign('baseline')}>
+              <Text style={styles.buttonText}>baseline</Text>
+            </View>
+            <View style={styles.button} onClick={() => this.changeVerticalAlign('bottom')}>
+              <Text style={styles.buttonText}>bottom</Text>
+            </View>
+          </View>
+        </View>
+
+        {renderTitle('嵌套 opacity')}
+        <View style={[styles.itemContent]}>
+          <Text style={styles.textBlock}>
+            <Text>【</Text>
+            <Text opacity={0}>0</Text>
+            <Text>】【</Text>
+            <Text opacity={0.5}>0.5</Text>
+            <Text>】【</Text>
+            <Text opacity={1}>1</Text>
+            <Text>】</Text>
+          </Text>
+        </View>
+
+        {renderTitle('嵌套 verticalAlign')}
         <View style={[styles.itemContent, { height: Platform.OS === 'android' ? 160 : 70 }]}>
           <Text style={[styles.normalText,
-            { lineHeight: 50, backgroundColor: '#4c9afa', paddingHorizontal: 10, paddingVertical: 5 }]}>
+          { lineHeight: 50, backgroundColor: '#4c9afa', paddingHorizontal: 10, paddingVertical: 5 }]}>
             <Image style={{ width: 24, height: 24, verticalAlign: 'top' }} source={{ uri: imgURL2 }} />
             <Image style={{ width: 18, height: 12, verticalAlign: 'middle' }} source={{ uri: imgURL2 }} />
             <Image style={{ width: 24, height: 12, verticalAlign: 'baseline' }} source={{ uri: imgURL2 }} />
@@ -336,7 +430,7 @@ export default class TextExpo extends React.Component {
           {Platform.OS === 'android' && (<>
             <Text>legacy mode:</Text>
             <Text style={[styles.normalText,
-              { lineHeight: 50, backgroundColor: '#4c9afa', marginBottom: 10, paddingHorizontal: 10, paddingVertical: 5 }]}>
+            { lineHeight: 50, backgroundColor: '#4c9afa', marginBottom: 10, paddingHorizontal: 10, paddingVertical: 5 }]}>
               <Image style={{ width: 24, height: 24, verticalAlignment: 0 }} source={{ uri: imgURL2 }} />
               <Image style={{ width: 18, height: 12, verticalAlignment: 1 }} source={{ uri: imgURL2 }} />
               <Image style={{ width: 24, height: 12, verticalAlignment: 2 }} source={{ uri: imgURL2 }} />
@@ -352,7 +446,8 @@ export default class TextExpo extends React.Component {
             </Text>
           </>)}
         </View>
-        {renderTitle('tintColor & backgroundColor')}
+
+        {renderTitle('嵌套 tintColor & backgroundColor')}
         <View style={[styles.itemContent]}>
           <Text style={[styles.normalText,
             { lineHeight: 30, backgroundColor: '#4c9afa', paddingHorizontal: 10, paddingVertical: 5 }]}>
@@ -361,16 +456,115 @@ export default class TextExpo extends React.Component {
             <Image style={{ width: 24, height: 24, verticalAlign: 'middle', backgroundColor: '#ccc' }} source={{ uri: imgURL2 }} />
             <Text style={{ verticalAlign: 'middle', backgroundColor: '#090' }}>text</Text>
           </Text>
-          {Platform.OS === 'android' && (<>
-            <Text>legacy mode:</Text>
-            <Text style={[styles.normalText,
-              { lineHeight: 30, backgroundColor: '#4c9afa', marginBottom: 10, paddingHorizontal: 10, paddingVertical: 5 }]}>
-              <Image style={{ width: 24, height: 24, tintColor: 'orange' }} source={{ uri: imgURL2 }} />
-              <Image style={{ width: 24, height: 24, tintColor: 'orange', backgroundColor: '#ccc' }} source={{ uri: imgURL2 }} />
-              <Image style={{ width: 24, height: 24, backgroundColor: '#ccc' }} source={{ uri: imgURL2 }} />
-            </Text>
-          </>)}
         </View>
+
+        {renderTitle('textShadow')}
+        <View style={[styles.itemContent, { height: 60 }]} onClick={() => {
+          let textShadowColor = 'red';
+          let textShadowOffset = { x: 10, y: 1 };
+          if (i % 2 === 1) {
+            textShadowColor = 'grey';
+            textShadowOffset = { x: 1, y: 1 };
+          }
+          i += 1;
+          this.setState({
+            textShadowColor,
+            textShadowOffset,
+          });
+        }}>
+          <Text style={[styles.normalText,
+            { color: 'black',
+              textShadowOffset,
+              // support declaring textShadowOffsetX & textShadowOffsetY separately
+              // textShadowOffsetX: 1,
+              // textShadowOffsetY: 1,
+              textShadowRadius: 3,
+              textShadowColor,
+            }]}>Text shadow is green with radius 3 and offset 3</Text>
+        </View>
+
+        {renderTitle('fontSize')}
+        <View style={[styles.itemContent, { height: 101 }]}>
+          <Text style={[styles.normalText, { fontSize }]}>
+            { `Text fontSize is ${fontSize}` }
+          </Text>
+          <View style={styles.button} onClick={this.incrementFontSize}>
+            <Text style={styles.buttonText}>放大字体</Text>
+          </View>
+          <View style={styles.button} onClick={this.decrementFontSize}>
+            <Text style={styles.buttonText}>缩小字体</Text>
+          </View>
+        </View>
+
+        {renderTitle('color')}
+        <View style={[styles.itemContent, { height: 80 }]}>
+          <Text style={[styles.normalText, { color: '#242424' }]}>Text color is black</Text>
+          <Text style={[styles.normalText, { color: 'blue' }]}>Text color is blue</Text>
+          <Text style={[styles.normalText, { color: 'rgb(228,61,36)' }]}>This is red</Text>
+        </View>
+
+        {renderTitle('fontStyle')}
+        <View style={[styles.itemContent, { height: 100 }]}>
+          <Text style={[styles.normalText, { fontStyle: 'normal' }]}>Text fontStyle is normal</Text>
+          <Text style={[styles.normalText, { fontStyle: 'italic' }]}>Text fontStyle is italic</Text>
+        </View>
+
+        {renderTitle('fontWeight')}
+        <View style={[styles.itemContent, { height: 100 }]}>
+          <Text style={[styles.normalText, { fontWeight: 'normal' }]}>Text fontWeight is normal</Text>
+          <Text style={[styles.normalText, { fontWeight: 'bold' }]}>Text fontWeight is bold</Text>
+          <Text style={[styles.normalText, { fontWeight: '100' }]}>Text fontWeight is 100</Text>
+          <Text style={[styles.normalText, { fontWeight: '200' }]}>Text fontWeight is 200</Text>
+          <Text style={[styles.normalText, { fontWeight: '300' }]}>Text fontWeight is 300</Text>
+        </View>
+
+        {renderTitle('textDecoration')}
+        <View style={[styles.itemContent, { height: 100 }]}>
+          <Text numberOfLines={1} style={[styles.normalText, { textDecorationLine: 'underline', textDecorationColor: 'red' }]}>
+            underline, red
+          </Text>
+          <Text numberOfLines={1} style={[styles.normalText, { textDecorationLine: 'underline', textDecorationStyle: 'dotted' }]}>
+            underline，dotted
+          </Text>
+          <Text numberOfLines={1} style={[styles.normalText, { textDecorationLine: 'underline', textDecorationStyle: 'dashed' }]}>
+            underline，dashed
+          </Text>
+          <Text numberOfLines={1} style={[styles.normalText, { textDecorationLine: 'line-through', textDecorationColor: 'red' }]}>
+            line-through
+          </Text>
+          <Text numberOfLines={1} style={[styles.normalText, { textDecorationLine: 'underline line-through', textDecorationColor: 'red' }]}>
+            underline line-through
+          </Text>
+        </View>
+
+        {renderTitle('lineHeight')}
+        <View style={[styles.itemContent, { height: 120 }]}>
+            <Text numberOfLines={1} style={{ fontSize: 30, lineHeight: 10 }}>
+                Text with lineHeight 20
+            </Text>
+            <Text numberOfLines={1} style={{ fontSize: 30, lineHeight: 20 }}>
+                Text with lineHeight 40
+            </Text>
+            <Text numberOfLines={1} style={{ fontSize: 30, lineHeight: 30 }}>
+                Text with lineHeight 60
+            </Text>
+        </View>
+
+        {renderTitle('LetterSpacing')}
+        <View style={[styles.itemContent, { height: 100 }]}>
+          <Text numberOfLines={1} style={[styles.normalText, { letterSpacing: -1 }]}>
+            Text width letter-spacing -1
+          </Text>
+          <Text numberOfLines={1} style={[styles.normalText, { letterSpacing: 5 }]}>
+            Text width letter-spacing 5
+          </Text>
+        </View>
+
+        {renderTitle('Custom font')}
+        <View style={[styles.itemContent, { height: 100 }]}>
+          <Text numberOfLines={1} style={styles.customFont}>Hippy 跨端框架</Text>
+        </View>
+
         {renderTitle('margin')}
         <View style={[styles.itemContent]}>
           <Text style={[

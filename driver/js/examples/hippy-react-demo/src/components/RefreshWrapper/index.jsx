@@ -75,6 +75,7 @@ export default class RefreshWrapperExample extends React.Component {
 
 
   onRefresh() {
+    console.log('on fresh!!!!!!!')
     setTimeout(async () => {
       const dataSource = await this.mockFetchData();
       this.setState({ dataSource });

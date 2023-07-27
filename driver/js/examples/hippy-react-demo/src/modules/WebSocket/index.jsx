@@ -47,7 +47,7 @@ const styles = StyleSheet.create({
 });
 
 const input = {
-  url: 'wss://echo.websocket.org',
+  url: 'wss://echo.websocket.events/.ws',
   message: 'Rock it with Hippy WebSocket',
 };
 

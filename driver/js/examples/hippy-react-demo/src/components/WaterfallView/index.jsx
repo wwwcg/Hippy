@@ -1,5 +1,5 @@
 import React from 'react';
-import {
+import stylesheet, {
   WaterfallView,
   View,
   StyleSheet,
@@ -13,6 +13,7 @@ import Style1 from '../../shared/UIStyles/Style1';
 import Style2 from '../../shared/UIStyles/Style2';
 import Style5 from '../../shared/UIStyles/Style5';
 const mockData = mockDataTemp.filter(item => item.style !== 2);
+const hippyBlue = '#4c9afa'
 const styles = StyleSheet.create({
   container: {
     backgroundColor: '#ffffff',
@@ -33,7 +34,7 @@ const styles = StyleSheet.create({
   },
   pullContainer: {
     height: 50,
-    backgroundColor: '#4c9afa',
+    backgroundColor: hippyBlue,
   },
   pullContent: {
     lineHeight: 50,
@@ -44,9 +45,19 @@ const styles = StyleSheet.create({
   pullFooter: {
     flex: 1,
     height: 40,
-    backgroundColor: '#4c9afa',
+    backgroundColor: hippyBlue,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  topButton: {
+    width: 160,
+    height: 40,
+    lineHeight: 40,
+    borderRadius: 8,
+    marginLeft: 20,
+    paddingHorizontal: 10,
+    backgroundColor: hippyBlue,
+    color: 'white'
   },
 });
 
@@ -69,6 +80,7 @@ export default class ListExample extends React.Component {
     this.onRefresh = this.onRefresh.bind(this);
     this.getRefresh = this.getRefresh.bind(this);
     this.renderPullFooter = this.renderPullFooter.bind(this);
+    this.renderPullHeader = this.renderPullHeader.bind(this);
     this.renderBanner = this.renderBanner.bind(this);
     this.getItemStyle = this.getItemStyle.bind(this);
   }
@@ -116,6 +128,15 @@ export default class ListExample extends React.Component {
     </View>);
   }
 
+  renderPullHeader() {
+    if (this.state.dataSource.length === 0) return null;
+    return (<View style={styles.pullFooter}>
+      <Text style={{
+        color: 'white',
+      }}>I am a pull header</Text>
+    </View>);
+  }
+
   async onRefresh() {
     setTimeout(async () => {
       const dataSource = await this.mockFetchData();
@@ -126,9 +147,9 @@ export default class ListExample extends React.Component {
 
   getRefresh() {
     return (
-        <View style={{ flex: 1, height: 40, justifyContent: 'center', alignItems: 'center', backgroundColor: '#4c9afa' }}>
-          <Text style={{ height: 40, lineHeight: 40, textAlign: 'center', color: 'white' }}>下拉刷新中...</Text>
-        </View>
+      <View style={{ flex: 1, height: 40, justifyContent: 'center', alignItems: 'center', backgroundColor: hippyBlue }}>
+        <Text style={{ height: 40, lineHeight: 40, textAlign: 'center', color: 'white' }}>下拉刷新中...</Text>
+      </View>
     );
   }
 
@@ -155,7 +176,6 @@ export default class ListExample extends React.Component {
     this.listView.scrollToIndex({ index, animation: true });
   }
 
-  // render banner(it is not supported on Android yet)
   renderBanner() {
     if (this.state.dataSource.length === 0) return null;
     return (<View style={{
@@ -190,15 +210,15 @@ export default class ListExample extends React.Component {
       default:
     }
     return (
-        <View
-            onClick={() => this.onItemClick(index)}
-            style={styles.container}
-        >
-          <View style={styles.itemContainer}>
-            {styleUI}
-          </View>
-          <View style={styles.splitter} />
+      <View
+        onClick={() => this.onItemClick(index)}
+        style={styles.container}
+      >
+        <View style={styles.itemContainer}>
+          {styleUI}
         </View>
+        <View style={styles.splitter} />
+      </View>
     );
   }
 
@@ -215,7 +235,7 @@ export default class ListExample extends React.Component {
   }
 
   getWaterfallContentInset() {
-    return { top: 0, left: 5, bottom: 0, right: 5 };
+    return { top: 100, left: 5, bottom: 100, right: 5 };
   }
 
   getItemStyle() {
@@ -233,35 +253,48 @@ export default class ListExample extends React.Component {
     const { numberOfColumns, columnSpacing, interItemSpacing } = this;
     const contentInset = this.getWaterfallContentInset();
     return (
+      <View style={{flex: 1}}>
+        <View style={{height: 50, flexDirection: 'row', alignItems: 'center', backgroundColor: 'gray'}}>
+          <Text style={styles.topButton} onClick={ () => this.listView.scrollToIndex(10) } >
+            跳至第10个Item
+          </Text>
+          <Text style={styles.topButton} onClick={ () => this.listView.scrollToContentOffset( {xOffset: 0, yOffset: 2000, animated: true} ) } >
+            跳至offset y:2000
+          </Text>
+        </View>
         <RefreshWrapper
-            ref={(ref) => {
-              this.refresh = ref;
-            }}
-            style={{ flex: 1 }}
-            onRefresh={this.onRefresh}
-            bounceTime={100}
-            getRefresh={this.getRefresh}
+          ref={(ref) => {
+            this.refresh = ref;
+          }}
+          style={{ flex: 1 }}
+          onRefresh={this.onRefresh}
+          bounceTime={100}
+          getRefresh={this.getRefresh}
         >
           <WaterfallView
-              ref={(ref) => {
-                this.listView = ref;
-              }}
-              renderBanner={this.renderBanner}
-              numberOfColumns={numberOfColumns}
-              columnSpacing={columnSpacing}
-              interItemSpacing={interItemSpacing}
-              numberOfItems={dataSource.length}
-              style={{ flex: 1 }}
-              renderItem={this.renderItem}
-              onEndReached={this.onEndReached}
-              getItemType={this.getItemType}
-              getItemKey={this.getItemKey}
-              contentInset={contentInset}
-              getItemStyle={this.getItemStyle}
-              containPullFooter={true}
-              renderPullFooter={this.renderPullFooter}
+            ref={(ref) => {
+              this.listView = ref;
+            }}
+            renderBanner={this.renderBanner}
+            numberOfColumns={numberOfColumns}
+            columnSpacing={columnSpacing}
+            interItemSpacing={interItemSpacing}
+            numberOfItems={dataSource.length}
+            style={{ flex: 1 }}
+            renderItem={this.renderItem}
+            onEndReached={this.onEndReached}
+            getItemType={this.getItemType}
+            getItemKey={this.getItemKey}
+            contentInset={contentInset}
+            getItemStyle={this.getItemStyle}
+            // containPullHeader={true} // useless
+            // renderPullHeader={this.renderPullHeader}
+            containPullFooter={true} // useless
+            renderPullFooter={this.renderPullFooter}
+            onScroll={ (event) => { console.log(`waterfall onScroll: ${JSON.stringify(event)} ~~~`); }}
           />
         </RefreshWrapper>
+      </View>
     );
   }
 }

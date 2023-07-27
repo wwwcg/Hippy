@@ -5,6 +5,7 @@ import {
   StyleSheet,
   Text,
   Platform,
+  ScrollView
 } from '@hippy/react';
 
 const STYLE_LOADING = 100;
@@ -41,6 +42,7 @@ const mockDataArray = [
   { style: 5 },
 ];
 
+const hippyBlue = '#4c9afa'
 const styles = StyleSheet.create({
   container: {
     backgroundColor: '#fff',
@@ -59,6 +61,43 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: '#aaaaaa',
     alignSelf: 'center',
+  },
+  logContainerView: {
+    position: 'absolute',
+    top: 50,
+    right: 10,
+    width: 250,
+    height: 360,
+    borderRadius: 4,
+    backgroundColor: '#333333', //深灰色
+  },
+  consoleText: {
+    marginLeft: 10,
+    fontSize: 11,
+    textAlign: 'left',
+    color: '#ffffff',
+  },
+  itemStyle: {
+    width: 100,
+    height: 100,
+    lineHeight: 100,
+    borderWidth: 1,
+    borderStyle: 'solid',
+    borderColor: hippyBlue,
+    fontSize: 80,
+    margin: 20,
+    color: hippyBlue,
+    textAlign: 'center',
+  },
+  topButton: {
+    width: 160,
+    height: 40,
+    lineHeight: 40,
+    borderRadius: 8,
+    marginLeft: 20,
+    paddingHorizontal: 10,
+    backgroundColor: hippyBlue,
+    color: 'white'
   },
 });
 
@@ -105,6 +144,7 @@ export default class ListExample extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
+      consoleText: '',
       dataSource: mockDataArray,
       fetchingDataFlag: false,
       horizontal: undefined,
@@ -145,10 +185,6 @@ export default class ListExample extends React.Component {
     const newDataSource = dataSource.concat(newData);
     this.setState({ dataSource: newDataSource, fetchingDataFlag: false });
   }
-  // item完全曝光
-  onAppear(index) {
-    console.log('onAppear', index);
-  }
 
   onScroll(obj) {
     console.log('onScroll', obj.contentOffset.y);
@@ -160,27 +196,68 @@ export default class ListExample extends React.Component {
     } else {
       this.topReached = false;
     }
+    // 只保留小数点后两位
+    const y = Math.floor(obj.contentOffset.y * 100) / 100;
+    this.logToConsoleView('', `------------ ONSCROLL ${y} ------------`);
   }
 
+  // item完全曝光
+  onAppear(index) {
+    console.log('onAppear', index);
+    this.logToConsoleView(index, `~~~ ${this.getRowType(index)} appeared ~~~`);
+  }
   // item完全隐藏
   onDisappear(index) {
     console.log('onDisappear', index);
+    this.logToConsoleView(index, '~~~ ~~~ disappeared ~~~ ~~~');
   }
-  // item至少一个像素曝光
+
+  logToConsoleView(index, logText) {
+    const {consoleText} = this.state;
+    this.setState({
+      // insert consoleText data
+      consoleText: `${index} ${logText}\n${consoleText}`,
+    });
+  }
+
+// item至少一个像素曝光
   onWillAppear(index) {
     console.log('onWillAppear', index);
+    this.logToConsoleView(index, `~~~🔥 type ${this.getRowType(index)} will Appear 🔥~~~`);
   }
   // item至少一个像素隐藏
   onWillDisappear(index) {
     console.log('onWillDisappear', index);
+    this.logToConsoleView(index, '~~~ ~~~🤚 will Disappear 🤚~~~ ~~~');
   }
+
+  onMomentumScrollBegin = (params) => {
+    console.log('onMomentumScrollBegin', params);
+    this.logToConsoleView('', `\nonMomentumScrollBegin, ${JSON.stringify(params.contentOffset)}\n`);
+  }
+
+  onMomentumScrollEnd = (params) => {
+    console.log('onMomentumScrollEnd', params);
+    this.logToConsoleView('', `\nonMomentumScrollEnd, ${JSON.stringify(params.contentOffset)}\n`);
+  }
+
+  onScrollBeginDrag = (params) => {
+    console.log('onScrollBeginDrag', params);
+    this.logToConsoleView('', `\nonScrollBeginDrag, ${JSON.stringify(params.contentOffset)}\n`);
+  }
+
+  onScrollEndDrag = (params) => {
+    console.log('onScrollEndDrag', params);
+    this.logToConsoleView('', `\nonScrollEndDrag, ${JSON.stringify(params.contentOffset)}\n`);
+  }
+
   rowShouldSticky(index) {
     return index === 2;
   }
   getRowType(index) {
     const self = this;
     const item = self.state.dataSource[index];
-    return item.style;
+    return index === 6 ? 10086 : item.style;
   }
   // configure listItem style if horizontal listview is set
   getRowStyle() {
@@ -216,26 +293,44 @@ export default class ListExample extends React.Component {
       default:
       // pass
     }
-    return (
-      <View style={styles.container}
-            onClickCapture={(event) => {
-              console.log('onClickCapture style outer', event.target.nodeId, event.currentTarget.nodeId);
-            }}
-            onTouchDown={(event) => {
-              // outer onTouchDown would not be called, because style1 invoked event.stopPropagation();
-              console.log('onTouchDown style outer', event.target.nodeId, event.currentTarget.nodeId);
-              return false;
-            }}
-            onClick={(event) => {
-              console.log('click style outer', event.target.nodeId, event.currentTarget.nodeId);
-              // return false means trigger bubble
-              return false;
-            }}>
-        <View style={styles.itemContainer}>
-          {styleUI}
+    return index === 6 ? (<ScrollView
+        horizontal={true}
+        bounces={true}
+        contentContainerStyle={{ backgroundColor: 'green' }}
+        showsHorizontalScrollIndicator={true} // only iOS support
+        showScrollIndicator={true} // only Android support
+        onScroll={params => console.log('onScroll', params)}
+        onMomentumScrollBegin={params => console.log('onMomentumScrollBegin', params)}
+        onMomentumScrollEnd={params => console.log('onMomentumScrollEnd', params)}
+        onScrollBeginDrag={params => console.log('onScrollBeginDrag', params)}
+        onScrollEndDrag={params => console.log('onScrollEndDrag', params)}
+    >
+      <Text style={styles.itemStyle}>A</Text>
+      <Text style={styles.itemStyle}>B</Text>
+      <Text style={styles.itemStyle}>C</Text>
+      <Text style={styles.itemStyle}>D</Text>
+      <Text style={styles.itemStyle}>E</Text>
+      <Text style={styles.itemStyle}>F</Text>
+    </ScrollView>) : (
+        <View style={styles.container}
+              onClickCapture={(event) => {
+                console.log('onClickCapture style outer', event.target.nodeId, event.currentTarget.nodeId);
+              }}
+              onTouchDown={(event) => {
+                // outer onTouchDown would not be called, because style1 invoked event.stopPropagation();
+                console.log('onTouchDown style outer', event.target.nodeId, event.currentTarget.nodeId);
+                return false;
+              }}
+              onClick={(event) => {
+                console.log('click style outer', event.target.nodeId, event.currentTarget.nodeId);
+                // return false means trigger bubble
+                return false;
+              }}>
+          <View style={styles.itemContainer}>
+            {styleUI}
+          </View>
+          {!isLastItem ? <View style={styles.separatorLine} /> : null }
         </View>
-        {!isLastItem ? <View style={styles.separatorLine} /> : null }
-      </View>
     );
   }
 
@@ -252,10 +347,25 @@ export default class ListExample extends React.Component {
   }
 
   render() {
-    const { dataSource, horizontal } = this.state;
+    const { dataSource, horizontal, consoleText } = this.state;
     return (
       <View style={{ flex: 1, collapsable: false }}>
+        <View style={{height: 50, flexDirection: 'row', alignItems: 'center', backgroundColor: 'gray'}}>
+          <Text style={styles.topButton} onClick={ () => {
+            this.list.scrollToIndex( 0, 50, true )
+          }} >
+            跳至第50个Item
+          </Text>
+          <Text style={styles.topButton} onClick={ () => {
+            this.list.scrollToContentOffset( 0, 2000, true )
+          }} >
+            跳至offset y:2000
+          </Text>
+        </View>
         <ListView
+          ref={(ref) => {
+            this.list = ref;
+          }}
           onTouchDown={(event) => {
             console.log('onTouchDown ListView', event.target.nodeId, event.currentTarget.nodeId);
           }}
@@ -279,12 +389,14 @@ export default class ListExample extends React.Component {
           onEndReached={this.onEndReached}
           getRowType={this.getRowType}
           onDelete={this.onDelete}
-          onMomentumScrollBegin={params => console.log('onMomentumScrollBegin', params)}
-          onMomentumScrollEnd={params => console.log('onMomentumScrollEnd', params)}
-          onScrollBeginDrag={params => console.log('onScrollBeginDrag', params)}
-          onScrollEndDrag={params => console.log('onScrollEndDrag', params)}
+          onMomentumScrollBegin={this.onMomentumScrollBegin}
+          onMomentumScrollEnd={this.onMomentumScrollEnd}
+          onScrollBeginDrag={this.onScrollBeginDrag}
+          onScrollEndDrag={this.onScrollEndDrag}
           delText={this.delText}
           editable={true}
+          scrollEnabled={true}
+          showScrollIndicator={true}
           // configure listItem style if horizontal listview is set
           getRowStyle={this.getRowStyle}
           getRowKey={this.getRowKey}
@@ -296,9 +408,12 @@ export default class ListExample extends React.Component {
           onWillDisappear={this.onWillDisappear}
           onScroll={this.onScroll}
           scrollEventThrottle={1000} // 1s
+          initialContentOffset={500}
         />
-        {Platform.OS === 'android'
-          ? <View
+        <ScrollView style={styles.logContainerView}>
+          <Text style={styles.consoleText}>{this.state.consoleText}</Text>
+        </ScrollView>
+        <View
             onClick={() => this.changeDirection()}
             style={{
               position: 'absolute',
@@ -323,7 +438,7 @@ export default class ListExample extends React.Component {
             }}>
             <Text style={{ color: 'white' }}>切换方向</Text>
           </View>
-        </View> : null}
+        </View>
       </View>
     );
   }

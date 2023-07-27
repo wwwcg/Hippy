@@ -12,19 +12,22 @@ const ALL_ROUTES = [{
   path: '/Gallery',
   name: 'Hippy React',
   component: Gallery,
+  meta: {
+    style: 1,
+  },
 }, ...routes];
 
 export const Entry = () => (
-  <View style={{ flex: 1 }}>
+  <View style={{ flex: 1, backgroundColor: '#fff' }}>
     <MemoryRouter initialEntries={['/Gallery']}>
       {
         ALL_ROUTES.map((item) => {
           const Comp = item.component;
           return (
             <Route key={item.path} exact path={`${item.path}`}>
-              <View style={{ flex: 1 }}>
-               <Header route={item} />
-                <Comp />
+              <View style={{ flex: 1, backgroundColor: '#fff' }}>
+                <Header route={item} />
+                <Comp meta={item.meta || {}} />
               </View>
             </Route>
           );

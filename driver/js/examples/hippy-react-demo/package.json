@@ -34,7 +34,9 @@
     "react-router": "~5.1.2",
     "react-router-dom": "~5.1.2",
     "regenerator-runtime": "^0.13.5",
-    "swiper": "^6.7.0"
+    "swiper": "^6.7.0",
+    "@tencent/hippy-react": "latest",
+    "@tencent/hippy-react-svg": "latest"
   },
   "devDependencies": {
     "@babel/core": "^7.12.0",
