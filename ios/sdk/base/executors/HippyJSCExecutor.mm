@@ -171,7 +171,7 @@ HIPPY_EXPORT_MODULE()
         // unless JSContextGroupRef is deallocated
         self.executorkey = execurotkey;
         self.bridge = bridge;
-        std::shared_ptr<Engine> engine = [[HippyJSEnginesMapper defaultInstance] createJSEngineForKey:self.executorkey];
+        std::shared_ptr<Engine> engine = [[HippyJSEnginesMapper defaultInstance] createJSEngineForKey:self.uniqueExecutorkeyForEngine];
         std::unique_ptr<Engine::RegisterMap> map = [self registerMap];
         const char *pName = [execurotkey UTF8String] ?: "";
         std::shared_ptr<Scope> scope = engine->CreateScope(pName, std::move(map));
@@ -228,7 +228,7 @@ static unicode_string_view NSStringToU8(NSString* str) {
             std::shared_ptr<Scope> scope = wrapper->scope_.lock();
             if (scope) {
                 std::shared_ptr<hippy::napi::JSCCtx> context = std::static_pointer_cast<hippy::napi::JSCCtx>(scope->GetContext());
-                JSContext *jsContext = [JSContext contextWithJSGlobalContextRef:context->GetCtxRef()];
+                JSContext *jsContext = [strongSelf JSContext];
                 context->RegisterGlobalInJs();
                 NSMutableDictionary *deviceInfo = [NSMutableDictionary dictionaryWithDictionary:[strongSelf.bridge deviceInfo]];
                 if ([strongBridgeDelegate respondsToSelector:@selector(objectsBeforeExecuteCode)]) {
@@ -438,9 +438,10 @@ static void installBasicSynchronousHooksOnContext(JSContext *context) {
     _JSContext.name = @"HippyJSContext(delete)";
     _JSContext = nil;
     _JSGlobalContextRef = NULL;
+    NSString *uniqueExecutorKey = self.uniqueExecutorkeyForEngine;
     dispatch_async(dispatch_get_main_queue(), ^{
-        HippyLogInfo(@"[Hippy_OC_Log][Life_Circle],HippyJSCExecutor remove engine %@", [self executorkey]);
-        [[HippyJSEnginesMapper defaultInstance] removeEngineForKey:[self executorkey]];
+        HippyLogInfo(@"[Hippy_OC_Log][Life_Circle],HippyJSCExecutor remove engine %@", uniqueExecutorKey);
+        [[HippyJSEnginesMapper defaultInstance] removeEngineForKey:uniqueExecutorKey];
     });
 }
 
@@ -450,6 +451,11 @@ static void installBasicSynchronousHooksOnContext(JSContext *context) {
 
 - (NSString *)executorkey {
     return _executorkey ?: [NSString stringWithFormat:@"%p", self];
+}
+
+- (NSString *)uniqueExecutorkeyForEngine {
+    /// engine reuse can lead to leak of context, which we avoid by using a unique executor key
+    return [NSString stringWithFormat:@"%@%p", self.executorkey, self];
 }
 
 // clang-format off
@@ -741,7 +747,7 @@ static NSError *executeApplicationScript(NSData *script, NSURL *sourceURL, Hippy
 }
 
 - (void)executeBlockOnJavaScriptQueue:(dispatch_block_t)block {
-    Engine *engine = [[HippyJSEnginesMapper defaultInstance] JSEngineForKey:self.executorkey].get();
+    auto engine = [[HippyJSEnginesMapper defaultInstance] JSEngineForKey:self.uniqueExecutorkeyForEngine];
     if (engine) {
         if (engine->GetJSRunner()->IsJsThread() == false) {
             std::shared_ptr<JavaScriptTask> task = std::make_shared<JavaScriptTask>();
@@ -754,7 +760,7 @@ static NSError *executeApplicationScript(NSData *script, NSURL *sourceURL, Hippy
 }
 
 - (void)executeAsyncBlockOnJavaScriptQueue:(dispatch_block_t)block {
-    Engine *engine = [[HippyJSEnginesMapper defaultInstance] JSEngineForKey:self.executorkey].get();
+    auto engine = [[HippyJSEnginesMapper defaultInstance] JSEngineForKey:self.uniqueExecutorkeyForEngine];
     if (engine) {
         std::shared_ptr<JavaScriptTask> task = std::make_shared<JavaScriptTask>();
         task->callback = block;
