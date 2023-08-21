@@ -394,10 +394,21 @@ NATIVE_RENDER_CUSTOM_VIEW_PROPERTY(borderRadius, CGFloat, NativeRenderView) {
     }
 }
 NATIVE_RENDER_CUSTOM_VIEW_PROPERTY(borderColor, CGColor, NativeRenderView) {
+    CGColorRef color = nil;
     if ([view respondsToSelector:@selector(setBorderColor:)]) {
-        view.borderColor = json ? [HPConvert CGColor:json] : defaultView.borderColor;
+        if (json) {
+            color = [HPConvert CGColor:json];
+        } else {
+            color = defaultView ? defaultView.borderColor : [UIColor clearColor].CGColor;
+        }
+        view.borderColor = color;
     } else {
-        view.layer.borderColor = json ? [HPConvert CGColor:json] : defaultView.layer.borderColor;
+        if (json) {
+            color = [HPConvert CGColor:json];
+        } else {
+            color = defaultView ? defaultView.layer.borderColor : [UIColor clearColor].CGColor;
+        }
+        view.layer.borderColor = color;
     }
 }
 
