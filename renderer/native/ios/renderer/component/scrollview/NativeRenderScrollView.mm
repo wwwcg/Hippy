@@ -157,6 +157,21 @@ static inline BOOL CGPointIsNull(CGPoint point) {
     super.contentOffset = contentOffset;
 }
 
+/*
+ * 注意，此处为临时添加的手势传递bug修复逻辑，
+ * 3.0调整了手势处理方案，由rootView gesture统一分发调整为了依赖系统自身的事件响应流程
+ * 然而，该方案存在一些问题，比如此处的NativeRenderCustomScrollView将导致部分事件传递中断，
+ * e.g.1: 添加到NativeRenderScrollView上的onTouchEnd手势将无法收到响应；
+ * e.g.2: sibling views 无法接收手势事件等；
+ * 注意：此处为临时修复，即将在重构后删除。
+ *
+ * TODO: refactor gesture handle process for hippy
+ */
+- (void)touchesEnded:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event {
+    [super touchesEnded:touches withEvent:event];
+    [self.superview touchesEnded:touches withEvent:event];
+}
+
 @end
 
 @interface NativeRenderScrollView () {
