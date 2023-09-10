@@ -66,9 +66,6 @@
 }
 
 - (void)setStatus:(NativeRenderRefreshStatus)status {
-    if (_status == status) {
-        return;
-    }
     switch (status) {
         case NativeRenderRefreshStatusIdle: {
             [UIView animateWithDuration:.2f animations:^{
