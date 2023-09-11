@@ -32,15 +32,6 @@
     return self;
 }
 
-- (void)setFrame:(CGRect)frame {
-    CGRect originFrame = self.frame;
-    [super setFrame:frame];
-    if (!CGSizeEqualToSize(originFrame.size, frame.size) &&
-        [self.observer respondsToSelector:@selector(itemFrameChanged:)]) {
-        [self.observer itemFrameChanged:self];
-    }
-}
-
 - (void)amendLayoutBeforeMount:(NSMutableSet<NativeRenderApplierBlock> *)blocks {
     _layoutDirty = NO;
     if (NativeRenderUpdateLifecycleComputed == _propagationLifecycle) {

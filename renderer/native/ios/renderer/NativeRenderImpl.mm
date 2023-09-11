@@ -506,7 +506,7 @@ NSString *const NativeRenderUIManagerDidEndBatchNotification = @"NativeRenderUIM
     view.renderManager = [self renderManager];
     [view clearSortedSubviews];
     [view didUpdateNativeRenderSubviews];
-    NSMutableSet<NativeRenderApplierBlock> *applierBlocks = [NSMutableSet setWithCapacity:256];
+    NSMutableSet<NativeRenderApplierBlock> *applierBlocks = [NSMutableSet setWithCapacity:1];
     [renderObject amendLayoutBeforeMount:applierBlocks];
     if (applierBlocks.count) {
         NSDictionary<NSNumber *, UIView *> *viewRegistry =
@@ -659,7 +659,7 @@ NSString *const NativeRenderUIManagerDidEndBatchNotification = @"NativeRenderUIM
 }
 
 - (void)amendPendingUIBlocksWithStylePropagationUpdateForRenderObject:(NativeRenderObjectView *)topView {
-    NSMutableSet<NativeRenderApplierBlock> *applierBlocks = [NSMutableSet setWithCapacity:256];
+    NSMutableSet<NativeRenderApplierBlock> *applierBlocks = [NSMutableSet setWithCapacity:1];
 
     [topView collectUpdatedProperties:applierBlocks parentProperties:@{}];
     if (applierBlocks.count) {
@@ -1453,8 +1453,7 @@ NSString *const NativeRenderUIManagerDidEndBatchNotification = @"NativeRenderUIM
     }
     [self addUIBlock:^(NativeRenderImpl *renderContext, __unused NSDictionary<NSNumber *, UIView *> *viewRegistry) {
         NativeRenderImpl *uiManager = (NativeRenderImpl *)renderContext;
-        NSSet<id<NativeRenderComponentProtocol>> *nodes = [uiManager->_componentTransactionListeners copy];
-        for (id<NativeRenderComponentProtocol> node in nodes) {
+        for (id<NativeRenderComponentProtocol> node in uiManager->_componentTransactionListeners) {
             [node nativeRenderComponentDidFinishTransaction];
         }
     }];

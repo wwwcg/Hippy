@@ -42,8 +42,6 @@ static const NSTimeInterval delayForPurgeView = 1.f;
     BOOL _isInitialListReady;
     UIColor *_backgroundColor;
     BOOL _manualScroll;
-    NSMutableArray<NSArray<NativeRenderObjectView *> *> *_dataSourcePool;
-    dispatch_semaphore_t _dataSourceSem;
 }
 
 @property (nonatomic, strong) NativeRenderCollectionViewWaterfallLayout *layout;
@@ -65,10 +63,10 @@ static const NSTimeInterval delayForPurgeView = 1.f;
         self.backgroundColor = [UIColor clearColor];
         _scrollListeners = [NSHashTable weakObjectsHashTable];
         _scrollEventThrottle = 100.f;
+        _dataSource = [[NativeRenderWaterfallViewDataSource alloc] init];
+        self.dataSource.itemViewName = [self compoentItemName];
         _weakItemMap = [NSMapTable strongToWeakObjectsMapTable];
         _cachedItems = [NSMutableDictionary dictionaryWithCapacity:32];
-        _dataSourcePool = [NSMutableArray arrayWithCapacity:8];
-        _dataSourceSem = dispatch_semaphore_create(1);
         [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(didReceiveMemoryWarning) name:UIApplicationDidReceiveMemoryWarningNotification object:nil];
         [self initCollectionView];
         if (@available(iOS 11.0, *)) {
@@ -164,12 +162,13 @@ static const NSTimeInterval delayForPurgeView = 1.f;
 }
 
 - (void)didUpdateNativeRenderSubviews {
+    [self refreshItemNodes];
     self.dirtyContent = YES;
 }
 
 - (void)nativeRenderComponentDidFinishTransaction {
     if (self.dirtyContent) {
-        [self reloadData];
+        [self flush];
         self.dirtyContent = NO;
     }
 }
@@ -179,10 +178,7 @@ static const NSTimeInterval delayForPurgeView = 1.f;
 }
 
 - (void)refreshItemNodes {
-    NSArray<NativeRenderObjectView *> *datasource = [self popDataSource];
-    _dataSource = [[NativeRenderWaterfallViewDataSource alloc] initWithDataSource:datasource
-                                                                     itemViewName:[self compoentItemName]
-                                                                    containBannerView:_containBannerView];
+    [_dataSource setDataSource:self.nativeRenderObjectView.subcomponents containBannerView:_containBannerView];
 }
 
 #pragma mark Setter & Getter
@@ -277,38 +273,18 @@ static const NSTimeInterval delayForPurgeView = 1.f;
 }
 
 - (void)reloadData {
-    [self refreshItemNodes];
-    [_dataSource applyDiff:_previousDataSource
-             changedConext:self.changeContext
-          forWaterfallView:self.collectionView
-                completion:^(BOOL success) {
-        if (success) {
-            self->_previousDataSource = [self->_dataSource copy];
-        }
-        else {
-            self->_previousDataSource = nil;
-        }
-    }];
+    [self.collectionView reloadData];
+}
+
+- (BOOL)flush {
+    [self.collectionView reloadData];
     if (!_isInitialListReady) {
         _isInitialListReady = YES;
         if (self.onInitialListReady) {
             self.onInitialListReady(@{});
         }
     }
-}
-
-- (void)pushDataSource:(NSArray<NativeRenderObjectView *> *)dataSource {
-    dispatch_semaphore_wait(_dataSourceSem, DISPATCH_TIME_FOREVER);
-    [_dataSourcePool addObject:dataSource];
-    dispatch_semaphore_signal(_dataSourceSem);
-}
-
-- (NSArray<NativeRenderObjectView *> *)popDataSource {
-    dispatch_semaphore_wait(_dataSourceSem, DISPATCH_TIME_FOREVER);
-    NSArray<NativeRenderObjectView *> *datasource = [_dataSourcePool lastObject];
-    [_dataSourcePool removeLastObject];
-    dispatch_semaphore_signal(_dataSourceSem);
-    return datasource;
+    return YES;
 }
 
 - (void)insertNativeRenderSubview:(UIView *)subview atIndex:(NSInteger)atIndex {
