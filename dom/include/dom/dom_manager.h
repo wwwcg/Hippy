@@ -90,6 +90,10 @@ class DomManager : public std::enable_shared_from_this<DomManager> {
   inline std::shared_ptr<Worker> GetWorker() {
     return worker_;
   }
+  inline void SetJsTaskRunner(std::shared_ptr<TaskRunner> js_runner) {
+    js_runner_ = js_runner;
+  }
+  inline std::shared_ptr<TaskRunner> GetJsTaskRunner() { return js_runner_; }
 
   void SetRenderManager(const std::weak_ptr<RenderManager>& render_manager);
   static std::shared_ptr<DomNode> GetNode(const std::weak_ptr<RootNode>& weak_root_node,
@@ -145,6 +149,7 @@ class DomManager : public std::enable_shared_from_this<DomManager> {
   std::weak_ptr<RenderManager> render_manager_;
   std::unordered_map<uint32_t, std::shared_ptr<BaseTimer>> timer_map_;
   std::shared_ptr<TaskRunner> task_runner_;
+  std::shared_ptr<TaskRunner> js_runner_;
   std::shared_ptr<Worker> worker_;
 
   footstone::TimePoint dom_start_time_point_;

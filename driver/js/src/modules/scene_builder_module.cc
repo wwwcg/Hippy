@@ -424,7 +424,7 @@ std::shared_ptr<ClassTemplate<SceneBuilder>> RegisterSceneBuilder(const std::wea
       return nullptr;
     }
     auto ret = HandleJsValue(scope->GetContext(), arguments[0], scope);
-    SceneBuilder::Create(scope->GetDomManager(), scope->GetRootNode(), std::move(std::get<2>(ret)));
+    builder->Create(scope->GetDomManager(), scope->GetRootNode(), std::move(std::get<2>(ret)));
     return nullptr;
   };
   class_template.functions.emplace_back(std::move(create_func_def));
@@ -441,7 +441,7 @@ std::shared_ptr<ClassTemplate<SceneBuilder>> RegisterSceneBuilder(const std::wea
       return nullptr;
     }
     auto ret = HandleJsValue(scope->GetContext(), arguments[0], scope);
-    SceneBuilder::Update(scope->GetDomManager(), scope->GetRootNode(), std::move(std::get<2>(ret)));
+    builder->Update(scope->GetDomManager(), scope->GetRootNode(), std::move(std::get<2>(ret)));
     return nullptr;
   };
   class_template.functions.emplace_back(std::move(update_func_def));
@@ -488,7 +488,7 @@ std::shared_ptr<ClassTemplate<SceneBuilder>> RegisterSceneBuilder(const std::wea
         }
       }
     }
-    SceneBuilder::Move(weak_dom_manager, scope->GetRootNode(), std::move(dom_infos));
+    builder->Move(weak_dom_manager, scope->GetRootNode(), std::move(dom_infos));
     return nullptr;
   };
   class_template.functions.emplace_back(std::move(move_func_def));
@@ -531,7 +531,7 @@ std::shared_ptr<ClassTemplate<SceneBuilder>> RegisterSceneBuilder(const std::wea
             nullptr));
       }
     }
-    SceneBuilder::Delete(scope->GetDomManager(), scope->GetRootNode(), std::move(dom_infos));
+    builder->Delete(scope->GetDomManager(), scope->GetRootNode(), std::move(dom_infos));
     return nullptr;
   };
   class_template.functions.emplace_back(std::move(delete_func_def));
@@ -550,7 +550,7 @@ std::shared_ptr<ClassTemplate<SceneBuilder>> RegisterSceneBuilder(const std::wea
     Scope::EventListenerInfo listener_info;
     HandleEventListenerInfo(scope->GetContext(), argument_count, arguments, listener_info);
     auto dom_listener_info = scope->AddListener(listener_info);
-    SceneBuilder::AddEventListener(scope->GetDomManager(), scope->GetRootNode(), dom_listener_info);
+    builder->AddEventListener(scope->GetDomManager(), scope->GetRootNode(), dom_listener_info);
     return nullptr;
   };
   class_template.functions.emplace_back(std::move(add_event_listener_def));
@@ -569,7 +569,7 @@ std::shared_ptr<ClassTemplate<SceneBuilder>> RegisterSceneBuilder(const std::wea
     Scope::EventListenerInfo listener_info;
     HandleEventListenerInfo(scope->GetContext(), argument_count, arguments, listener_info);
     auto dom_listener_info = scope->RemoveListener(listener_info);
-    SceneBuilder::RemoveEventListener(scope->GetDomManager(), scope->GetRootNode(), dom_listener_info);
+    builder->RemoveEventListener(scope->GetDomManager(), scope->GetRootNode(), dom_listener_info);
     return nullptr;
   };
   class_template.functions.emplace_back(std::move(remove_event_listener_def));
@@ -586,7 +586,7 @@ std::shared_ptr<ClassTemplate<SceneBuilder>> RegisterSceneBuilder(const std::wea
     if (!scope) {
       return nullptr;
     }
-    SceneBuilder::Build(scope->GetDomManager(), scope->GetRootNode());
+    builder->Build(scope->GetDomManager(), scope->GetRootNode());
     return nullptr;
   };
   class_template.functions.emplace_back(std::move(build_func_def));

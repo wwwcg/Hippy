@@ -23,82 +23,111 @@
 #include "dom/dom_listener.h"
 
 #include "footstone/logging.h"
+#include "footstone/macros.h"
 #include "footstone/string_view_utils.h"
 
 namespace hippy {
 inline namespace dom {
 
-void SceneBuilder::Create(const std::weak_ptr<DomManager>& weak_dom_manager,
-                          const std::weak_ptr<RootNode>& root_node,
+void SceneBuilder::Create(const std::weak_ptr<DomManager>& weak_dom_manager, const std::weak_ptr<RootNode>& root_node,
                           std::vector<std::shared_ptr<DomInfo>>&& nodes) {
-  auto dom_manager = weak_dom_manager.lock();
-  if (dom_manager) {
-    dom_manager->RecordDomStartTimePoint();
-    dom_manager->CreateDomNodes(root_node, std::move(nodes));
-  }
+  auto op = [weak_dom_manager, root_node, node_infos = std::move(nodes)]() {
+    auto dom_manager = weak_dom_manager.lock();
+    if (dom_manager) {
+      dom_manager->RecordDomStartTimePoint();
+      auto nodes = std::move(node_infos);
+      dom_manager->CreateDomNodes(root_node, std::move(nodes));
+    }
+  };
+  ops_.push_back(op);
 }
 
-void SceneBuilder::Update(const std::weak_ptr<DomManager>& weak_dom_manager,
-                          const std::weak_ptr<RootNode>& root_node,
+void SceneBuilder::Update(const std::weak_ptr<DomManager>& weak_dom_manager, const std::weak_ptr<RootNode>& root_node,
                           std::vector<std::shared_ptr<DomInfo>>&& nodes) {
-  auto dom_manager = weak_dom_manager.lock();
-  if (dom_manager) {
-    dom_manager->UpdateDomNodes(root_node, std::move(nodes));
-  }
+  auto op = [weak_dom_manager, root_node, node_infos = std::move(nodes)]() {
+    auto dom_manager = weak_dom_manager.lock();
+    if (dom_manager) {
+      auto nodes = std::move(node_infos);
+      dom_manager->UpdateDomNodes(root_node, std::move(nodes));
+    }
+  };
+  ops_.push_back(op);
 }
 
-void SceneBuilder::Move(const std::weak_ptr<DomManager>& weak_dom_manager,
-                        const std::weak_ptr<RootNode>& root_node,
+void SceneBuilder::Move(const std::weak_ptr<DomManager>& weak_dom_manager, const std::weak_ptr<RootNode>& root_node,
                         std::vector<std::shared_ptr<DomInfo>>&& nodes) {
-  auto dom_manager = weak_dom_manager.lock();
-  if (dom_manager) {
-    dom_manager->MoveDomNodes(root_node, std::move(nodes));
-  }
+  auto op = [weak_dom_manager, root_node, node_infos = std::move(nodes)]() {
+    auto dom_manager = weak_dom_manager.lock();
+    if (dom_manager) {
+      auto nodes = std::move(node_infos);
+      dom_manager->MoveDomNodes(root_node, std::move(nodes));
+    }
+  };
+  ops_.push_back(op);
 }
 
-void SceneBuilder::Delete(const std::weak_ptr<DomManager>& weak_dom_manager,
-                          const std::weak_ptr<RootNode>& root_node,
+void SceneBuilder::Delete(const std::weak_ptr<DomManager>& weak_dom_manager, const std::weak_ptr<RootNode>& root_node,
                           std::vector<std::shared_ptr<DomInfo>>&& nodes) {
-  auto dom_manager = weak_dom_manager.lock();
-  if (dom_manager) {
-    dom_manager->DeleteDomNodes(root_node, std::move(nodes));
-  }
+  auto op = [weak_dom_manager, root_node, node_infos = std::move(nodes)]() {
+    auto dom_manager = weak_dom_manager.lock();
+    if (dom_manager) {
+      auto nodes = std::move(node_infos);
+      dom_manager->DeleteDomNodes(root_node, std::move(nodes));
+    }
+  };
+  ops_.push_back(op);
 }
 
 void SceneBuilder::AddEventListener(const std::weak_ptr<DomManager>& weak_dom_manager,
                                     const std::weak_ptr<RootNode>& root_node,
                                     const EventListenerInfo& event_listener_info) {
-  if (!event_listener_info.IsValid()) {
-    return;
-  }
-  auto dom_manager = weak_dom_manager.lock();
-  if (dom_manager) {
-    uint32_t dom_id = event_listener_info.dom_id;
-    dom_manager->AddEventListener(root_node, dom_id, event_listener_info.event_name,
-                                  event_listener_info.listener_id, event_listener_info.use_capture,
-                                  event_listener_info.callback);
-  }
+  auto op = [weak_dom_manager, root_node, event_listener_info]() {
+    auto dom_manager = weak_dom_manager.lock();
+    if (!event_listener_info.IsValid()) {
+      return;
+    }
+    if (dom_manager) {
+      uint32_t dom_id = event_listener_info.dom_id;
+      dom_manager->AddEventListener(root_node, dom_id, event_listener_info.event_name, event_listener_info.listener_id,
+                                    event_listener_info.use_capture, event_listener_info.callback);
+    }
+  };
+  ops_.push_back(op);
 }
 
 void SceneBuilder::RemoveEventListener(const std::weak_ptr<DomManager>& weak_dom_manager,
                                        const std::weak_ptr<RootNode>& root_node,
                                        const EventListenerInfo& event_listener_info) {
-  if (!event_listener_info.IsValid()) {
-    return;
-  }
-  auto dom_manager = weak_dom_manager.lock();
-  if (dom_manager) {
-    uint32_t dom_id = event_listener_info.dom_id;
-    dom_manager->RemoveEventListener(root_node, dom_id, event_listener_info.event_name,
-                                     event_listener_info.listener_id);
-  }
+  auto op = [weak_dom_manager, root_node, event_listener_info]() {
+    if (!event_listener_info.IsValid()) {
+      return;
+    }
+    auto dom_manager = weak_dom_manager.lock();
+    if (dom_manager) {
+      uint32_t dom_id = event_listener_info.dom_id;
+      dom_manager->RemoveEventListener(root_node, dom_id, event_listener_info.event_name,
+                                       event_listener_info.listener_id);
+    }
+  };
+  ops_.push_back(op);
 }
 
-void SceneBuilder::Build(const std::weak_ptr<DomManager>& weak_dom_manager,
-                          const std::weak_ptr<RootNode>& root_node) {
+void SceneBuilder::Build(const std::weak_ptr<DomManager>& weak_dom_manager, const std::weak_ptr<RootNode>& root_node) {
   auto dom_manager = weak_dom_manager.lock();
-  if (dom_manager) {
-    dom_manager->EndBatch(root_node);
+  auto dom_task_runner = dom_manager->GetTaskRunner();
+  //  auto js_runner = weak_js_runner.lock();
+  if (dom_task_runner) {
+    dom_task_runner->PostTask([WEAK_THIS, weak_dom_manager, root_node]() {
+      DEFINE_AND_CHECK_SELF(SceneBuilder)
+      for (const auto& op : self->ops_) {
+        op();
+      }
+      self->ops_.clear();
+      auto dom_manager = weak_dom_manager.lock();
+      if (dom_manager) {
+        dom_manager->EndBatch(root_node);
+      }
+    });
   }
 }
 

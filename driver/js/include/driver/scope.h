@@ -166,6 +166,8 @@ class Scope : public std::enable_shared_from_this<Scope> {
   inline std::any GetTurbo() { return turbo_; }
   inline void SetTurbo(std::any turbo) { turbo_ = turbo; }
   inline std::weak_ptr<Engine> GetEngine() { return engine_; }
+  inline void SetJsRunner(std::shared_ptr<TaskRunner> js_runner) { js_runner_ = js_runner; }
+  inline std::weak_ptr<TaskRunner> GetJsRunner() { return js_runner_; }
 
   inline std::any GetClassTemplate(const string_view& name) {
     auto engine = engine_.lock();
@@ -481,6 +483,7 @@ class Scope : public std::enable_shared_from_this<Scope> {
   std::unordered_map<std::string, std::shared_ptr<CtxValue>> turbo_instance_map_;
   std::unordered_map<std::string, std::any> turbo_host_object_map_;
   std::vector<std::function<void()>> will_exit_cbs_;
+  std::weak_ptr<TaskRunner> js_runner_;
 #ifdef ENABLE_INSPECTOR
   std::shared_ptr<DevtoolsDataSource> devtools_data_source_;
 #endif

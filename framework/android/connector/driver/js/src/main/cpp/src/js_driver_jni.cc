@@ -37,6 +37,8 @@
 #include "footstone/persistent_object_map.h"
 #include "footstone/string_view_utils.h"
 #include "footstone/worker_manager.h"
+#include "footstone/worker.h"
+#include "footstone/worker_impl.h"
 #include "jni/data_holder.h"
 #include "jni/jni_env.h"
 #include "jni/jni_invocation.h"
@@ -124,6 +126,8 @@ using Ctx = hippy::Ctx;
 using Bridge = hippy::Bridge;
 using JsDriverUtils = hippy::JsDriverUtils;
 using WorkerManager = footstone::WorkerManager;
+using WorkerImpl = footstone::WorkerImpl;
+using TaskRunner = footstone::TaskRunner;
 
 #ifdef JS_V8
 using V8VMInitParam = hippy::V8VMInitParam;
@@ -137,6 +141,8 @@ enum INIT_CB_STATE {
 
 constexpr char kHippyCurDirKey[] = "__HIPPYCURDIR__";
 constexpr char kAssetSchema[] = "asset";
+constexpr char kJsWorkerName[] = "js_worker";
+constexpr char kJsRunnerName[] = "js_task_runner";
 
 static std::mutex holder_mutex;
 static std::unordered_map<void*, std::shared_ptr<Engine>> engine_holder;
@@ -282,12 +288,23 @@ jint CreateJsDriver(JNIEnv* j_env,
   auto flag = hippy::global_data_holder.Find(dom_manager_id, dom_manager);
   FOOTSTONE_CHECK(flag);
   auto dom_manager_object = std::any_cast<std::shared_ptr<DomManager>>(dom_manager);
-  auto dom_task_runner = dom_manager_object->GetTaskRunner();
+  // auto dom_task_runner = dom_manager_object->GetTaskRunner();
+
+  auto js_worker_id = hippy::global_data_holder_key.fetch_add(1);
+  auto js_worker = std::make_shared<WorkerImpl>(kJsWorkerName, false);
+  js_worker->Start();
+  auto js_runner = std::make_shared<TaskRunner>(kJsRunnerName);
+  js_runner->SetWorker(js_worker);
+  js_worker->Bind({js_runner});
+  hippy::global_data_holder.Insert(js_worker_id, js_worker);
+  dom_manager_object->SetJsTaskRunner(js_runner);
+
   auto bridge = std::make_shared<Bridge>(j_env, j_object);
   auto scope_id = hippy::global_data_holder_key.fetch_add(1);
   auto scope_initialized_callback = [perf_start_time,
-      scope_id, java_callback, bridge, &holder = hippy::global_data_holder](std::shared_ptr<Scope> scope) {
+      scope_id, java_callback, bridge, js_runner, &holder = hippy::global_data_holder](std::shared_ptr<Scope> scope) {
     scope->SetBridge(bridge);
+    scope->SetJsRunner(js_runner);
     holder.Insert(scope_id, scope);
 
     // perfromance end time
@@ -299,7 +316,7 @@ jint CreateJsDriver(JNIEnv* j_env,
     hippy::bridge::CallJavaMethod(java_callback->GetObj(), INIT_CB_STATE::SUCCESS);
   };
   auto engine = JsDriverUtils::CreateEngineAndAsyncInitialize(
-      dom_task_runner, param, static_cast<int64_t>(j_group_id));
+      js_runner, param, static_cast<int64_t>(j_group_id));
   {
     std::lock_guard<std::mutex> lock(holder_mutex);
     engine_holder[engine.get()] = engine;
@@ -394,7 +411,8 @@ jboolean RunScriptFromUri(JNIEnv* j_env,
                        << ", base_path = " << base_path
                        << ", code_cache_dir = " << code_cache_dir;
   auto scope = GetScope(j_scope_id);
-  auto runner = scope->GetTaskRunner();
+  // auto runner = scope->GetTaskRunner();
+  auto runner = scope->GetJsRunner().lock();
   auto ctx = scope->GetContext();
   runner->PostTask([ctx, base_path] {
     auto key = ctx->CreateString(kHippyCurDirKey);

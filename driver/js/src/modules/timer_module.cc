@@ -112,7 +112,8 @@ void TimerModule::RequestIdleCallback(CallbackInfo& info, void* data) {
     return;
   }
 
-  auto runner = scope->GetTaskRunner();
+  // auto runner = scope->GetTaskRunner();
+  auto runner = scope->GetJsRunner().lock();
   FOOTSTONE_DCHECK(runner);
 
   auto timeout = TimeDelta::Max();
@@ -188,7 +189,8 @@ std::shared_ptr<hippy::napi::CtxValue> TimerModule::Start(
     return nullptr;
   }
 
-  std::shared_ptr<TaskRunner> runner = scope->GetTaskRunner();
+  // std::shared_ptr<TaskRunner> runner = scope->GetTaskRunner();
+  auto runner = scope->GetJsRunner().lock();
   FOOTSTONE_DCHECK(runner);
 
   double number = 0;

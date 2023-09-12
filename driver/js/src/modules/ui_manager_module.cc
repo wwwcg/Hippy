@@ -110,7 +110,8 @@ void UIManagerModule::CallUIFunction(CallbackInfo& info, void* data) {
         }
         scope->removeCallUIFunctionCallback(callback_id);
       };
-      auto runner = scope->GetTaskRunner();
+      // auto runner = scope->GetTaskRunner();
+      auto runner = scope->GetJsRunner().lock();
       FOOTSTONE_CHECK(runner);
       runner->PostTask(std::move(cb));
     };

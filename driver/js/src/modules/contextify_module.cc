@@ -197,7 +197,8 @@ void ContextifyModule::LoadUntrustedContent(CallbackInfo& info, void* data) {
         RemoveCBFunc(uri);
       }
     };
-    auto runner = scope->GetTaskRunner();
+    // auto runner = scope->GetTaskRunner();
+    auto runner = scope->GetJsRunner().lock();
     if (runner) {
       runner->PostTask(std::move(callback));
     }

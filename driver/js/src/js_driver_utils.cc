@@ -424,7 +424,8 @@ void JsDriverUtils::CallJs(const string_view& action,
                            std::function<void(CALL_FUNCTION_CB_STATE, string_view)> cb,
                            byte_string buffer_data,
                            std::function<void()> on_js_runner) {
-  auto runner = scope->GetTaskRunner();
+  // auto runner = scope->GetTaskRunner();
+  auto runner = scope->GetJsRunner().lock();
   std::weak_ptr<Scope> weak_scope = scope;
   auto callback = [weak_scope, cb = std::move(cb), action,
       buffer_data_ = std::move(buffer_data),
@@ -577,7 +578,8 @@ void JsDriverUtils::CallNative(hippy::napi::CallbackInfo& info, const std::funct
 }
 
 void JsDriverUtils::LoadInstance(const std::shared_ptr<Scope>& scope, byte_string&& buffer_data) {
-  auto runner = scope->GetTaskRunner();
+  // auto runner = scope->GetTaskRunner();
+  auto runner = scope->GetJsRunner().lock();
   std::weak_ptr<Scope> weak_scope = scope;
   auto callback = [weak_scope, buffer_data_ = std::move(buffer_data)] {
     std::shared_ptr<Scope> scope = weak_scope.lock();
@@ -600,7 +602,8 @@ void JsDriverUtils::LoadInstance(const std::shared_ptr<Scope>& scope, byte_strin
 }
 
 void JsDriverUtils::UnloadInstance(const std::shared_ptr<Scope>& scope, byte_string&& buffer_data) {
-    auto runner = scope->GetTaskRunner();
+    // auto runner = scope->GetTaskRunner();
+    auto runner = scope->GetJsRunner().lock();
     std::weak_ptr<Scope> weak_scope = scope;
     auto callback = [weak_scope, buffer_data_ = std::move(buffer_data)] {
         std::shared_ptr<Scope> scope = weak_scope.lock();
