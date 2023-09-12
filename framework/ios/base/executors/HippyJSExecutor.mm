@@ -104,6 +104,7 @@ using WeakCtxValuePtr = std::weak_ptr<hippy::napi::CtxValue>;
     const char *pName = [self.enginekey UTF8String] ?: "";
     footstone::TimePoint startPoint = footstone::TimePoint::SystemNow();
     auto scope = engine->GetEngine()->CreateScope(pName);
+    scope->SetJsRunner(engine->GetDomManager()->GetJsTaskRunner());
     dispatch_semaphore_t scopeSemaphore = dispatch_semaphore_create(0);
     __weak HippyJSExecutor *weakSelf = self;
     engine->GetEngine()->GetJsTaskRunner()->PostTask([weakSelf, scopeSemaphore, startPoint](){

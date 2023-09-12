@@ -51,6 +51,7 @@ private:
 private:
     std::shared_ptr<hippy::Engine> engine_;
     std::shared_ptr<footstone::Worker> dom_worker_;
+    std::shared_ptr<footstone::Worker> js_worker_;
     std::shared_ptr<hippy::DomManager> dom_manager_;
 };
 

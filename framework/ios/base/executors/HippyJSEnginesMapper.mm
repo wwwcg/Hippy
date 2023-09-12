@@ -31,6 +31,9 @@
 #include "footstone/platform/ios/looper_driver.h"
 #include "footstone/task_runner.h"
 
+constexpr char kJsWorkerName[] = "js_worker";
+constexpr char kJsRunnerName[] = "js_task_runner";
+
 EngineResource::EngineResource() {
     Setup("Hippy Dom Thread");
 }
@@ -42,10 +45,18 @@ void EngineResource::Setup(const std::string name) {
     auto task_runner = std::make_shared<footstone::TaskRunner>();
     dom_worker_->Bind({task_runner});
     task_runner->SetWorker(dom_worker_);
+    
+    js_worker_ = std::make_shared<footstone::WorkerImpl>(kJsWorkerName, false);
+    js_worker_->Start();
+    auto js_runner = std::make_shared<footstone::TaskRunner>(kJsRunnerName);
+    js_runner->SetWorker(js_worker_);
+    js_worker_->Bind({js_runner});
+    
     dom_manager_ = std::make_shared<hippy::DomManager>();
     dom_manager_->SetTaskRunner(task_runner);
+    dom_manager_->SetJsTaskRunner(js_runner);
     engine_ = std::make_shared<hippy::Engine>();
-    engine_->AsyncInitialize(task_runner, std::make_shared<hippy::VM::VMInitParam>(), nullptr);
+    engine_->AsyncInitialize(js_runner, std::make_shared<hippy::VM::VMInitParam>(), nullptr);
 }
 
 EngineResource::EngineResource(const std::string name) {
