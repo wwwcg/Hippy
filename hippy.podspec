@@ -9,7 +9,7 @@
 Pod::Spec.new do |s|
   puts 'hippy.podspec read begins'
   s.name             = 'hippy'
-  s.version          = '2.13.13'
+  s.version          = '2.13.13.fix6'
   s.summary          = 'Hippy library for iOS'
 
 # This description is used to generate tags and improve search results.
@@ -25,8 +25,8 @@ Pod::Spec.new do |s|
   s.homepage         = 'http://hippyjs.org'
   s.license          = { :type => 'Apache2', :file => 'LICENSE' }
   s.author           = { 'mengyanluo' => 'mengyanluo@tencent.com' }
-  s.source           = {:git => 'https://github.com/Tencent/Hippy.git', :tag => s.version}
-  s.ios.deployment_target = '9.0'
+  s.source           = {:git => 'https://github.com/wwwcg/Hippy.git', :tag => s.version}
+  s.ios.deployment_target = '11.0'
   s.source_files = 'ios/sdk/**/*.{h,m,c,mm,s,cpp,cc}'
   s.public_header_files = 'ios/sdk/**/*.h'
   s.default_subspec = 'core'
