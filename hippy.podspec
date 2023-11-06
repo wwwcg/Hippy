@@ -27,7 +27,7 @@ Pod::Spec.new do |s|
   end
   
   s.name             = 'hippy'
-  s.version          = '3.1.0'
+  s.version          = '3.1.1'
   s.summary          = 'Hippy Cross Platform Framework'
   s.description      = <<-DESC
                         Hippy is designed for developers to easily build cross-platform and high-performance awesome apps.
@@ -380,6 +380,7 @@ Pod::Spec.new do |s|
       #devtools_backend
       'devtools/devtools-backend/**/*.{h,hpp}',
       'devtools/devtools-integration/ios/DevtoolsBackend/_deps/*-src/**/*.{h,hpp,ipp}',
+      'devtools/devtools-integration/ios/DevtoolsBackend/_deps/json-src/include/**/*.{h,hpp,ipp}',
       'devtools/devtools-integration/ios/DevtoolsBackend/_deps/base64-src/lib/tables/*.h',
       'devtools/devtools-integration/ios/DevtoolsBackend/_deps/base64-build/config.h',
     ]
