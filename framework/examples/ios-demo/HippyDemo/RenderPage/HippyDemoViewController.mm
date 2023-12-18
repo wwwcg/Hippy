@@ -116,8 +116,6 @@ static NSString *const engineKey = @"Demo";
                                           moduleProvider:nil
                                            launchOptions:launchOptions
                                              executorKey:uniqueEngineKey];
-    _hippyBridge.contextName = uniqueEngineKey;
-    _hippyBridge.moduleName = @"Demo";
     _hippyBridge.methodInterceptor = self;
     
     [_hippyBridge setInspectable:YES];
