@@ -68,6 +68,11 @@
 #include "driver/napi/jsc/jsc_ctx_value.h"
 #endif
 
+#ifdef JS_HERMES
+#include "driver/napi/hermes/hermes_ctx.h"
+#include "driver/napi/hermes/hermes_ctx_value.h"
+#endif
+
 
 using string_view = footstone::stringview::string_view;
 using StringViewUtils = footstone::stringview::StringViewUtils;
@@ -568,11 +573,19 @@ constexpr char kHippyGetTurboModule[] = "getTurboModule";
                                 id obj = arguments[i];
                                 function_params[i] = [obj convertToCtxValue:context];
                             }
+#ifdef JS_JSC
                             auto tryCatch = hippy::CreateTryCatchScope(true, context);
                             resultValue = context->CallFunction(method_value, context->GetGlobalObject(), arguments.count, function_params);
                             if (tryCatch->HasCaught()) {
                                 exception = tryCatch->GetExceptionMessage();
                             }
+#elif defined(JS_HERMES)
+                            try {
+                                resultValue = context->CallFunction(method_value, context->GetGlobalObject(), arguments.count, function_params);
+                            } catch (facebook::jsi::JSIException& err) {
+                                exception = err.what();
+                            }
+#endif
                         } else {
                             executeError
                                 = HippyErrorWithMessageAndModuleName([NSString stringWithFormat:@"%@ is not a function", method], moduleName);
@@ -638,18 +651,27 @@ static NSLock *jslock() {
     return lock;
 }
 
-static id executeApplicationScript(NSData *script, NSURL *sourceURL, SharedCtxPtr context, NSError **error) {
+static NSError *executeApplicationScript(NSData *script, NSURL *sourceURL, SharedCtxPtr context, __strong NSError **error) {
     const char *scriptBytes = reinterpret_cast<const char *>([script bytes]);
     string_view view = string_view::new_from_utf8(scriptBytes, [script length]);
     string_view fileName = NSStringToU16StringView([sourceURL absoluteString]);
     string_view errorMsg;
     NSLock *lock = jslock();
     BOOL lockSuccess = [lock lockBeforeDate:[NSDate dateWithTimeIntervalSinceNow:1]];
+#ifdef JS_JSC
     auto tryCatch = hippy::napi::CreateTryCatchScope(true, context);
     SharedCtxValuePtr result = context->RunScript(view, fileName);
     if (tryCatch->HasCaught()) {
         errorMsg = std::move(tryCatch->GetExceptionMessage());
     }
+#elif defined(JS_HERMES)
+        SharedCtxValuePtr result = nullptr;
+        try {
+            result = context->RunScript(view, fileName);
+        } catch (facebook::jsi::JSIException& err) {
+            errorMsg = err.what();
+        }
+#endif
     if (lockSuccess) {
         [lock unlock];
     }
@@ -733,6 +755,41 @@ static id executeApplicationScript(NSData *script, NSURL *sourceURL, SharedCtxPt
                 return;
             }
             [strongSelf injectObjectSync:value asGlobalObjectNamed:objectName callback:onComplete];
+//=======
+//            string_view json_view = NSStringToU8StringView(script);
+//            string_view name_view = NSStringToU8StringView(objectName);
+//            auto context = strongSelf.pScope->GetContext();
+//#ifdef JS_JSC
+//            auto tryCatch = hippy::napi::CreateTryCatchScope(true, context);
+//            auto global_object = context->GetGlobalObject();
+//            auto name_key = context->CreateString(name_view);
+//            auto engine = [[HippyJSEnginesMapper defaultInstance] JSEngineResourceForKey:strongSelf.enginekey];
+//            auto json_value = engine->GetEngine()->GetVM()->ParseJson(context, json_view);
+//            context->SetProperty(global_object, name_key, json_value);
+//            if (tryCatch->HasCaught()) {
+//                string_view errorMsg = tryCatch->GetExceptionMessage();
+//                NSError *error = [NSError errorWithDomain:HippyErrorDomain code:2 userInfo:@{
+//                    NSLocalizedDescriptionKey: StringViewToNSString(errorMsg)}];
+//                onComplete(@(NO), error);
+//            }
+//            else {
+//                onComplete(@(YES), nil);
+//            }
+//#elif defined(JS_HERMES)
+//            try {
+//                auto global_object = context->GetGlobalObject();
+//                auto name_key = context->CreateString(name_view);
+//                auto engine = [[HippyJSEnginesMapper defaultInstance] JSEngineResourceForKey:strongSelf.enginekey];
+//                auto json_value = engine->GetEngine()->GetVM()->ParseJson(context, json_view);
+//                context->SetProperty(global_object, name_key, json_value);
+//                onComplete(@(YES), nil);
+//            } catch (facebook::jsi::JSIException& err) {
+//                string_view errorMsg = err.what();
+//                NSError *error = [NSError errorWithDomain:HippyErrorDomain code:2 userInfo:@{
+//                    NSLocalizedDescriptionKey: StringViewToNSString(errorMsg)}];
+//                onComplete(@(NO), error);
+//            }
+//#endif
         }
     }];
 }
