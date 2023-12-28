@@ -433,11 +433,24 @@ constexpr char kHippyGetTurboModule[] = "getTurboModule";
         info.GetReturnValue()->Set(func);
         CFRelease(data);
     }, (void *)retainedTurboModule);
-    
+#ifdef JS_JSC
     auto obj = scope->GetContext()->DefineProxy(wrapper);
     scope->SaveFunctionWrapper(std::move(wrapper));
     scope->SetTurboInstance(turbo_name, obj);
     return obj;
+#elif defined(JS_HERMES)
+    auto proxy = scope->GetContext()->DefineProxy(nullptr);
+    auto handler = scope->GetContext()->DefineProxyHandler(wrapper);
+    auto proxy_ctx = std::static_pointer_cast<hippy::driver::napi::HermesCtxValue>(proxy);
+    auto handler_ctx = std::static_pointer_cast<hippy::driver::napi::HermesCtxValue>(handler);
+    auto& runtime = std::static_pointer_cast<hippy::driver::napi::HermesCtx>(scope->GetContext())->GetRuntime();
+    auto constructor = proxy_ctx->GetValue(runtime).asObject(*runtime).asFunction(*runtime);
+    auto instance = constructor.callAsConstructor(*runtime, { handler_ctx->GetValue(runtime) });
+    auto obj = std::make_shared<hippy::driver::napi::HermesCtxValue>(*runtime, instance);
+    scope->SaveFunctionWrapper(std::move(wrapper));
+    scope->SetTurboInstance(turbo_name, obj);
+    return obj;
+#endif
 }
 
 - (void)setContextName:(NSString *)contextName {
