@@ -93,7 +93,8 @@ static Value InvokePropertyCallback(Runtime& runtime, const Value& this_value, c
   if (!global_native_state->Get(kScopeWrapperIndex, scope_any)) {
     return facebook::jsi::Value::undefined();
   }
-  auto scope_wrapper = reinterpret_cast<ScopeWrapper*>(std::any_cast<void*>(scope_any));
+  auto any_pointer = std::any_cast<void*>(&scope_any);
+  auto scope_wrapper = reinterpret_cast<ScopeWrapper*>(static_cast<void *>(*any_pointer));
   auto scope = scope_wrapper->scope.lock();
   if (scope == nullptr) return facebook::jsi::Value::undefined();
   auto hermes_ctx = std::static_pointer_cast<HermesCtx>(scope->GetContext());
@@ -127,7 +128,8 @@ static Value InvokeConstructorJsCallback(Runtime& runtime, const Value& this_val
   if (!global_native_state->Get(kScopeWrapperIndex, scope_any)) {
     return Value::undefined();
   }
-  auto scope_wrapper = reinterpret_cast<ScopeWrapper*>(std::any_cast<void*>(scope_any));
+  auto any_pointer = std::any_cast<void*>(&scope_any);
+  auto scope_wrapper = reinterpret_cast<ScopeWrapper*>(static_cast<void *>(*any_pointer));
   auto scope = scope_wrapper->scope.lock();
   if (scope == nullptr) return facebook::jsi::Value::undefined();
   auto hermes_ctx = std::static_pointer_cast<HermesCtx>(scope->GetContext());
@@ -204,7 +206,8 @@ static Value InvokeJsCallback(Runtime& runtime, const Value& this_value, const V
   if (!global_native_state->Get(kScopeWrapperIndex, scope_any)) {
     return Value::undefined();
   }
-  auto scope_wrapper = reinterpret_cast<ScopeWrapper*>(std::any_cast<void*>(scope_any));
+  auto any_pointer = std::any_cast<void*>(&scope_any);
+  auto scope_wrapper = reinterpret_cast<ScopeWrapper*>(static_cast<void *>(*any_pointer));
   auto scope = scope_wrapper->scope.lock();
   if (scope == nullptr) return facebook::jsi::Value::undefined();
   auto hermes_ctx = std::static_pointer_cast<HermesCtx>(scope->GetContext());
