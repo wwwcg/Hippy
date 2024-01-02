@@ -397,7 +397,9 @@ static const char * kHippyExceptionEventName = "uncaughtException";
             for (size_t i = 0; i < info.Length(); ++i) {
                 argv.push_back(info[i]);
             }
-            auto scope_wrapper = reinterpret_cast<hippy::ScopeWrapper*>(std::any_cast<void*>(info.GetSlot()));
+        std::any slot_any = info.GetSlot();
+        auto any_pointer = std::any_cast<void*>(&slot_any);
+        auto scope_wrapper = reinterpret_cast<hippy::ScopeWrapper*>(static_cast<void *>(*any_pointer));
             auto scope = scope_wrapper->scope.lock();
             FOOTSTONE_CHECK(scope);
             auto turbo_wrapper = reinterpret_cast<TurboWrapper*>(data);
@@ -407,7 +409,9 @@ static const char * kHippyExceptionEventName = "uncaughtException";
             info.GetReturnValue()->Set(result);
         }, turbo_wrapper.get());
         [turbo saveTurboWrapper:name turbo:std::move(turbo_wrapper)];
-        auto scope_wrapper = reinterpret_cast<hippy::ScopeWrapper*>(std::any_cast<void*>(info.GetSlot()));
+      std::any slot_any = info.GetSlot();
+      auto any_pointer = std::any_cast<void*>(&slot_any);
+      auto scope_wrapper = reinterpret_cast<hippy::ScopeWrapper*>(static_cast<void *>(*any_pointer));
         auto scope = scope_wrapper->scope.lock();
         FOOTSTONE_CHECK(scope);
         auto func = scope->GetContext()->CreateFunction(func_wrapper);
