@@ -54,6 +54,12 @@
     }
 }
 
+- (void)setDecodedImage:(UIImage *)image {
+    if (_image != image) {
+        _image = image;
+    }
+}
+
 - (UIImage *)image {
     CGFloat scale = [UIScreen mainScreen].scale;
     if (!_image) {
