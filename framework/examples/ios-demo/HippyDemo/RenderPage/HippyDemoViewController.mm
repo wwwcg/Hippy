@@ -99,7 +99,7 @@ static NSString *const engineKey = @"Demo";
 
 - (void)registerLogFunction {
     HippySetLogFunction(^(HippyLogLevel level, HippyLogSource source, NSString *fileName, NSNumber *lineNumber, NSString *message) {
-        NSLog(@"hippy says:%@ in file %@ at line %@", message, fileName, lineNumber);
+        NSLog(@"hippy says:%@ [%@:%d]", message, [fileName lastPathComponent], lineNumber.intValue);
     });
 }
 
