@@ -82,6 +82,7 @@
 
 - (CtxValuePtr)convertToCtxValue:(const CtxPtr &)context {
     @autoreleasepool {
+        HippyLogInfo(@"%s %@", __func__, self.description);
         std::unordered_map<CtxValuePtr, CtxValuePtr> valueMap;
         for (id key in self) {
             id value = [self objectForKey:key];
