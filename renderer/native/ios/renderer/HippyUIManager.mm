@@ -1093,7 +1093,9 @@ NSString *const HippyUIManagerDidEndBatchNotification = @"HippyUIManagerDidEndBa
         }
     } else {
         NSString *errMsg = [NSString stringWithFormat:@"No corresponding method(%@ of %@) was found!", name, nativeModuleName];
-        HippyFatal(HippyErrorWithMessage(errMsg));
+        // HippyFatal(HippyErrorWithMessage(errMsg));
+        // 临时屏蔽弹窗，待完整修复后开启。
+        HippyLogInfo(@"%@", errMsg);
     }
     return;
 }
