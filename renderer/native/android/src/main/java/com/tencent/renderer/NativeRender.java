@@ -91,7 +91,9 @@ public interface NativeRender extends RenderExceptionHandler {
     VirtualNode createVirtualNode(int rootId, int id, int pid, int index, @NonNull String className,
             @Nullable Map<String, Object> props);
 
-    void onFirstViewAdded();
+    void onFirstPaint();
+
+    void onFirstContentfulPaint();
 
     void onSizeChanged(int rootId, int width, int height);
 

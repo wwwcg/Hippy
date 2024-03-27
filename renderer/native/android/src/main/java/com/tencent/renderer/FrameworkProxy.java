@@ -45,7 +45,9 @@ public interface FrameworkProxy {
 
     int getEngineId();
 
-    void onFirstViewAdded();
+    void onFirstPaint();
+
+    void onFirstContentfulPaint();
 
     void handleNativeException(Exception exception);
 
