@@ -1107,7 +1107,7 @@ NSString *const HippyUIManagerDidEndBatchNotification = @"HippyUIManagerDidEndBa
         NSString *message = [NSString stringWithFormat:@"Exception '%@' was thrown while invoking %@ on component target %@ with params %@", exception, name, nativeModuleName, finalParams];
         // HippyFatal(HippyErrorWithMessage(errMsg));
         // 临时屏蔽弹窗，待完整修复后开启。
-        HippyLogInfo(@"%@", errMsg);
+        HippyLogInfo(@"%@", message);
         return nil;
     }
 }
