@@ -103,6 +103,7 @@ typedef void (^ViewBlock)(UIView *view, BOOL *stop);
 }
 
 - (void)touchesBegan:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event {
+    HippyLogInfo(@"Native touchesBegan %@", touches);
     [super touchesBegan:touches withEvent:event];
     if ([_bridge.customTouchHandler respondsToSelector:@selector(customTouchesBegan:withEvent:)]) {
         BOOL shouldRecursive = [_bridge.customTouchHandler customTouchesBegan:touches withEvent:event];
@@ -134,8 +135,10 @@ typedef void (^ViewBlock)(UIView *view, BOOL *stop);
                 CGPoint point = [touch locationInView:view];
                 point = [view convertPoint:point toView:_rootView];
                 if (view.onTouchDown) {
+                    HippyLogInfo(@"will onTouchDown %@", view.hippyTag);
                     if ([self checkViewBelongToTouchHandler:view]) {
                         view.onTouchDown(@{ @"page_x": @(point.x), @"page_y": @(point.y) });
+                        HippyLogInfo(@"onTouchDown %@ %@", view.hippyTag, NSStringFromCGPoint(point));
                     }
                 }
             }
@@ -166,6 +169,7 @@ typedef void (^ViewBlock)(UIView *view, BOOL *stop);
 }
 
 - (void)touchesEnded:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event {
+    HippyLogInfo(@"Native touchesEnded %@", touches);
     [super touchesEnded:touches withEvent:event];
     if ([_bridge.customTouchHandler respondsToSelector:@selector(customTouchesEnded:withEvent:)]) {
         BOOL shouldRecursive = [_bridge.customTouchHandler customTouchesEnded:touches withEvent:event];
@@ -197,8 +201,10 @@ typedef void (^ViewBlock)(UIView *view, BOOL *stop);
                 CGPoint point = [touch locationInView:view];
                 point = [view convertPoint:point toView:_rootView];
                 if (view.onTouchEnd) {
+                    HippyLogInfo(@"will onTouchEnd %@", view.hippyTag);
                     if ([self checkViewBelongToTouchHandler:view]) {
                         view.onTouchEnd(@{ @"page_x": @(point.x), @"page_y": @(point.y) });
+                        HippyLogInfo(@"onTouchEnd %@ %@", view.hippyTag, NSStringFromCGPoint(point));
                     }
                 }
             }
@@ -210,8 +216,10 @@ typedef void (^ViewBlock)(UIView *view, BOOL *stop);
                     CGPoint point = [touch locationInView:theView];
                     point = [theView convertPoint:point toView:_rootView];
                     if (theView.onTouchEnd) {
+                        HippyLogInfo(@"will onTouchEnd %@", theView.hippyTag);
                         if ([self checkViewBelongToTouchHandler:theView]) {
                             theView.onTouchEnd(@{ @"page_x": @(point.x), @"page_y": @(point.y) });
+                            HippyLogInfo(@"onTouchEnd %@ %@", theView.hippyTag, NSStringFromCGPoint(point));
                         }
                     }
                 }
@@ -250,6 +258,7 @@ typedef void (^ViewBlock)(UIView *view, BOOL *stop);
 }
 
 - (void)touchesCancelled:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event {
+    HippyLogInfo(@"Native touchesCancelled %@", touches);
     [super touchesCancelled:touches withEvent:event];
     if ([_bridge.customTouchHandler respondsToSelector:@selector(customTouchesCancelled:withEvent:)]) {
         BOOL shouldRecursive = [_bridge.customTouchHandler customTouchesCancelled:touches withEvent:event];
@@ -283,8 +292,10 @@ typedef void (^ViewBlock)(UIView *view, BOOL *stop);
                 CGPoint point = [touch locationInView:view];
                 point = [view convertPoint:point toView:_rootView];
                 if (view.onTouchCancel) {
+                    HippyLogInfo(@"will onTouchCancel %@", view.hippyTag);
                     if ([self checkViewBelongToTouchHandler:view]) {
                         view.onTouchCancel(@{ @"page_x": @(point.x), @"page_y": @(point.y) });
+                        HippyLogInfo(@"onTouchCancel %@ %@", view.hippyTag, NSStringFromCGPoint(point));
                     }
                 }
             }
@@ -308,6 +319,7 @@ typedef void (^ViewBlock)(UIView *view, BOOL *stop);
 }
 
 - (void)touchesMoved:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event {
+    HippyLogInfo(@"Native touchesMoved %@", touches);
     [super touchesMoved:touches withEvent:event];
     if ([_bridge.customTouchHandler respondsToSelector:@selector(customTouchesMoved:withEvent:)]) {
         BOOL shouldRecursive = [_bridge.customTouchHandler customTouchesMoved:touches withEvent:event];
@@ -365,8 +377,10 @@ typedef void (^ViewBlock)(UIView *view, BOOL *stop);
                 if (view.onTouchMove) {
                     CGPoint point = [touch locationInView:view];
                     point = [view convertPoint:point toView:_rootView];
+                    HippyLogInfo(@"will onTouchMove %@", view.hippyTag);
                     if ([self checkViewBelongToTouchHandler:view]) {
                         view.onTouchMove(@{ @"page_x": @(point.x), @"page_y": @(point.y) });
+                        HippyLogInfo(@"onTouchMove %@ %@", view.hippyTag, NSStringFromCGPoint(point));
                     }
                 }
             }
