@@ -27,7 +27,7 @@ Pod::Spec.new do |s|
   end
   
   s.name             = 'hippy'
-  s.version          = '3.1.3.rc1'
+  s.version          = '3.1.4.rc1'
   s.summary          = 'Hippy Cross Platform Framework'
   s.description      = <<-DESC
                         Hippy is designed for developers to easily build cross-platform and high-performance awesome apps.
@@ -36,7 +36,7 @@ Pod::Spec.new do |s|
   s.license          = { :type => 'Apache2', :file => 'LICENSE' }
   s.author           = 'OpenHippy Team'
   # s.source           = {:git => 'https://github.com/Tencent/Hippy.git', :tag => s.version}
-  s.source           = {:git => 'https://github.com/wwwcg/Hippy.git', :tag => 'hippy3_for_vqq_rc1'}
+  s.source           = {:git => 'https://git.woa.com/raycgwang/Hippy.git', :tag => 'hippy3_for_vqq_rc1'}
   s.platform = :ios
   s.ios.deployment_target = '11.0'
   s.module_map = false; # hippy3暂未支持module
