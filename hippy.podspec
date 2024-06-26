@@ -78,6 +78,13 @@ Pod::Spec.new do |s|
       'framework/ios/base/enginewrapper/hermes',
       'framework/ios/utils/hermes',
       ]
+    elsif js_engine == "hermes"
+      framework.exclude_files = [
+      'framework/ios/base/enginewrapper/jsc',
+      'framework/ios/utils/jsc',
+      'framework/ios/base/enginewrapper/v8',
+      'framework/ios/utils/v8',
+      ]
     else
       framework.exclude_files = [
       'framework/ios/base/enginewrapper/jsc',
@@ -400,9 +407,14 @@ Pod::Spec.new do |s|
   if js_engine == "hermes"
     s.subspec 'hermes' do |hermes|
       puts 'hippy subspec \'hermes\' read begin'
-      hermes.source_files = "hermesforios/ios/destroot/include/**/*.h"
+      hermes.private_header_files = "hermesforios/ios/destroot/include/**/*.h"
       hermes.header_mappings_dir = "hermesforios/ios/destroot/include"
-
+      hermes.pod_target_xcconfig = {
+        'CLANG_CXX_LANGUAGE_STANDARD' => 'c++17',
+        'HEADER_SEARCH_PATHS' => '$(PODS_TARGET_SRCROOT)/hermesforios/ios/destroot/include',
+        'GCC_ENABLE_CPP_EXCEPTIONS' => true,
+        'GCC_ENABLE_CPP_RTTI' => true,
+      }
       hermes.ios.vendored_frameworks = "hermesforios/ios/destroot/Library/Frameworks/universal/hermes.xcframework"
       hermes.osx.vendored_frameworks = "hermesforios/ios/destroot/Library/Frameworks/macosx/hermes.framework"
       puts 'hippy subspec \'hermes\' read end'
