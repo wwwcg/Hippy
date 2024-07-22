@@ -27,6 +27,9 @@
 #import "DemoConfigs.h"
 #import "HippyBridge.h"
 #import <sys/utsname.h>
+#import "HippyUIManager.h"
+
+#import <CoreText/CoreText.h>
 
 
 //release macro below if use debug mode
@@ -125,6 +128,63 @@ static NSString *formatLog(NSDate *timestamp, HippyLogLevel level, NSString *fil
     rootView.frame = self.view.bounds;
     [self.view addSubview:rootView];
     self.hippyRootView = rootView;
+    
+    UIButton *btn = [UIButton systemButtonWithImage:nil target:self action:@selector(onBtnPress:)];
+    [btn setTitle:@"发送字体变化通知" forState:UIControlStateNormal];
+    [btn setBackgroundColor:UIColor.greenColor];
+    btn.frame = CGRectMake(150, 50, 180, 50);
+    [self.view addSubview:btn];
+}
+
+- (void)onBtnPress:(id)sender {
+    // 动态注册字体
+    [self registerFontWithFilename:@"TTTGB-Medium.otf"];
+    
+    [NSNotificationCenter.defaultCenter postNotification:[NSNotification notificationWithName:HippyFontChangeTriggerNotification object:nil]];
+}
+
+- (void)registerFontWithFilename:(NSString *)filename {
+    // 获取字体文件在bundle中的路径
+    NSString *fontPath = [[NSBundle mainBundle] pathForResource:filename ofType:nil];
+    if (!fontPath) {
+        NSLog(@"Font file not found in bundle");
+        return;
+    }
+    
+    // 将字体文件读取为NSData
+    NSData *fontData = [NSData dataWithContentsOfFile:fontPath];
+    if (!fontData) {
+        NSLog(@"Failed to read font file");
+        return;
+    }
+    
+    // 创建CFDataRef对象
+    CFDataRef fontDataRef = (__bridge CFDataRef)fontData;
+    
+    // 创建CGDataProviderRef对象
+    CGDataProviderRef provider = CGDataProviderCreateWithCFData(fontDataRef);
+    
+    // 创建CGFontRef对象
+    CGFontRef font = CGFontCreateWithDataProvider(provider);
+    if (!font) {
+        NSLog(@"Failed to create CGFontRef");
+        CGDataProviderRelease(provider);
+        return;
+    }
+    
+    // 注册字体
+    CFErrorRef error;
+    if (!CTFontManagerRegisterGraphicsFont(font, &error)) {
+        CFStringRef errorDescription = CFErrorCopyDescription(error);
+        NSLog(@"Failed to register font: %@", errorDescription);
+        CFRelease(errorDescription);
+    } else {
+        NSLog(@"Successfully registered font: %@", filename);
+    }
+    
+    // 释放资源
+    CGFontRelease(font);
+    CGDataProviderRelease(provider);
 }
 
 

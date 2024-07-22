@@ -15,11 +15,12 @@ const styles = StyleSheet.create({
     padding: 10,
   },
   input_style: {
-    width: 300,
+    fontFamily: 'TTTGB',
+    // width: 300,
     marginVertical: 10,
     fontSize: 16,
     color: '#242424',
-    height: 30,
+    // height: 30,
     // you can use lineHeight/lineSpacing/lineHeightMultiple
     // to control the space between lines in multi-line input.(iOS only for now)
     // for example:
