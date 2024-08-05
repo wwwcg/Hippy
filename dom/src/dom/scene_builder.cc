@@ -30,12 +30,11 @@ inline namespace dom {
 
 void SceneBuilder::Create(const std::weak_ptr<DomManager>& weak_dom_manager,
                           const std::weak_ptr<RootNode>& root_node,
-                          std::vector<std::shared_ptr<DomInfo>>&& nodes,
-                          bool needSortByIndex) {
+                          std::vector<std::shared_ptr<DomInfo>>&& nodes) {
   auto dom_manager = weak_dom_manager.lock();
   if (dom_manager) {
     dom_manager->RecordDomStartTimePoint();
-    dom_manager->CreateDomNodes(root_node, std::move(nodes), needSortByIndex);
+    dom_manager->CreateDomNodes(root_node, std::move(nodes));
   }
 }
 
