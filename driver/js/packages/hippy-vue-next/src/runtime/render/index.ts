@@ -143,14 +143,12 @@ function endBatch() {
     const { rootViewId } = getHippyCachedInstance();
     // create Scene Builder with rootView id
     const sceneBuilder = new global.Hippy.SceneBuilder(rootViewId);
-    // nodes need sort by index
-    const needSortByIndex = true;
     // batch operations on nodes based on operation type
     chunks.forEach((chunk) => {
       switch (chunk.type) {
         case NodeOperateType.CREATE:
           printNodeOperation(chunk.printedNodes, 'createNode');
-          sceneBuilder.create(chunk.nodes, needSortByIndex);
+          sceneBuilder.create(chunk.nodes);
           handleEventListeners(chunk.eventNodes, sceneBuilder);
           break;
         case NodeOperateType.UPDATE:
