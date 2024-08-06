@@ -49,6 +49,9 @@ typedef void (^HippyDirectEventBlock)(NSDictionary *body);
 /// Subviews of current component
 - (NSArray<__kindof id<HippyComponent>> *)subcomponents;
 
+/// Same as subcomponents, for compatibility with hippy2
+- (NSArray<__kindof id<HippyComponent>> *)hippySubviews;
+
 /// Inset
 /// - Parameters:
 ///   - subview: id

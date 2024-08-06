@@ -221,6 +221,10 @@ static NSString *const HippyBackgroundColorPropKey = @"backgroundColor";
     return _objectSubviews;
 }
 
+- (NSArray<__kindof id<HippyComponent>> *)hippySubviews {
+    return _objectSubviews;
+}
+
 - (HippyShadowView *)parent {
     return _superview;
 }

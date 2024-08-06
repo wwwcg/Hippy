@@ -144,6 +144,10 @@ HippyEventMethod(OnTouchEnd, onTouchEnd, OnTouchEventHandler)
     return objc_getAssociatedObject(self, _cmd);
 }
 
+- (NSArray<__kindof id<HippyComponent>> *)hippySubviews {
+    return objc_getAssociatedObject(self, @selector(subcomponents));
+}
+
 - (UIView *)parent {
     return [objc_getAssociatedObject(self, _cmd) anyObject];
 }
