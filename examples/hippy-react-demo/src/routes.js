@@ -50,6 +50,14 @@ export default [
     },
   },
   {
+    path: '/ListPager',
+    name: 'ListPager 组件',
+    component: PAGE_LIST.ListPager,
+    meta: {
+      style: 1,
+    },
+  },
+  {
     path: '/ListView',
     name: 'ListView 组件',
     component: PAGE_LIST.ListView,

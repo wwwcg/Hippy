@@ -45,6 +45,7 @@ HIPPY_EXPORT_VIEW_PROPERTY(initialContentOffset, CGFloat)
 HIPPY_EXPORT_VIEW_PROPERTY(editable, BOOL)
 HIPPY_EXPORT_VIEW_PROPERTY(showScrollIndicator, BOOL)
 HIPPY_EXPORT_VIEW_PROPERTY(scrollEnabled, BOOL)
+HIPPY_REMAP_VIEW_PROPERTY(pagingEnabled, tableView.pagingEnabled, BOOL)
 
 - (UIView *)view {
     return [[HippyBaseListView alloc] initWithBridge:self.bridge];
