@@ -323,6 +323,33 @@
     }
 }
 
+- (UIView *)createCellViewWithIdentifier:(NSString *)identifier 
+                               indexNode:(HippyVirtualCell *)indexNode
+                               indexPath:(NSIndexPath * _Nonnull)indexPath {
+    UIView *cellView = nil;
+    UIView *cachedView = [_bridge.uiManager viewForHippyTag:indexNode.hippyTag];
+    if (cachedView) {
+        // First, try to get cached cellView in viewRegistry
+        cellView = cachedView;
+        HippyLogTrace(@"ListViewDebug row: %@ === start reuse cache(%@), cellType:%@", @(indexPath.row), indexNode.hippyTag, identifier);
+    } else {
+        // If no cache in viewRegistry, try get one resuable virtual node for later use.
+        HippyVirtualNode *reusedNode = [_reusableNodeCache dequeueItemNodeForIdentifier:identifier];
+        HippyLogTrace(@"ListViewDebug row: %@ === start update node from %@ to %@, cellType:%@",
+                      @(indexPath.row), reusedNode.hippyTag, indexNode.hippyTag, identifier);
+        
+        if (reusedNode) {
+            cellView = [_bridge.uiManager updateNode:reusedNode withNode:indexNode];
+        }
+        if (!cellView) {
+            // If no cellView from reuse, create one.
+            HippyLogTrace(@"ListViewDebug row: %@ === create View from Node: %@, cellType:%@", @(indexPath.row), indexNode.hippyTag, identifier);
+            cellView = [_bridge.uiManager createViewFromNode:indexNode];
+        }
+    }
+    return cellView;
+}
+
 - (UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath {
     HippyVirtualCell *indexNode = [_dataSource cellForIndexPath:indexPath];
     NSString *identifier = indexNode.itemViewType;
@@ -335,33 +362,25 @@
         cell.tableView = tableView;
     }
     
-    UIView *cellView = nil;
-    UIView *cachedView = [_bridge.uiManager viewForHippyTag:indexNode.hippyTag];
-    if (cachedView) {
-        // First, try to get cached cellView in viewRegistry
-        cellView = cachedView;
-        HippyLogTrace(@"ListViewDebug row: %@ === start reuse cache(%@), cellType:%@", @(indexPath.row), indexNode.hippyTag, identifier);
-    } else {
-        // If no cache in viewRegistry, try get one resuable virtual node for later use.
-        HippyVirtualNode *reusedNode = [_reusableNodeCache dequeueItemNodeForIdentifier:identifier];
-        HippyLogTrace(@"ListViewDebug row: %@ === start update node from %@ to %@, cellType:%@",
-              @(indexPath.row), reusedNode.hippyTag, indexNode.hippyTag, identifier);
-        
-        if (reusedNode) {
-            cellView = [_bridge.uiManager updateNode:reusedNode withNode:indexNode];
-        }
-        if (!cellView) {
-            // If no cellView from reuse, create one.
-            HippyLogTrace(@"ListViewDebug row: %@ === create View from Node: %@, cellType:%@", @(indexPath.row), indexNode.hippyTag, identifier);
-            cellView = [_bridge.uiManager createViewFromNode:indexNode];
-        }
-    }
-
+    // Create cellView
+    UIView *cellView = [self createCellViewWithIdentifier:identifier indexNode:indexNode indexPath:indexPath];
     HippyAssert([cellView conformsToProtocol:@protocol(ViewAppearStateProtocol)],
         @"subviews of HippyBaseListViewCell must conform to protocol ViewAppearStateProtocol");
     cell.cellView = (UIView<ViewAppearStateProtocol> *)cellView;
     cell.node = indexNode;
     HippyLogTrace(@"ListViewDebug ### End CellForRow indexPath end:%@, type:%@, tag:%@", @(indexPath.row), identifier, cell.node.hippyTag);
+    
+    // pre-create next item
+    if (self.preCreateItemNumber > 0) {
+        for (NSUInteger i = 1; i <= self.preCreateItemNumber; i++) {
+            if ([self.dataSource numberOfCellForSection:indexPath.section] > indexPath.row + i) {
+                NSIndexPath *nextIndexPath = [NSIndexPath indexPathForRow:(indexPath.row + i) inSection:indexPath.section];
+                HippyVirtualCell *nextIndexNode = [_dataSource cellForIndexPath:nextIndexPath];
+                [self createCellViewWithIdentifier:nextIndexNode.itemViewType indexNode:nextIndexNode indexPath:nextIndexPath];
+            }
+        }
+    }
+    
     return cell;
 }
 

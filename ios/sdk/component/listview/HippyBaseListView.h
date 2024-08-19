@@ -44,6 +44,7 @@
 @property (nonatomic, copy) HippyDirectEventBlock onDelete;
 
 @property (nonatomic, assign) NSUInteger preloadItemNumber;
+@property (nonatomic, assign) NSUInteger preCreateItemNumber;
 @property (nonatomic, assign) CGFloat initialContentOffset;
 @property (nonatomic, assign) BOOL manualScroll;
 @property (nonatomic, assign) BOOL bounces;
