@@ -366,12 +366,27 @@
     return cell;
 }
 
+// To avoid floating point accuracy issues
+static CGFloat gHippyCustomDoubleEpsilon = 0.0001;
+static BOOL HippyListCGRectNearlyEqual(CGRect frame1, CGRect frame2) {
+    CGPoint p1 = frame1.origin, p2 = frame2.origin;
+    CGSize s1 = frame1.size, s2 = frame2.size;
+    return fabs(s1.height - s2.height) < gHippyCustomDoubleEpsilon &&
+    fabs(s1.width - s2.width) < gHippyCustomDoubleEpsilon &&
+    fabs(p1.y - p2.y) < gHippyCustomDoubleEpsilon &&
+    fabs(p1.x - p2.x) < gHippyCustomDoubleEpsilon;
+}
+
 - (void)tableViewDidLayoutSubviews:(HippyListTableView *)tableView {
     NSArray<HippyBaseListViewCell *> *visibleCells = [self.tableView visibleCells];
     for (HippyBaseListViewCell *cell in visibleCells) {
         CGRect cellRectInTableView = [self.tableView convertRect:[cell bounds] fromView:cell];
         CGRect intersection = CGRectIntersection(cellRectInTableView, [self.tableView bounds]);
-        if (CGRectEqualToRect(cellRectInTableView, intersection)) {
+        HippyLogTrace(@"ListViewDebug ### cellRect:%@, intersection:%@, =? %d",
+                      NSStringFromCGRect(cellRectInTableView),
+                      NSStringFromCGRect(intersection),
+                      HippyListCGRectNearlyEqual(cellRectInTableView, intersection));
+        if (HippyListCGRectNearlyEqual(cellRectInTableView, intersection)) {
             [cell setCellShowState:CellFullShowState];
         } else if (!CGRectIsNull(intersection)) {
             [cell setCellShowState:CellHalfShowState];
