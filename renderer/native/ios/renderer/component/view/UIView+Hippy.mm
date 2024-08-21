@@ -23,6 +23,7 @@
 #import "UIView+Hippy.h"
 #import <objc/runtime.h>
 #import "HippyShadowView.h"
+#import "HippyShadowView+Internal.h"
 #import "UIView+MountEvent.h"
 #import "HippyLog.h"
 
@@ -314,6 +315,24 @@ HippyEventMethod(OnTouchEnd, onTouchEnd, OnTouchEventHandler)
 
 - (BOOL)interceptTouchEvent {
     return NO;
+}
+
+#pragma mark - 
+
+- (void)sortSubviewsByDomRenderIndex {
+    NSMutableArray *subviews = objc_getAssociatedObject(self, @selector(hippySubviews));
+    [subviews sortUsingComparator:^NSComparisonResult(UIView *_Nonnull obj1, UIView *_Nonnull obj2) {
+        HippyShadowView *shadowView1 = obj1.hippyShadowView;
+        HippyShadowView *shadowView2 = obj2.hippyShadowView;
+        auto domNode1 = shadowView1.domNode.lock();
+        auto domNode2 = shadowView2.domNode.lock();
+        if (domNode1 && domNode2) {
+            if (domNode1->GetRenderInfo().index < domNode2->GetRenderInfo().index) {
+                return NSOrderedAscending;
+            }
+        }
+        return NSOrderedDescending;
+    }];
 }
 
 @end

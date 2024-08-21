@@ -461,4 +461,20 @@ static NSString *const HippyBackgroundColorPropKey = @"backgroundColor";
     }
 }
 
+#pragma mark -
+
+- (void)sortSubviewsByDomRenderIndex {
+    [_objectSubviews sortUsingComparator:^NSComparisonResult(HippyShadowView * _Nonnull obj1,
+                                                             HippyShadowView * _Nonnull obj2) {
+        auto domNode1 = obj1.domNode.lock();
+        auto domNode2 = obj2.domNode.lock();
+        if (domNode1 && domNode2) {
+            if (domNode1->GetRenderInfo().index < domNode2->GetRenderInfo().index) {
+                return NSOrderedAscending;
+            }
+        }
+        return NSOrderedDescending;
+    }];
+}
+
 @end

@@ -97,6 +97,12 @@ NS_ASSUME_NONNULL_BEGIN
 
 @property (nonatomic, weak) __kindof HippyShadowView *hippyShadowView;
 
+/// Sort subviews by render index of DomNode
+/// To prevent the move operation from causing the nodes to be out of order,
+/// under vue3's special diff algorithm.
+/// This method is called in the beforeLayout method for each batch.
+- (void)sortSubviewsByDomRenderIndex;
+
 @end
 
 NS_ASSUME_NONNULL_END

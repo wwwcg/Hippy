@@ -141,6 +141,10 @@ void NativeRenderManager::EndBatch(std::weak_ptr<hippy::RootNode> root_node) {
 }
 
 void NativeRenderManager::BeforeLayout(std::weak_ptr<hippy::RootNode> root_node) {
+    @autoreleasepool {
+        HippyAssert(renderImpl_, @"renderImpl_ is null, did you forget to call Initialize()?");
+        [renderImpl_ onBeforeLayout:root_node];
+    }
 }
 
 void NativeRenderManager::AfterLayout(std::weak_ptr<hippy::RootNode> root_node) {

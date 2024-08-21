@@ -108,8 +108,18 @@ class HippyValue;
                   index:(int32_t)index
              onRootNode:(std::weak_ptr<hippy::RootNode>)rootNode;
 
+/**
+ * Move views in same container(superView)
+ */
 - (void)renderMoveNodes:(std::vector<std::shared_ptr<hippy::DomNode>> &&)nodes
              onRootNode:(std::weak_ptr<hippy::RootNode>)rootNode;
+
+/**
+ * Do custom actions before layout
+ * @param rootNode rootNode
+ */
+- (void)onBeforeLayout:(std::weak_ptr<hippy::RootNode>)rootNode;
+
 /**
  * update layout for view
  *

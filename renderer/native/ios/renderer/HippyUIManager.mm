@@ -54,6 +54,7 @@
 #import "objc/runtime.h"
 #import <os/lock.h>
 #import <unordered_map>
+#import <unordered_set>
 
 
 using HippyValue = footstone::value::HippyValue;
@@ -191,6 +192,12 @@ NSString *const HippyUIManagerDidEndBatchNotification = @"HippyUIManagerDidEndBa
     
     NSMutableArray<Class<HippyImageProviderProtocol>> *_imageProviders;
     std::function<void(int32_t, NSDictionary *)> _rootViewSizeChangedCb;
+    
+    // Nodes in each batch whose children are to be reordered.
+    // Move operation may cause nodes to be out of order due to the diff algorithm of vue3.
+    // Record in dom operation, sort and delete in beforeLayout.
+    // Key is rootTag
+    std::unordered_map<int32_t, std::unordered_set<int32_t>> _needSortShadowViews;
 }
 
 
@@ -1015,6 +1022,12 @@ NSString *const HippyUIManagerDidEndBatchNotification = @"HippyUIManagerDidEndBa
     }
     [parentObjectView moveHippySubviews:movesMap];
     [parentObjectView didUpdateHippySubviews];
+    
+    // Record moved node and do a final sort before layout
+    auto &shadowViewsSet = _needSortShadowViews[rootTag];
+    shadowViewsSet.insert(parentObjectView.hippyTag.intValue);
+    
+    // Update UI node if needed
     auto strongNodes = std::move(nodes);
     [self addUIBlock:^(__unused HippyUIManager *uiManager, NSDictionary<NSNumber *,__kindof UIView *> *viewRegistry) {
         UIView *superView = nil;
@@ -1036,6 +1049,50 @@ NSString *const HippyUIManagerDidEndBatchNotification = @"HippyUIManagerDidEndBa
         [superView clearSortedSubviews];
         [superView didUpdateHippySubviews];
     }];
+}
+
+- (void)onBeforeLayout:(std::weak_ptr<hippy::RootNode>)rootNode {
+    // Under vue3's algorithm, in some scenarios,
+    // the move operation depends on post-insert,
+    // resulting in the final render node may be out of order.
+    // So, we add an algorithm that does a final sort of all the parents of moved nodes.
+    auto strongRootNode = rootNode.lock();
+    if (!strongRootNode || _needSortShadowViews.empty()) {
+        return;
+    }
+    // Sort Shadow nodes
+    int32_t rootTag = strongRootNode->GetId();
+    std::lock_guard<std::mutex> lock([self renderQueueLock]);
+    auto toBeSortedSet = _needSortShadowViews[rootTag];
+    if (!toBeSortedSet.empty()) {
+        for (const auto &elemTag : toBeSortedSet) {
+            HippyShadowView *shadowView = [_shadowViewRegistry componentForTag:@(elemTag) onRootTag:@(rootTag)];
+            if (!shadowView) {
+                continue;
+            }
+            [shadowView sortSubviewsByDomRenderIndex];
+            [shadowView didUpdateHippySubviews];
+        }
+        // Sort UI nodes
+        // In most cases, the order of UI nodes does not affect the display,
+        // but in some extreme cases, such as when the UIs are already displayed and overlaying each other,
+        // a disordered sequence can result in abnormal display.
+        auto strongToBeSortedTags = std::move(toBeSortedSet);
+        [self addUIBlock:^(__unused HippyUIManager *uiManager, NSDictionary<NSNumber *,__kindof UIView *> *viewRegistry) {
+            for (const auto &tag : strongToBeSortedTags) {
+                UIView *view = [viewRegistry objectForKey:@(tag)];
+                if (!view) {
+                    continue;
+                }
+                [view sortSubviewsByDomRenderIndex];
+                [view clearSortedSubviews];
+                [view didUpdateHippySubviews];
+            }
+        }];
+        
+        // Clear
+        _needSortShadowViews.erase(rootTag);
+    }
 }
 
 - (void)updateNodesLayout:(const std::vector<std::tuple<int32_t, hippy::LayoutResult>> &)layoutInfos
