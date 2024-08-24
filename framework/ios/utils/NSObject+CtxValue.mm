@@ -44,7 +44,12 @@
 
 - (CtxValuePtr)convertToCtxValue:(const CtxPtr &)context {
     @autoreleasepool {
-        auto string_view = footstone::string_view::new_from_utf8([self UTF8String]);
+        const char *u8String = [self UTF8String];
+        if (!u8String) {
+            HippyLogWarn(@"%@(%@) convertToCtxValue failed!", self.class, self);
+            u8String = "";
+        }
+        auto string_view = footstone::string_view::new_from_utf8(u8String);
         return context->CreateString(string_view);
     }
 }
