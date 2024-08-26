@@ -25,6 +25,7 @@
 #import "HippyBundleLoadOperation.h"
 #import "HippyBundleExecutionOperation.h"
 #import "HippyBundleOperationQueue.h"
+#import "HippyContextWrapper.h"
 #import "HippyDeviceBaseInfo.h"
 #import "HippyDisplayLink.h"
 #import "HippyEventDispatcher.h"
@@ -101,10 +102,6 @@ static NSString *const HippyNativeGlobalKeyAppVersion = @"AppVersion";
 static NSString *const HippyNativeGlobalKeyDimensions = @"Dimensions";
 static NSString *const HippyNativeGlobalKeyLocalization = @"Localization";
 static NSString *const HippyNativeGlobalKeyNightMode = @"NightMode";
-
-// key of module config info for js side
-static NSString *const kHippyRemoteModuleConfigKey = @"remoteModuleConfig";
-static NSString *const kHippyBatchedBridgeConfigKey = @"__hpBatchedBridgeConfig";
 
 
 typedef NS_ENUM(NSUInteger, HippyBridgeFields) {
@@ -296,9 +293,6 @@ dispatch_queue_t HippyBridgeQueue() {
     return _uriLoader;
 }
 
-
-#pragma mark - Module Management
-
 - (NSArray<Class> *)moduleClasses {
     return _moduleSetup.moduleClasses;
 }
@@ -333,35 +327,6 @@ dispatch_queue_t HippyBridgeQueue() {
 
 - (BOOL)moduleIsInitialized:(Class)moduleClass {
     return [_moduleSetup isModuleInitialized:moduleClass];
-}
-
-- (BOOL)moduleSetupComplete {
-    return _moduleSetup.isModuleSetupComplete;
-}
-
-- (NSDictionary *)nativeModuleConfig {
-    NSMutableArray<NSArray *> *config = [NSMutableArray new];
-    for (HippyModuleData *moduleData in [_moduleSetup moduleDataByID]) {
-        NSArray *moduleDataConfig = [moduleData config];
-        [config addObject:HippyNullIfNil(moduleDataConfig)];
-    }
-    return @{ kHippyRemoteModuleConfigKey : config };
-}
-
-- (NSArray *)configForModuleName:(NSString *)moduleName {
-    HippyModuleData *moduleData = [_moduleSetup moduleDataByName][moduleName];
-    return moduleData.config;
-}
-
-- (HippyOCTurboModule *)turboModuleWithName:(NSString *)name {
-    if (!self.enableTurbo || name.length <= 0) {
-        return nil;
-    }
-    
-    if (!self.turboModuleManager) {
-        self.turboModuleManager = [[HippyTurboModuleManager alloc] initWithBridge:self];
-    }
-    return [self.turboModuleManager turboModuleWithName:name];
 }
 
 
@@ -439,14 +404,12 @@ dispatch_queue_t HippyBridgeQueue() {
         __weak HippyBridge *weakSelf = self;
         _moduleSetup = [[HippyModulesSetup alloc] initWithBridge:self extraProviderModulesBlock:_moduleProvider];
         _javaScriptExecutor = [[HippyJSExecutor alloc] initWithEngineKey:self.engineKey bridge:self];
-        
-        _javaScriptExecutor.contextCreatedBlock = ^(){
-            __strong __typeof(weakSelf)strongSelf = weakSelf;
+        _javaScriptExecutor.contextCreatedBlock = ^(id<HippyContextWrapper> ctxWrapper){
+            HippyBridge *strongSelf = weakSelf;
             if (strongSelf) {
                 dispatch_semaphore_wait(strongSelf.moduleSemaphore, DISPATCH_TIME_FOREVER);
-                NSDictionary *nativeModuleConfig = [strongSelf nativeModuleConfig];
-                [strongSelf.javaScriptExecutor injectObjectSync:nativeModuleConfig
-                                            asGlobalObjectNamed:kHippyBatchedBridgeConfigKey callback:nil];
+                NSString *moduleConfig = [strongSelf moduleConfig];
+                [ctxWrapper createGlobalObject:@"__hpBatchedBridgeConfig" withJsonValue:moduleConfig];
 #if HIPPY_DEV
                 //default is yes when debug mode
                 [strongSelf setInspectable:YES];
@@ -1055,6 +1018,10 @@ dispatch_queue_t HippyBridgeQueue() {
     return 0 == count;
 }
 
+- (BOOL)moduleSetupComplete {
+    return _moduleSetup.isModuleSetupComplete;
+}
+
 - (void)invalidate {
     HippyLogInfo(@"[Hippy_OC_Log][Life_Circle],%@ invalide %p", NSStringFromClass([self class]), self);
     if (![self isValid]) {
@@ -1198,6 +1165,18 @@ static NSString *const hippyOnNightModeChangedParam2 = @"RootViewTag";
 
 #pragma mark -
 
+- (NSString *)moduleConfig {
+    NSMutableArray<NSArray *> *config = [NSMutableArray new];
+    for (HippyModuleData *moduleData in [_moduleSetup moduleDataByID]) {
+        NSArray *moduleDataConfig = [moduleData config];
+        [config addObject:HippyNullIfNil(moduleDataConfig)];
+    }
+    id jsonArray = @{
+        @"remoteModuleConfig": config,
+    };
+    return HippyJSONStringify(jsonArray, NULL);
+}
+
 - (void)setRedBoxShowEnabled:(BOOL)enabled {
 #if HIPPY_DEBUG
     HippyRedBox *redBox = [self redBox];
@@ -1205,8 +1184,31 @@ static NSString *const hippyOnNightModeChangedParam2 = @"RootViewTag";
 #endif  // HIPPY_DEBUG
 }
 
+- (HippyOCTurboModule *)turboModuleWithName:(NSString *)name {
+    if (!self.enableTurbo) {
+        return nil;
+    }
+
+    if (name.length <= 0) {
+        return nil;
+    }
+
+    if(!self.turboModuleManager) {
+        self.turboModuleManager = [[HippyTurboModuleManager alloc] initWithBridge:self];
+    }
+
+    // getTurboModule
+    HippyOCTurboModule *turboModule = [self.turboModuleManager turboModuleWithName:name];
+    return turboModule;
+}
+
 - (void)registerModuleForFrameUpdates:(id<HippyBridgeModule>)module withModuleData:(HippyModuleData *)moduleData {
     [_displayLink registerModuleForFrameUpdates:module withModuleData:moduleData];
+}
+
+- (NSArray *)configForModuleName:(NSString *)moduleName {
+    HippyModuleData *moduleData = [_moduleSetup moduleDataByName][moduleName];
+    return moduleData.config;
 }
 
 - (void)setSandboxDirectory:(NSURL *)sandboxDirectory {
