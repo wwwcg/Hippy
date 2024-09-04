@@ -417,9 +417,10 @@ dispatch_queue_t HippyBridgeQueue() {
         _moduleSetup = [[HippyModulesSetup alloc] initWithBridge:self extraProviderModulesBlock:_moduleProvider];
         _javaScriptExecutor = [[HippyJSExecutor alloc] initWithEngineKey:self.engineKey bridge:self];
         _javaScriptExecutor.contextCreatedBlock = ^(id<HippyContextWrapper> ctxWrapper){
-            HippyBridge *strongSelf = weakSelf;
-            if (strongSelf) {
-                dispatch_semaphore_wait(strongSelf.moduleSemaphore, DISPATCH_TIME_FOREVER);
+            __strong __typeof(weakSelf)strongSelf = weakSelf;
+            dispatch_semaphore_t moduleSemaphore = strongSelf.moduleSemaphore;
+            if (strongSelf.isValid && moduleSemaphore) {
+                dispatch_semaphore_wait(moduleSemaphore, DISPATCH_TIME_FOREVER);
                 NSString *moduleConfig = [strongSelf moduleConfig];
                 [ctxWrapper createGlobalObject:@"__hpBatchedBridgeConfig" withJsonValue:moduleConfig];
 #if HIPPY_DEV
@@ -1064,7 +1065,6 @@ dispatch_queue_t HippyBridgeQueue() {
     _displayLink = nil;
     _moduleSetup = nil;
     _startTime = footstone::TimePoint::SystemNow();
-    self.moduleSemaphore = nil;
     
     dispatch_group_notify(group, dispatch_get_main_queue(), ^{
         [jsExecutor executeBlockOnJavaScriptQueue:^{
