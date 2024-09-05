@@ -531,6 +531,7 @@ void Scope::LoadInstance(const std::shared_ptr<HippyValue>& value) {
     // perfromance - RunApplication start time (end at DomStart)
     auto entry = self->GetPerformance()->PerformanceNavigation(kPerfNavigationHippyInit);
     entry->SetHippyRunApplicationStart(footstone::TimePoint::SystemNow());
+    FOOTSTONE_LOG(WARNING) << "Start Run func:" << kLoadInstanceFuncName;
 
     std::shared_ptr<Ctx> context = weak_context.lock();
     if (context) {
@@ -557,7 +558,17 @@ void Scope::LoadInstance(const std::shared_ptr<HippyValue>& value) {
         }
 #endif
         std::shared_ptr<CtxValue> argv[] = {param};
-        context->CallFunction(fn, context->GetGlobalObject(), 1, argv);
+        std::shared_ptr<CtxValue> result = context->CallFunction(fn, context->GetGlobalObject(), 1, argv);
+        if (!result) {
+            FOOTSTONE_LOG(ERROR) << "Run func:" << kLoadInstanceFuncName << "Error!";
+#if defined(JS_JSC)
+            // exception check for jsc
+            RegisterFunction func;
+            if (self->GetExtraCallback(kAsyncTaskEndKey, func)) {
+                func(nullptr);
+            }
+#endif /* defined(JS_JSC) */
+        }
       } else {
         context->ThrowException("Application entry not found");
       }
