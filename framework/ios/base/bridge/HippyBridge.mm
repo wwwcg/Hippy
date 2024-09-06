@@ -735,6 +735,7 @@ dispatch_queue_t HippyBridgeQueue() {
             return;
         }
         if (error) {
+            HippyLogError(@"ExecuteApplicationScript Error! %@", error.description);
             [strongSelf stopLoadingWithError:error scriptSourceURL:sourceURL];
         }
         completion(result, error);

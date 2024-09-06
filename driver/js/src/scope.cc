@@ -503,9 +503,19 @@ void Scope::RunJS(const string_view& data,
 #else
     auto context = weak_context.lock();
     if (context) {
-      context->RunScript(data, name);
+      std::shared_ptr<CtxValue> result = context->RunScript(data, name);
+      if (!result) {
+        FOOTSTONE_LOG(ERROR) << "RunJS: (" << uri << ") of (" << name << ") Error!";
+#if defined(JS_JSC)
+        // exception check for jsc
+        RegisterFunction func;
+        if (self->GetExtraCallback(kAsyncTaskEndKey, func)) {
+          func(nullptr);
+        }
+#endif /* defined(JS_JSC) */
+      }
     }
-#endif
+#endif /* JS_V8 */
 
     // perfromance end time
     entry->BundleInfoOfUrl(uri).execute_source_end_ = footstone::TimePoint::SystemNow();
