@@ -54,7 +54,7 @@ static NSString *const kCancel = @"取消";
     [super viewDidLoad];
     // Do any additional setup after loading the view.
     [self setNavigationItemTitle:@"Page Managerment"];
-    _currentDriver = kDriverTypeReact;
+    _currentDriver = kDriverTypeVue;
     _renderer = kRenderTypeNative;
     [self setNavigationAreaBackground:[UIColor whiteColor]];
     CGFloat ratio = 229.f / 255.f;

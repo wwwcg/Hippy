@@ -141,7 +141,7 @@ static NSString *formatLog(NSDate *timestamp, HippyLogLevel level, NSString *fil
 
 - (void)runHippyDemo {
     // Necessary configuration:
-    NSString *moduleName = @"QNUser";
+    NSString *moduleName = DriverTypeReact == _driverType ? @"Demo" : @"QNUser";
     NSDictionary *launchOptions = @{ @"DebugMode": @(_isDebugMode) };
     NSDictionary *initialProperties = @{ @"isSimulator": @(TARGET_OS_SIMULATOR) };
     
