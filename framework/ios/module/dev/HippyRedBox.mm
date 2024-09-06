@@ -32,19 +32,30 @@
 #import "HippyUtils.h"
 #import "HippyDefines.h"
 
-#if HIPPY_DEBUG
 
 @class HippyRedBoxWindow;
 
+/// Redbox's action delegate
 @protocol HippyRedBoxWindowActionDelegate <NSObject>
 
-- (void)redBoxWindow:(HippyRedBoxWindow *)redBoxWindow openStackFrameInEditor:(HippyJSStackFrame *)stackFrame;
+/// On select specific stack frame
+/// - Parameters:
+///   - redBoxWindow: redbox
+///   - stackFrame: stack frame
+- (void)redBoxWindow:(HippyRedBoxWindow *)redBoxWindow onSelectStackFrame:(HippyJSStackFrame *)stackFrame;
+
+/// On reload button click
+/// - Parameter redBoxWindow: redbox
 - (void)reloadFromRedBoxWindow:(HippyRedBoxWindow *)redBoxWindow;
 
 @end
 
+/// Window of redbox
 @interface HippyRedBoxWindow : UIWindow <UITableViewDelegate, UITableViewDataSource>
+
+/// Redbox's action delegate
 @property (nonatomic, weak) id<HippyRedBoxWindowActionDelegate> actionDelegate;
+
 @end
 
 @implementation HippyRedBoxWindow {
@@ -130,12 +141,6 @@
     return self;
 }
 
-- (void)dealloc {
-    _stackTraceTableView.dataSource = nil;
-    _stackTraceTableView.delegate = nil;
-    [[NSNotificationCenter defaultCenter] removeObserver:self];
-}
-
 - (void)showErrorMessage:(NSString *)message withStack:(NSArray<HippyJSStackFrame *> *)stack isUpdate:(BOOL)isUpdate {
     // Show if this is a new message, or if we're updating the previous message
     if ((self.hidden && !isUpdate) || (!self.hidden && isUpdate && [_lastErrorMessage isEqualToString:message])) {
@@ -147,7 +152,8 @@
         [_stackTraceTableView reloadData];
 
         if (self.hidden) {
-            [_stackTraceTableView scrollToRowAtIndexPath:[NSIndexPath indexPathForRow:0 inSection:0] atScrollPosition:UITableViewScrollPositionTop
+            [_stackTraceTableView scrollToRowAtIndexPath:[NSIndexPath indexPathForRow:0 inSection:0]
+                                        atScrollPosition:UITableViewScrollPositionTop
                                                 animated:NO];
         }
         _previousKeyWindow = HippyKeyWindow();
@@ -167,8 +173,8 @@
 }
 
 - (void)copyStack {
+#if HIPPY_DEBUG // only enable in debug build due to UIPasteboard's API usage
     NSMutableString *fullStackTrace;
-
     if (_lastErrorMessage != nil) {
         fullStackTrace = [_lastErrorMessage mutableCopy];
         [fullStackTrace appendString:@"\n\n"];
@@ -184,6 +190,7 @@
     }
     UIPasteboard *pb = [UIPasteboard generalPasteboard];
     [pb setString:fullStackTrace];
+#endif /* HIPPY_DEBUG */
 }
 
 - (NSString *)formatFrameSource:(HippyJSStackFrame *)stackFrame {
@@ -277,7 +284,7 @@
     if (indexPath.section == 1) {
         NSUInteger row = indexPath.row;
         HippyJSStackFrame *stackFrame = _lastStackTrace[row];
-        [_actionDelegate redBoxWindow:self openStackFrameInEditor:stackFrame];
+        [_actionDelegate redBoxWindow:self onSelectStackFrame:stackFrame];
     }
     [tableView deselectRowAtIndexPath:indexPath animated:YES];
 }
@@ -290,17 +297,15 @@
     // mechanism instead
 
     return @[
-
         // Dismiss red box
         [UIKeyCommand keyCommandWithInput:UIKeyInputEscape modifierFlags:0 action:@selector(dismiss)],
 
         // Reload
-        [UIKeyCommand keyCommandWithInput:@"r" modifierFlags:UIKeyModifierCommand action:@selector(reload)],
+        [UIKeyCommand keyCommandWithInput:@"r" modifierFlags:UIKeyModifierCommand | UIKeyModifierShift action:@selector(reload)],
 
         // Copy = Cmd-Option C since Cmd-C in the simulator copies the pasteboard from
         // the simulator to the desktop pasteboard.
         [UIKeyCommand keyCommandWithInput:@"c" modifierFlags:UIKeyModifierCommand | UIKeyModifierAlternate action:@selector(copyStack)]
-
     ];
 }
 
@@ -321,14 +326,6 @@
 @synthesize bridge = _bridge;
 
 HIPPY_EXPORT_MODULE()
-
-- (instancetype)init {
-    self = [super init];
-    if (self) {
-        _showEnabled = YES;
-    }
-    return self;
-}
 
 - (void)registerErrorCustomizer:(id<HippyErrorCustomizer>)errorCustomizer {
     dispatch_async(dispatch_get_main_queue(), ^{
@@ -415,10 +412,11 @@ HIPPY_EXPORT_METHOD(dismiss) {
     [self dismiss];
 }
 
+#pragma mark - HippyRedBoxWindowActionDelegate
+
 - (void)redBoxWindow:(__unused HippyRedBoxWindow *)redBoxWindow
-openStackFrameInEditor:(HippyJSStackFrame *)stackFrame {
-    //todo 
-    HippyLog(@"red box cannot open stack frame");
+  onSelectStackFrame:(HippyJSStackFrame *)stackFrame {
+    // no op
 }
 
 - (void)reloadFromRedBoxWindow:(__unused HippyRedBoxWindow *)redBoxWindow {
@@ -428,8 +426,7 @@ openStackFrameInEditor:(HippyJSStackFrame *)stackFrame {
 @end
 
 
-#pragma mark -
-
+#pragma mark - HippyBridge's category
 
 @implementation HippyBridge (HippyRedBox)
 
@@ -458,48 +455,3 @@ static HippyWeakProxy *HippyCurrentBridgeInstance = nil;
 
 
 @end
-
-
-#else /* HIPPY_DEBUG */
-
-@implementation HippyRedBox
-
-+ (NSString *)moduleName {
-    return nil;
-}
-- (void)registerErrorCustomizer:(__unused id<HippyErrorCustomizer>)errorCustomizer {
-}
-- (void)showError:(__unused NSError *)message {
-}
-- (void)showErrorMessage:(__unused NSString *)message {
-}
-- (void)showErrorMessage:(__unused NSString *)message withDetails:(__unused NSString *)details {
-}
-- (void)showErrorMessage:(__unused NSString *)message withRawStack:(__unused NSString *)rawStack {
-}
-- (void)showErrorMessage:(__unused NSString *)message withStack:(__unused NSArray<NSDictionary *> *)stack {
-}
-- (void)updateErrorMessage:(__unused NSString *)message withStack:(__unused NSArray<NSDictionary *> *)stack {
-}
-- (void)showErrorMessage:(__unused NSString *)message withStack:(__unused NSArray<NSDictionary *> *)stack isUpdate:(__unused BOOL)isUpdate {
-}
-- (void)dismiss {
-}
-
-@end
-
-@implementation HippyBridge (HippyRedBox)
-
-- (HippyRedBox *)redBox {
-    return nil;
-}
-
-+ (nullable id)currentBridge {
-    return nil;
-}
-
-+ (void)setCurrentBridge:(nullable HippyBridge *)currentBridge {}
-
-@end
-
-#endif /* HIPPY_DEBUG */

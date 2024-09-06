@@ -244,8 +244,12 @@ dispatch_queue_t HippyBridgeQueue() {
         // Setup
         [self setUp];
         
-        // Record bridge instance for RedBox (Debug Only)
+        // Record bridge instance for RedBox
         [HippyBridge setCurrentBridge:self];
+#if HIPPY_DEBUG
+        // Open redbox by default under debug build
+        [self setRedBoxShowEnabled:YES];
+#endif /* HIPPY_DEBUG */
         HippyLogInfo(@"HippyBridge init end, self:%p", self);
     }
     return self;
@@ -747,17 +751,17 @@ dispatch_queue_t HippyBridgeQueue() {
     if (![self isValid]) {
         return;
     }
-    __weak HippyBridge *weakSelf = self;
+    __weak __typeof(self)weakSelf = self;
     [self.javaScriptExecutor executeBlockOnJavaScriptQueue:^{
         @autoreleasepool {
-            HippyBridge *strongSelf = weakSelf;
+            __strong __typeof(weakSelf)strongSelf = weakSelf;
             if (!strongSelf || ![strongSelf isValid]) {
                 [strongSelf.javaScriptExecutor invalidate];
             }
         }
     }];
-    if ([error userInfo][HippyJSStackTraceKey]) {
-        [self.redBox showErrorMessage:[error localizedDescription] withStack:[error userInfo][HippyJSStackTraceKey]];
+    if (error) {
+        [self.redBox showErrorMessage:error.description withStack:[error userInfo][HippyJSStackTraceKey]];
     }
 }
 
@@ -1199,10 +1203,8 @@ static NSString *const hippyOnNightModeChangedParam2 = @"RootViewTag";
 #pragma mark -
 
 - (void)setRedBoxShowEnabled:(BOOL)enabled {
-#if HIPPY_DEBUG
     HippyRedBox *redBox = [self redBox];
     redBox.showEnabled = enabled;
-#endif  // HIPPY_DEBUG
 }
 
 - (void)registerModuleForFrameUpdates:(id<HippyBridgeModule>)module withModuleData:(HippyModuleData *)moduleData {

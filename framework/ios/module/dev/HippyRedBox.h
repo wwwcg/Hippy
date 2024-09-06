@@ -21,15 +21,16 @@
  */
 
 #import <UIKit/UIKit.h>
-
 #import "HippyBridge.h"
 #import "HippyBridgeModule.h"
 #import "HippyErrorCustomizer.h"
 
 NS_ASSUME_NONNULL_BEGIN
 
+/// A Redbox for showing error
 @interface HippyRedBox : NSObject <HippyBridgeModule>
 
+/// Whether should show the redbox, default YES in debugMode, otherwise NO.
 @property (nonatomic, assign) BOOL showEnabled;
 
 - (void)registerErrorCustomizer:(id<HippyErrorCustomizer>)errorCustomizer;
@@ -50,6 +51,7 @@ NS_ASSUME_NONNULL_BEGIN
  */
 @interface HippyBridge (HippyRedBox)
 
+/// The redbox for error
 @property (nonatomic, readonly) HippyRedBox *redBox;
 
 /// The last current active bridge instance.
