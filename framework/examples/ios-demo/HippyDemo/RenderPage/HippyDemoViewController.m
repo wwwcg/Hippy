@@ -141,7 +141,7 @@ static NSString *formatLog(NSDate *timestamp, HippyLogLevel level, NSString *fil
 
 - (void)runHippyDemo {
     // Necessary configuration:
-    NSString *moduleName = @"Demo";
+    NSString *moduleName = @"QNUser";
     NSDictionary *launchOptions = @{ @"DebugMode": @(_isDebugMode) };
     NSDictionary *initialProperties = @{ @"isSimulator": @(TARGET_OS_SIMULATOR) };
     
@@ -160,7 +160,7 @@ static NSString *formatLog(NSDate *timestamp, HippyLogLevel level, NSString *fil
     } else {
         NSURL *vendorBundleURL = [self vendorBundleURL];
         NSURL *indexBundleURL = [self indexBundleURL];
-        HippyBridge *bridge = [[HippyBridge alloc] initWithDelegate:self
+        bridge = [[HippyBridge alloc] initWithDelegate:self
                                                           bundleURL:vendorBundleURL
                                                      moduleProvider:nil
                                                       launchOptions:launchOptions
@@ -174,6 +174,7 @@ static NSString *formatLog(NSDate *timestamp, HippyLogLevel level, NSString *fil
     
     bridge.methodInterceptor = self;
     [bridge setInspectable:YES];
+    [bridge setRedBoxShowEnabled:YES];
     _hippyBridge = bridge;
     rootView.frame = self.contentAreaView.bounds;
     rootView.autoresizingMask = UIViewAutoresizingFlexibleHeight | UIViewAutoresizingFlexibleWidth;
@@ -190,7 +191,7 @@ static NSString *formatLog(NSDate *timestamp, HippyLogLevel level, NSString *fil
         path = [[NSBundle mainBundle] pathForResource:@"vendor.ios" ofType:@"js" inDirectory:@"res/react"];
     }
     else if (DriverTypeVue == _driverType) {
-        path = [[NSBundle mainBundle] pathForResource:@"vendor.ios" ofType:@"js" inDirectory:@"res/vue3"];
+        path = [[NSBundle mainBundle] pathForResource:@"vendor.ios" ofType:@"js" inDirectory:@"res/hippy_user_3_360"];
     }
     return [NSURL fileURLWithPath:path];
 }
@@ -201,7 +202,7 @@ static NSString *formatLog(NSDate *timestamp, HippyLogLevel level, NSString *fil
         path = [[NSBundle mainBundle] pathForResource:@"index.ios" ofType:@"js" inDirectory:@"res/react"];
     }
     else if (DriverTypeVue == _driverType) {
-        path = [[NSBundle mainBundle] pathForResource:@"index.ios" ofType:@"js" inDirectory:@"res/vue3"];
+        path = [[NSBundle mainBundle] pathForResource:@"QNUser.ios" ofType:@"js" inDirectory:@"res/hippy_user_3_360"];
     }
     return [NSURL fileURLWithPath:path];
 }

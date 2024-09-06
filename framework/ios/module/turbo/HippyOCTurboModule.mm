@@ -54,10 +54,6 @@ using StringViewUtils = footstone::StringViewUtils;
 
 HIPPY_EXPORT_TURBO_MODULE(HippyOCTurboModule)
 
-- (void)dealloc {
-
-}
-
 - (instancetype)initWithName:(NSString *)moduleName bridge:(HippyBridge *)bridge {
   if (self = [self init]) {
     _bridge = bridge;
@@ -118,13 +114,15 @@ HIPPY_EXPORT_TURBO_MODULE(HippyOCTurboModule)
         }
     }
 
-    if (HIPPY_DEBUG && !method) {
+    if (!method) {
         HippyLogError(@"Unknown methodID: %@ for module:%@", methodName, obj);
         return nil;
     }
 
     @try {
+        HippyLogInfo(@"Invoke turbo start: %@ on %@", methodName, obj);
         id value = [method invokeWithBridge:_bridge module:obj arguments:argumentArray];
+        HippyLogInfo(@"Invoke turbo finish: %@, rtn:%@", methodName, value);
         return value;
     } @catch (NSException *exception) {
         // Pass on JS exceptions
