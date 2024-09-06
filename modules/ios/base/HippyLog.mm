@@ -41,12 +41,10 @@ HippyLogLevel HPDefaultLogThreshold = HippyLogLevelTrace;
 HippyLogLevel HPDefaultLogThreshold = HippyLogLevelInfo;
 #endif
 
-#if HIPPY_DEBUG
 static HippyRedBoxFunction hippyCurrentRedBoxFunction;
 void HippySetRedBoxFunction(HippyRedBoxFunction redBoxFunction) {
     hippyCurrentRedBoxFunction = redBoxFunction;
 }
-#endif /* HIPPY_DEBUG */
 
 static HippyLogFunction HPCurrentLogFunction;
 static HippyLogLevel HPCurrentLogThreshold = HPDefaultLogThreshold;

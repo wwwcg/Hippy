@@ -122,8 +122,6 @@ HIPPY_EXTERN void HippyPerformBlockWithLogPrefix(void (^block)(void), NSString *
 HIPPY_EXTERN void HippyLogNativeInternal(HippyLogLevel, const char *, int, NSString *, ...) NS_FORMAT_FUNCTION(4, 5);
 
 
-#if HIPPY_DEBUG
-
 /*
  * A handler that displays a red screen when an exception occurs
  */
@@ -133,7 +131,5 @@ typedef void (^HippyRedBoxFunction)(NSString *errMsg, NSMutableArray<NSDictionar
  * Set a handler that displays a red screen when an exception occurs
  */
 HIPPY_EXTERN void HippySetRedBoxFunction(HippyRedBoxFunction redBoxFunction);
-
-#endif /* HIPPY_DEBUG */
 
 #endif // defined(__OBJC__)
