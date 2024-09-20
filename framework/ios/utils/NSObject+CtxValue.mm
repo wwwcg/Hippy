@@ -59,7 +59,11 @@
 @implementation NSNumber (CtxValue)
 
 - (CtxValuePtr)convertToCtxValue:(const CtxPtr &)context {
-    return context->CreateNumber([self doubleValue]);
+    if ([self isKindOfClass:[@YES class]]) {
+        return context->CreateBoolean(self.boolValue);
+    } else {
+        return context->CreateNumber(self.doubleValue);
+    }
 }
 
 @end
