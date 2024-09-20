@@ -146,6 +146,9 @@ static inline void registerLogDelegateToHippyCore() {
     });
 }
 
+@implementation HippyLaunchOptions
+
+@end
 
 @interface HippyBridge() {
     __weak id<HippyMethodInterceptorProtocol> _methodInterceptor;
@@ -210,7 +213,7 @@ dispatch_queue_t HippyJSThread;
 
 - (instancetype)initWithDelegate:(id<HippyBridgeDelegate>)delegate
                   moduleProvider:(HippyBridgeModuleProviderBlock)block
-                   launchOptions:(NSDictionary *)launchOptions
+                   launchOptions:(id)launchOptions
                      executorKey:(nullable NSString *)executorKey {
     return [self initWithDelegate:delegate
                         bundleURL:nil
@@ -222,7 +225,7 @@ dispatch_queue_t HippyJSThread;
 - (instancetype)initWithDelegate:(id<HippyBridgeDelegate>)delegate
                        bundleURL:(NSURL *)bundleURL
                   moduleProvider:(HippyBridgeModuleProviderBlock)block
-                   launchOptions:(NSDictionary *)launchOptions
+                   launchOptions:(id)launchOptions
                      executorKey:(nullable NSString *)executorKey {
     if (self = [super init]) {
         _delegate = delegate;
@@ -230,11 +233,22 @@ dispatch_queue_t HippyJSThread;
         _pendingLoadingVendorBundleURL = bundleURL;
         _bundleURLs = [NSMutableArray array];
         _shareOptions = [NSMutableDictionary dictionary];
-        _debugMode = [launchOptions[@"DebugMode"] boolValue];
+        if ([launchOptions isKindOfClass:NSDictionary.class]) {
+            // Compatible with old versions
+            _debugMode = [launchOptions[@"DebugMode"] boolValue];
+            _enableTurbo = !!launchOptions[@"EnableTurbo"] ? [launchOptions[@"EnableTurbo"] boolValue] : YES;
+        } else if ([launchOptions isKindOfClass:HippyLaunchOptions.class]) {
+            HippyLaunchOptions *options = launchOptions;
+            _debugMode = options.debugMode;
+            _enableTurbo = options.enableTurbo;
+            _useHermesEngine = options.useHermesEngine;
+        } else {
+            HippyAssert(NO, @"Invalid Launch Options!");
+        }
         if (_debugMode) {
             _debugURL = bundleURL;
         }
-        _enableTurbo = !!launchOptions[@"EnableTurbo"] ? [launchOptions[@"EnableTurbo"] boolValue] : YES;
+        _launchOptions = launchOptions;
         _engineKey = executorKey.length > 0 ? executorKey : [NSString stringWithFormat:@"%p", self];
         HippyLogInfo(@"HippyBridge init begin, self:%p", self);
         // Set the log delegate for hippy core module
