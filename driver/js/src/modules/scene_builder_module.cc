@@ -436,7 +436,11 @@ std::shared_ptr<ClassTemplate<SceneBuilder>> RegisterSceneBuilder(const std::wea
       return nullptr;
     }
     auto nodes = HandleJsValue(scope->GetContext(), arguments[0], scope);
-    SceneBuilder::Create(scope->GetDomManager(), scope->GetRootNode(), std::move(std::get<2>(nodes)));
+    bool needSortByIndex = false;
+    if (argument_count == 2) {
+       scope->GetContext()->GetValueBoolean(arguments[1], &needSortByIndex);
+    }
+    SceneBuilder::Create(scope->GetDomManager(), scope->GetRootNode(), std::move(std::get<2>(nodes)), needSortByIndex);
     return nullptr;
   };
   class_template.functions.emplace_back(std::move(create_func_def));
