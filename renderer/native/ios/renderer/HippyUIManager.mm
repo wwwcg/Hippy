@@ -91,54 +91,60 @@ static NSString *viewNameFromViewManagerClass(Class cls) {
     return viewName;
 }
 
+using HPViewBinding = std::map<int32_t, std::tuple<std::vector<int32_t>, std::vector<int32_t>>>;
+
 constexpr char kVSyncKey[] = "frameupdate";
 
-
-#pragma mark - HippyViewsRelation
-
-/// Used to record the structural relationships of views
-@interface HippyViewsRelation : NSObject {
-    std::map<int32_t, std::map<int32_t, int32_t>> _viewRelation;
+@interface NativeRenderViewsRelation : NSObject {
+    HPViewBinding _viewRelation;
 }
 
-/// Add one view to viewRelation
-/// - Parameters:
-///   - viewTag: self tag
-///   - superviewTag: super tag
-///   - index: final render index
 - (void)addViewTag:(int32_t)viewTag forSuperViewTag:(int32_t)superviewTag atIndex:(int32_t)index;
 
-/// Clear
+- (void)enumerateViewsRelation:(void (^)(NSNumber *, NSArray<NSNumber *> *, NSArray<NSNumber *> *))block;
+
 - (void)removeAllObjects;
 
 @end
 
-@implementation HippyViewsRelation
+@implementation NativeRenderViewsRelation
 
 - (void)addViewTag:(int32_t)viewTag forSuperViewTag:(int32_t)superviewTag atIndex:(int32_t)index {
     if (superviewTag) {
-        auto &viewRelationPair = _viewRelation[superviewTag];
-        viewRelationPair[index] = viewTag;
+        auto &viewTuple = _viewRelation[superviewTag];
+        auto &subviewTagTuple = std::get<0>(viewTuple);
+        auto &subviewIndexTuple = std::get<1>(viewTuple);
+        subviewTagTuple.push_back(viewTag);
+        subviewIndexTuple.push_back(index);
+    }
+}
+
+- (void)enumerateViewsRelation:(void (^)(NSNumber *, NSArray<NSNumber *> *, NSArray<NSNumber *> *))block {
+    //using HPViewBinding = std::unordered_map<int32_t, std::tuple<std::vector<int32_t>, std::vector<int32_t>>>;
+    for (const auto &element : _viewRelation) {
+        NSNumber *superviewTag = @(element.first);
+        const auto &subviewTuple = element.second;
+        const auto &subviewTags = std::get<0>(subviewTuple);
+        NSMutableArray<NSNumber *> *subviewTagsArray = [NSMutableArray arrayWithCapacity:subviewTags.size()];
+        for (const auto &subviewTag : subviewTags) {
+            [subviewTagsArray addObject:@(subviewTag)];
+        }
+        const auto &subviewIndex = std::get<1>(subviewTuple);
+        NSMutableArray<NSNumber *> *subviewIndexArray = [NSMutableArray arrayWithCapacity:subviewIndex.size()];
+        for (const auto &subviewIndex : subviewIndex) {
+            [subviewIndexArray addObject:@(subviewIndex)];
+        }
+        block(superviewTag, [subviewTagsArray copy], [subviewIndexArray copy]);
     }
 }
 
 - (void)enumerateViewsHierarchy:(void (^)(int32_t , const std::vector<int32_t> &, const std::vector<int32_t> &))block {
-    for (const auto &viewRelationPair : _viewRelation) {
-        int32_t parentViewTag = viewRelationPair.first;
-        const auto& subviewRelations = viewRelationPair.second;
-
-        // Preallocate memory
-        std::vector<int32_t> subviewIndexes;
-        std::vector<int32_t> subviewTags;
-        subviewIndexes.reserve(subviewRelations.size());
-        subviewTags.reserve(subviewRelations.size());
-        
-        // Store keys and values into separate vectors
-        for (const auto& subviewPair : subviewRelations) {
-            subviewIndexes.emplace_back(subviewPair.first);
-            subviewTags.emplace_back(subviewPair.second);
-        }
-        block(parentViewTag, subviewTags, subviewIndexes);
+    for (const auto &element : _viewRelation) {
+        int32_t tag = element.first;
+        const auto &subviewTuple = element.second;
+        const auto &subviewTags = std::get<0>(subviewTuple);
+        const auto &subviewIndex = std::get<1>(subviewTuple);
+        block(tag, subviewTags, subviewIndex);
     }
 }
 
@@ -147,9 +153,6 @@ constexpr char kVSyncKey[] = "frameupdate";
 }
 
 @end
-
-
-#pragma mark -
 
 static void NativeRenderTraverseViewNodes(id<HippyComponent> view, void (^block)(id<HippyComponent>)) {
     if (view.hippyTag != nil) {
@@ -752,7 +755,7 @@ NSString *const HippyUIManagerDidEndBatchNotification = @"HippyUIManagerDidEndBa
 #endif
     NSNumber *rootNodeTag = @(strongRootNode->GetId());
     std::lock_guard<std::mutex> lock([self renderQueueLock]);
-    HippyViewsRelation *manager = [[HippyViewsRelation alloc] init];
+    NativeRenderViewsRelation *manager = [[NativeRenderViewsRelation alloc] init];
     for (const std::shared_ptr<DomNode> &node : nodes) {
         const auto& render_info = node->GetRenderInfo();
         [manager addViewTag:render_info.id forSuperViewTag:render_info.pid atIndex:render_info.index];
@@ -972,24 +975,21 @@ NSString *const HippyUIManagerDidEndBatchNotification = @"HippyUIManagerDidEndBa
     int32_t rootTag = strongRootNode->GetId();
     std::lock_guard<std::mutex> lock([self renderQueueLock]);
     HippyShadowView *parentObjectView = nil;
-    NSMutableDictionary<NSNumber *, HippyShadowView *> *movesMap = [NSMutableDictionary dictionaryWithCapacity:nodes.size()];
     for (auto &node : nodes) {
         int32_t index = node->GetRenderInfo().index;
         int32_t componentTag = node->GetId();
-        HippyShadowView *shadowView = [_shadowViewRegistry componentForTag:@(componentTag) onRootTag:@(rootTag)];
-        [shadowView dirtyPropagation:NativeRenderUpdateLifecycleLayoutDirtied];
-        HippyAssert(!parentObjectView || parentObjectView == [shadowView parent], @"parent not same!");
+        HippyShadowView *objectView = [_shadowViewRegistry componentForTag:@(componentTag) onRootTag:@(rootTag)];
+        [objectView dirtyPropagation:NativeRenderUpdateLifecycleLayoutDirtied];
+        HippyAssert(!parentObjectView || parentObjectView == [objectView parent], @"parent not same!");
         if (!parentObjectView) {
-            parentObjectView = (HippyShadowView *)[shadowView parent];
+            parentObjectView = (HippyShadowView *)[objectView parent];
         }
-        [movesMap setObject:shadowView forKey:@(index)];
+        [parentObjectView moveHippySubview:objectView toIndex:index];
     }
-    [parentObjectView moveHippySubviews:movesMap];
     [parentObjectView didUpdateHippySubviews];
     auto strongNodes = std::move(nodes);
     [self addUIBlock:^(__unused HippyUIManager *uiManager, NSDictionary<NSNumber *,__kindof UIView *> *viewRegistry) {
         UIView *superView = nil;
-        NSMutableDictionary<NSNumber *, UIView *> *moveViewsMap = [NSMutableDictionary dictionaryWithCapacity:strongNodes.size()];
         for (auto node : strongNodes) {
             int32_t index = node->GetRenderInfo().index;
             int32_t componentTag = node->GetId();
@@ -1001,9 +1001,8 @@ NSString *const HippyUIManagerDidEndBatchNotification = @"HippyUIManagerDidEndBa
             if (!superView) {
                 superView = (UIView *)[view parent];
             }
-            [moveViewsMap setObject:view forKey:@(index)];
+            [superView moveHippySubview:view toIndex:index];
         }
-        [superView moveHippySubviews:moveViewsMap];
         [superView clearSortedSubviews];
         [superView didUpdateHippySubviews];
     }];
