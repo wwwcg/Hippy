@@ -148,6 +148,14 @@ static inline void registerLogDelegateToHippyCore() {
 
 @implementation HippyLaunchOptions
 
+- (instancetype)init {
+    self = [super init];
+    if (self) {
+        _enableTurbo = YES;
+    }
+    return self;
+}
+
 @end
 
 @interface HippyBridge() {
@@ -241,9 +249,7 @@ dispatch_queue_t HippyJSThread;
             HippyLaunchOptions *options = launchOptions;
             _debugMode = options.debugMode;
             _enableTurbo = options.enableTurbo;
-            _useHermesEngine = options.useHermesEngine;
-        } else {
-            HippyAssert(NO, @"Invalid Launch Options!");
+            _usingHermesEngine = options.useHermesEngine;
         }
         if (_debugMode) {
             _debugURL = bundleURL;
