@@ -21,7 +21,6 @@
  */
 
 #include "driver/napi/jsc/jsc_ctx.h"
-#include "footstone/check.h"
 #include "footstone/logging.h"
 #include "footstone/string_view_utils.h"
 #include "driver/napi/jsc/jsc_ctx_value.h"
@@ -50,15 +49,13 @@ constexpr char16_t kSetStr[] = u"set";
 
 static std::once_flag global_class_flag;
 static JSClassRef global_class;
-static footstone::SafeStaticVar<ConstructorDataManager> global_constructor_data_mgr;
+static std::shared_ptr<ConstructorDataManager> global_constructor_data_mgr = nullptr;
 
 JSCCtx::JSCCtx(JSContextGroupRef group, std::weak_ptr<VM> vm): vm_(vm) {
   std::call_once(global_class_flag, []() {
     JSClassDefinition global = kJSClassDefinitionEmpty;
     global_class = JSClassCreate(&global);
-    
-    auto constructor_data_mgr = std::make_shared<ConstructorDataManager>();
-    footstone::InitSafeStaticVar(&global_constructor_data_mgr, constructor_data_mgr);
+    global_constructor_data_mgr = std::make_shared<ConstructorDataManager>();
   });
 
   context_ = JSGlobalContextCreateInGroup(group, global_class);
@@ -72,9 +69,8 @@ JSCCtx::~JSCCtx() {
   JSGlobalContextRelease(context_);
   for (auto& [key, item] : constructor_data_holder_) {
     item->prototype = nullptr;
-    auto constructor_data_mgr = footstone::GetSafeStaticVar(&global_constructor_data_mgr);
-    if (constructor_data_mgr) {
-      constructor_data_mgr->ClearConstructorDataPtr(item.get());
+    if (global_constructor_data_mgr) {
+      global_constructor_data_mgr->ClearConstructorDataPtr(item.get());
     }
   }
 }
@@ -268,8 +264,7 @@ std::shared_ptr<CtxValue> JSCCtx::DefineClass(const string_view& name,
     if (!private_data) {
       return;
     }
-    auto constructor_data_mgr = footstone::GetSafeStaticVar(&global_constructor_data_mgr);
-    if (!constructor_data_mgr || !constructor_data_mgr->IsValidConstructorDataPtr(private_data)) {
+    if (!global_constructor_data_mgr || !global_constructor_data_mgr->IsValidConstructorDataPtr(private_data)) {
       return;
     }
     auto constructor_data = reinterpret_cast<ConstructorData*>(private_data);
@@ -974,9 +969,8 @@ void* JSCCtx::GetPrivateData(const std::shared_ptr<CtxValue>& object) {
 }
 
 void JSCCtx::SaveConstructorData(std::unique_ptr<ConstructorData> constructor_data) {
-  auto constructor_data_mgr = footstone::GetSafeStaticVar(&global_constructor_data_mgr);
-  if (constructor_data_mgr) {
-    constructor_data_mgr->SaveConstructorDataPtr(constructor_data.get());
+  if (global_constructor_data_mgr) {
+    global_constructor_data_mgr->SaveConstructorDataPtr(constructor_data.get());
   }
   constructor_data_holder_[constructor_data->class_ref] = std::move(constructor_data);
 }
