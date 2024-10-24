@@ -559,8 +559,7 @@ dispatch_queue_t HippyJSThread;
         if (!strongSelf || !strongSelf.valid || !script) {
             NSString *errMsg = [NSString stringWithFormat:@"Bundle Execution Operation Fail! valid:%d, script:%@",
                                 strongSelf.valid, script];
-            HippyLogError(@"%@", errMsg);
-            completion(bundleURL, HippyErrorWithMessage(errMsg));
+            completion(nil, HippyErrorWithMessage(errMsg));
             strongSelf.lastExecuteOperation = nil;
             return;
         }
