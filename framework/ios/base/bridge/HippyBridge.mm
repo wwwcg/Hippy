@@ -175,7 +175,7 @@ static inline void registerLogDelegateToHippyCore() {
 /// Bundle fetch operation queue (concurrent)
 @property (nonatomic, strong) NSOperationQueue *bundleQueue;
 /// Record the last execute operation for adding execution dependency.
-@property (nonatomic, strong, nullable) NSOperation *lastExecuteOperation;
+@property (atomic, strong, nullable) NSOperation *lastExecuteOperation;
 
 /// Cached Dimensions info，will be passed to JS Side.
 @property (atomic, strong) NSDictionary *cachedDimensionsInfo;
@@ -561,17 +561,13 @@ dispatch_queue_t HippyJSThread;
                                 strongSelf.valid, script];
             HippyLogError(@"%@", errMsg);
             completion(bundleURL, HippyErrorWithMessage(errMsg));
-            @synchronized (self) {
-                strongSelf.lastExecuteOperation = nil;
-            }
+            strongSelf.lastExecuteOperation = nil;
             return;
         }
         [strongSelf executeJSCode:script sourceURL:bundleURL onCompletion:^(id result, NSError *error) {
             HippyLogInfo(@"End executing bundle(%s)",
                          HP_CSTR_NOT_NULL(bundleURL.absoluteString.lastPathComponent.UTF8String));
-            @synchronized (self) {
-                strongSelf.lastExecuteOperation = nil;
-            }
+            strongSelf.lastExecuteOperation = nil;
             if (completion) {
                 completion(bundleURL, error);
             }
@@ -598,18 +594,13 @@ dispatch_queue_t HippyJSThread;
     // Add dependency, make sure that doing fetch before execute,
     // and all execution operations must be queued.
     [executeOperation addDependency:fetchOperation];
-    @synchronized (self) {
-        NSOperation *lastOp = self.lastExecuteOperation;
-        if (lastOp) {
-            [executeOperation addDependency:lastOp];
-        }
+    if (self.lastExecuteOperation) {
+        [executeOperation addDependency:self.lastExecuteOperation];
     }
     
     // Enqueue operation
     [_bundleQueue addOperations:@[fetchOperation, executeOperation] waitUntilFinished:NO];
-    @synchronized (self) {
-        self.lastExecuteOperation = executeOperation;
-    }
+    self.lastExecuteOperation = executeOperation;
 }
 
 - (void)unloadInstanceForRootView:(NSNumber *)rootTag {
