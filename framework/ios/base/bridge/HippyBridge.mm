@@ -106,6 +106,10 @@ static NSString *const HippyNativeGlobalKeyNightMode = @"NightMode";
 static NSString *const kHippyRemoteModuleConfigKey = @"remoteModuleConfig";
 static NSString *const kHippyBatchedBridgeConfigKey = @"__hpBatchedBridgeConfig";
 
+// key of launch options, to be deprecated
+static NSString *const kLaunchOptionsDebugMode = @"DebugMode";
+static NSString *const kLaunchOptionsEnableTurbo = @"EnableTurbo";
+static NSString *const kLaunchOptionsUseHermes = @"useHermesEngine";
 
 #define HIPPY_BUNDLE_FETCH_TIMEOUT_SEC    30 // Bundle fetch operation timeout value, 30s
 static NSString *const kHippyBundleFetchQueueName = @"com.hippy.bundleQueue.fetch";
@@ -243,8 +247,9 @@ dispatch_queue_t HippyJSThread;
         _shareOptions = [NSMutableDictionary dictionary];
         if ([launchOptions isKindOfClass:NSDictionary.class]) {
             // Compatible with old versions
-            _debugMode = [launchOptions[@"DebugMode"] boolValue];
-            _enableTurbo = !!launchOptions[@"EnableTurbo"] ? [launchOptions[@"EnableTurbo"] boolValue] : YES;
+            _debugMode = [launchOptions[kLaunchOptionsDebugMode] boolValue];
+            _enableTurbo = !!launchOptions[kLaunchOptionsEnableTurbo] ? [launchOptions[kLaunchOptionsEnableTurbo] boolValue] : YES;
+            _usingHermesEngine = !!launchOptions[kLaunchOptionsUseHermes] ? [launchOptions[kLaunchOptionsUseHermes] boolValue] : NO;
         } else if ([launchOptions isKindOfClass:HippyLaunchOptions.class]) {
             HippyLaunchOptions *options = launchOptions;
             _debugMode = options.debugMode;
@@ -792,11 +797,9 @@ dispatch_queue_t HippyJSThread;
     }
     __weak HippyBridge *weakSelf = self;
     [self.javaScriptExecutor executeBlockOnJavaScriptQueue:^{
-        @autoreleasepool {
-            HippyBridge *strongSelf = weakSelf;
-            if (!strongSelf || ![strongSelf isValid]) {
-                [strongSelf.javaScriptExecutor invalidate];
-            }
+        HippyBridge *strongSelf = weakSelf;
+        if (!strongSelf || ![strongSelf isValid]) {
+            [strongSelf.javaScriptExecutor invalidate];
         }
     }];
     if ([error userInfo][HippyJSStackTraceKey]) {
@@ -877,9 +880,7 @@ dispatch_queue_t HippyJSThread;
     for (HippyModuleData *moduleData in moduleDataByID) {
         if (moduleData.hasInstance && moduleData.implementsPartialBatchDidFlush) {
             [self dispatchBlock:^{
-                @autoreleasepool {
-                    [moduleData.instance partialBatchDidFlush];
-                }
+                [moduleData.instance partialBatchDidFlush];
             } queue:moduleData.methodQueue];
         }
     }
@@ -890,9 +891,7 @@ dispatch_queue_t HippyJSThread;
     for (HippyModuleData *moduleData in moduleDataByID) {
         if (moduleData.hasInstance && moduleData.implementsBatchDidComplete) {
             [self dispatchBlock:^{
-                @autoreleasepool {
-                    [moduleData.instance batchDidComplete];
-                }
+                [moduleData.instance batchDidComplete];
             } queue:moduleData.methodQueue];
         }
     }
@@ -1114,9 +1113,7 @@ dispatch_queue_t HippyJSThread;
         if ([instance respondsToSelector:@selector(invalidate)]) {
             dispatch_group_enter(group);
             [self dispatchBlock:^{
-                @autoreleasepool {
-                    [(id<HippyInvalidating>)instance invalidate];
-                }
+                [(id<HippyInvalidating>)instance invalidate];
                 dispatch_group_leave(group);
             } queue:moduleData.methodQueue];
         }
@@ -1131,11 +1128,9 @@ dispatch_queue_t HippyJSThread;
     
     dispatch_group_notify(group, dispatch_get_main_queue(), ^{
         [jsExecutor executeBlockOnJavaScriptQueue:^{
-            @autoreleasepool {
-                [displayLink invalidate];
-                [jsExecutor invalidate];
-                [moduleSetup invalidate];
-            }
+            [displayLink invalidate];
+            [jsExecutor invalidate];
+            [moduleSetup invalidate];
         }];
     });
 }
