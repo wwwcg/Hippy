@@ -57,6 +57,14 @@ export default [
     },
   },
   {
+    path: '/ListPagerView',
+    name: '<ListPagerView> 组件',
+    component: PAGE_LIST.ListPagerView,
+    meta: {
+      type: Type.COMPONENT,
+    },
+  },
+  {
     path: '/WaterfallView',
     name: '<WaterfallView> 组件',
     component: PAGE_LIST.WaterfallView,

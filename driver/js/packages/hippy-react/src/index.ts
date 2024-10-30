@@ -48,6 +48,7 @@ import WebSocket from './modules/websocket';
 import PullHeader from './components/pull-header';
 import PullFooter from './components/pull-footer';
 import WaterfallView from './components/waterfall-view';
+import ListPagerView from './components/list-pager-view';
 import * as Native from './native';
 import * as StyleSheet from './modules/stylesheet';
 
@@ -141,6 +142,7 @@ export {
   PullHeader,
   PullFooter,
   WaterfallView,
+  ListPagerView,
 };
 
 export default HippyReact;
