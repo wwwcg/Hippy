@@ -66,14 +66,12 @@ HIPPY_EXPORT_METHOD(remoteDebug:(nonnull NSNumber *)instanceId bundleUrl:(nonnul
     //JS Contexts holding the same engine key will share VM
     NSURL *url = [NSURL URLWithString:bundleUrl];
     NSDictionary *launchOptions = @{@"EnableTurbo": @(DEMO_ENABLE_TURBO), @"DebugMode": @(YES), @"DebugURL": url};
-    NSURL *sandboxDirectory = [url URLByDeletingLastPathComponent];
     _connector = [[HippyBridge alloc] initWithDelegate:self
                                         moduleProvider:nil
                                          launchOptions:launchOptions
                                            executorKey:engineKey];
     [_connector setInspectable:YES];
     //set custom vfs loader
-    _connector.sandboxDirectory = sandboxDirectory;
     _connector.contextName = @"Demo";
     _connector.moduleName = @"Demo";
     _connector.methodInterceptor = self;

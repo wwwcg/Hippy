@@ -189,7 +189,6 @@ static NSString *formatLog(NSDate *timestamp, HippyLogLevel level, NSString *fil
     HippyRootView *rootView = nil;
     
     if (_isDebugMode) {
-        hippyBridge.sandboxDirectory = [_debugURL URLByDeletingLastPathComponent];
         rootView = [[HippyRootView alloc] initWithBridge:hippyBridge
                                              businessURL:_debugURL
                                               moduleName:@"Demo"
@@ -203,7 +202,6 @@ static NSString *formatLog(NSDate *timestamp, HippyLogLevel level, NSString *fil
                         completion:^(NSURL * _Nullable url, NSError * _Nullable error) {
             NSLog(@"url %@ load finish", vendorBundleURL);
         }];
-        hippyBridge.sandboxDirectory = [indexBundleURL URLByDeletingLastPathComponent];
         rootView = [[HippyRootView alloc] initWithBridge:hippyBridge
                                              businessURL:indexBundleURL
                                               moduleName:@"Demo"
