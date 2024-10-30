@@ -184,6 +184,7 @@ static inline void registerLogDelegateToHippyCore() {
 @implementation HippyBridge
 
 @synthesize renderManager = _renderManager;
+@synthesize sandboxDirectory = _sandboxDirectory;
 @synthesize imageLoader = _imageLoader;
 @synthesize imageProviders = _imageProviders;
 @synthesize startTime = _startTime;
@@ -1232,11 +1233,19 @@ static NSString *const hippyOnNightModeChangedParam2 = @"RootViewTag";
     return moduleData.config;
 }
 
+- (NSString *)sandboxDirectory {
+    @synchronized (self) {
+        return _sandboxDirectory;
+    }
+}
+
 - (void)setSandboxDirectory:(NSString *)sandboxDirectory {
-    if (![_sandboxDirectory isEqual:sandboxDirectory]) {
-        _sandboxDirectory = sandboxDirectory;
-        if (sandboxDirectory) {
-            [self.javaScriptExecutor setSandboxDirectory:sandboxDirectory];
+    @synchronized (self) {
+        if (![_sandboxDirectory isEqual:sandboxDirectory]) {
+            _sandboxDirectory = sandboxDirectory;
+            if (sandboxDirectory) {
+                [self.javaScriptExecutor setSandboxDirectory:sandboxDirectory];
+            }
         }
     }
 }
