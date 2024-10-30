@@ -106,10 +106,10 @@ public abstract class PullRefreshHelper {
         endAnimation();
     }
 
-    public void onRefreshCompleted() {
+    public void onRefreshCompleted(int duration) {
         if (mRefreshStatus == PullRefreshStatus.PULL_STATUS_REFRESHING) {
             mRefreshStatus = PullRefreshStatus.PULL_STATUS_FOLDED;
-            smoothResizeTo(getVisibleSize(), 0, DURATION);
+            smoothResizeTo(getVisibleSize(), 0, duration);
         }
     }
 
@@ -221,15 +221,19 @@ public abstract class PullRefreshHelper {
 
     protected void smoothResizeTo(int fromValue, int toValue, int duration) {
         endAnimation();
-        mAnimator = ValueAnimator.ofInt(fromValue, toValue);
-        mAnimator.addUpdateListener(animation -> setVisibleSize((int) animation.getAnimatedValue()));
-        mAnimator.addListener(new AnimatorListenerBase() {
-            @Override
-            public void onAnimationEnd(Animator animation) {
+        if (duration == 0) {
+            setVisibleSize(toValue);
+        } else {
+            mAnimator = ValueAnimator.ofInt(fromValue, toValue);
+            mAnimator.addUpdateListener(animation -> setVisibleSize((int) animation.getAnimatedValue()));
+            mAnimator.addListener(new AnimatorListenerBase() {
+                @Override
+                public void onAnimationEnd(Animator animation) {
 
-            }
-        });
-        mAnimator.setDuration(duration).start();
+                }
+            });
+            mAnimator.setDuration(duration).start();
+        }
     }
 
     protected boolean isVertical() {

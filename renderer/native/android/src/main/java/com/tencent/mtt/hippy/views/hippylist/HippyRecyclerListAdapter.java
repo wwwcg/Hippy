@@ -17,6 +17,7 @@
 package com.tencent.mtt.hippy.views.hippylist;
 
 import static android.view.ViewGroup.LayoutParams.MATCH_PARENT;
+import static com.tencent.mtt.hippy.views.hippylist.PullRefreshHelper.DURATION;
 
 import android.view.View;
 import android.view.ViewGroup;
@@ -29,6 +30,7 @@ import com.tencent.mtt.hippy.uimanager.RenderManager;
 import com.tencent.mtt.hippy.utils.LogUtils;
 import com.tencent.mtt.hippy.views.hippylist.recyclerview.helper.skikcy.IStickyItemsProvider;
 import com.tencent.mtt.hippy.views.list.IRecycleItemTypeChange;
+import com.tencent.mtt.hippy.views.listpager.HippyRecyclerPagerView;
 import com.tencent.mtt.hippy.views.refresh.HippyPullFooterView;
 import com.tencent.mtt.hippy.views.refresh.HippyPullHeaderView;
 import com.tencent.mtt.hippy.views.waterfall.HippyWaterfallItemView;
@@ -138,7 +140,11 @@ public class HippyRecyclerListAdapter<HRCV extends HippyRecyclerView> extends Ad
 
     public void onFooterRefreshCompleted() {
         if (footerRefreshHelper != null) {
-            footerRefreshHelper.onRefreshCompleted();
+            if (hippyRecyclerView instanceof HippyRecyclerPagerView) {
+                footerRefreshHelper.onRefreshCompleted(0);
+            } else {
+                footerRefreshHelper.onRefreshCompleted(DURATION);
+            }
         }
     }
 
@@ -151,7 +157,7 @@ public class HippyRecyclerListAdapter<HRCV extends HippyRecyclerView> extends Ad
 
     public void onHeaderRefreshCompleted() {
         if (headerRefreshHelper != null) {
-            headerRefreshHelper.onRefreshCompleted();
+            headerRefreshHelper.onRefreshCompleted(DURATION);
         }
     }
 
@@ -460,6 +466,10 @@ public class HippyRecyclerListAdapter<HRCV extends HippyRecyclerView> extends Ad
     public boolean hasFooter() {
         int count = getRenderNodeCount();
         return count > 0 && getChildNode(count - 1).isPullFooter();
+    }
+
+    public int getFooterVisibleHeight() {
+        return (footerRefreshHelper != null) ? footerRefreshHelper.getVisibleHeight() : 0;
     }
 
 }

@@ -51,7 +51,7 @@ public class HippyRecyclerView<ADP extends HippyRecyclerListAdapter> extends Hip
         implements IHeaderAttachListener, HippyViewHolderAbandonListener, HippyNestedScrollTarget2 {
 
     private static final String TAG = "HippyRecyclerView";
-    private static int DEFAULT_ITEM_VIEW_CACHE_SIZE = 4;
+    public static int DEFAULT_ITEM_VIEW_CACHE_SIZE = 4;
     private static final int INVALID_POINTER = -1;
     protected ADP listAdapter;
     protected boolean isEnableScroll = true;    //使能ListView的滚动功能
@@ -384,7 +384,7 @@ public class HippyRecyclerView<ADP extends HippyRecyclerListAdapter> extends Hip
         return intEventHelper();
     }
 
-    private RecyclerViewEventHelper intEventHelper() {
+    protected RecyclerViewEventHelper intEventHelper() {
         if (recyclerViewEventHelper == null) {
             recyclerViewEventHelper = createEventHelper();
         }

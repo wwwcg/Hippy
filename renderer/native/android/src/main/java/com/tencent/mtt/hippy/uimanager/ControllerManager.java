@@ -37,6 +37,7 @@ import com.tencent.mtt.hippy.views.custom.HippyCustomPropsController;
 import com.tencent.mtt.hippy.views.hippylist.HippyRecyclerViewController;
 import com.tencent.mtt.hippy.views.image.HippyImageViewController;
 import com.tencent.mtt.hippy.views.list.HippyListItemViewController;
+import com.tencent.mtt.hippy.views.listpager.HippyRecyclerPagerViewController;
 import com.tencent.mtt.hippy.views.modal.HippyModalHostManager;
 import com.tencent.mtt.hippy.views.refresh.HippyPullFooterViewController;
 import com.tencent.mtt.hippy.views.refresh.HippyPullHeaderViewController;
@@ -124,6 +125,7 @@ public class ControllerManager {
         sDefaultControllers.add(HippyCustomPropsController.class);
         sDefaultControllers.add(HippyWaterfallViewController.class);
         sDefaultControllers.add(HippyWaterfallItemViewController.class);
+        sDefaultControllers.add(HippyRecyclerPagerViewController.class);
     }
 
     @SuppressWarnings({"rawtypes", "unchecked"})
