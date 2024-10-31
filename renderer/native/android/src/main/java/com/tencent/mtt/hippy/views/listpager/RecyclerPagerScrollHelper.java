@@ -42,9 +42,9 @@ public class RecyclerPagerScrollHelper {
     private int offsetX = 0;
     private int startY = 0;
     private int startX = 0;
-    private int pageScrollDuration = 200;
+    private int pageScrollDuration = 160;
     private int preCreateCount = 0;
-    private float pageUpDownOffsetRatio = 0.5f;
+    private float pageUpDownOffsetRatio = 0.01f;
 
     public RecyclerPagerScrollHelper(@NonNull HippyRecyclerView recyclerView) {
         recyclerViewRef = new WeakReference<>(recyclerView);
@@ -119,7 +119,13 @@ public class RecyclerPagerScrollHelper {
                 offsetY = recyclerView.getContentOffsetY();
                 LogUtils.d(TAG, "onFling: offsetY " + offsetY + ", startY " + startY);
             }
-
+            if (currentPageIndex == 0 && adapter.hasPullHeader()) {
+                if (adapter.getHeaderVisibleHeight() > 0) {
+                    return false;
+                }
+                offsetY = recyclerView.getContentOffsetY();
+                LogUtils.d(TAG, "onFling: offsetY " + offsetY + ", startY " + startY);
+            }
             if (orientation == RecyclerView.VERTICAL) {
                 startPoint = offsetY;
                 int absY = Math.abs(offsetY - startY);

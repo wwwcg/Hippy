@@ -472,4 +472,7 @@ public class HippyRecyclerListAdapter<HRCV extends HippyRecyclerView> extends Ad
         return (footerRefreshHelper != null) ? footerRefreshHelper.getVisibleHeight() : 0;
     }
 
+    public int getHeaderVisibleHeight() {
+        return (headerRefreshHelper != null) ? headerRefreshHelper.getVisibleHeight() : 0;
+    }
 }
