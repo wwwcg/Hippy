@@ -27,7 +27,12 @@
 #import "HippyWaterfallView.h"
 
 @class HippyNextBaseListViewCell;
+@class HippyNextShadowListItem;
 
+
+NS_ASSUME_NONNULL_BEGIN
+
+/// ListView component of Hippy
 @interface HippyNextBaseListView : HippyWaterfallView <HippyNextListTableViewLayoutProtocol>
 
 /**
@@ -68,9 +73,16 @@
  */
 @property(nonatomic, assign) BOOL horizontal;
 
-/**
- * Reload data
- */
+/// Reload data
 - (void)reloadData;
 
+/// CellView's create method, can override
+/// - Parameters:
+///   - indexPath: index path to create
+///   - shadowView: shadowView of cellView
+- (UIView *)createCellViewForIndexPath:(NSIndexPath * _Nonnull)indexPath
+                            shadowView:(HippyNextShadowListItem *)shadowView;
+
 @end
+
+NS_ASSUME_NONNULL_END

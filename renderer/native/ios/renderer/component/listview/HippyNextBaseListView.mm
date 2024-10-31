@@ -34,6 +34,7 @@
 #import "UIView+Render.h"
 #import "HippyShadowListView.h"
 #import "HippyNextShadowListItem.h"
+#import "HippyRenderUtils.h"
 
 static NSString *const kCellIdentifier = @"HippyListCellIdentifier";
 static NSString *const kSupplementaryIdentifier = @"HippySupplementaryIdentifier";
@@ -265,10 +266,7 @@ referenceSizeForHeaderInSection:(NSInteger)section {
     }
 }
 
-- (UICollectionViewCell *)collectionView:(UICollectionView *)collectionView cellForItemAtIndexPath:(NSIndexPath *)indexPath {
-    HippyNextBaseListViewCell *cell = [collectionView dequeueReusableCellWithReuseIdentifier:kCellIdentifier forIndexPath:indexPath];
-    HippyNextShadowListItem *shadowView = (HippyNextShadowListItem *)[self.dataSource cellForIndexPath:indexPath];
-    
+- (UIView *)createCellViewForIndexPath:(NSIndexPath * _Nonnull)indexPath shadowView:(HippyNextShadowListItem *)shadowView {
     UIView *cellView = nil;
     UIView *cachedVisibleCellView = [_cachedWeakCellViews objectForKey:shadowView.hippyTag];
     if (cachedVisibleCellView) {
@@ -292,6 +290,15 @@ referenceSizeForHeaderInSection:(NSInteger)section {
         HippyLogTrace(@"%@ 🟡 create cellView at {%ld - %ld} for %@",
                       self.hippyTag, indexPath.section, indexPath.row, shadowView.hippyTag);
     }
+    return cellView;
+}
+
+- (UICollectionViewCell *)collectionView:(UICollectionView *)collectionView cellForItemAtIndexPath:(NSIndexPath *)indexPath {
+    HippyNextBaseListViewCell *cell = [collectionView dequeueReusableCellWithReuseIdentifier:kCellIdentifier forIndexPath:indexPath];
+    HippyNextShadowListItem *shadowView = (HippyNextShadowListItem *)[self.dataSource cellForIndexPath:indexPath];
+    
+    // Create cellView
+    UIView * cellView = [self createCellViewForIndexPath:indexPath shadowView:shadowView];
     
     HippyAssert([cellView conformsToProtocol:@protocol(ViewAppearStateProtocol)],
         @"subviews of NativeRenderBaseListViewCell must conform to protocol ViewAppearStateProtocol");
@@ -300,13 +307,33 @@ referenceSizeForHeaderInSection:(NSInteger)section {
     return cell;
 }
 
+// In the case of paging enabled, the `FullShowState` may not be reachedif the judgment is exactly equal.
+// Therefore, we take an approximate value,
+// as long as the intersection area reaches more than 80%, it is considered to be fully displayed.
+static CGFloat gHippyPagingNearlyEqualThreshold = 0.8;
+static inline CGFloat HippyListCGRectGetArea(CGRect rect) {
+    if (CGRectIsNull(rect))
+        return 0;
+    rect = CGRectStandardize(rect);
+    return rect.size.width * rect.size.height;
+}
+
 - (void)tableViewDidLayoutSubviews:(HippyNextListTableView *)tableView {
     [super tableViewDidLayoutSubviews:tableView];
     NSArray<UICollectionViewCell *> *visibleCells = [self.collectionView visibleCells];
     for (HippyNextBaseListViewCell *cell in visibleCells) {
         CGRect cellRectInTableView = [self.collectionView convertRect:[cell bounds] fromView:cell];
         CGRect intersection = CGRectIntersection(cellRectInTableView, [self.collectionView bounds]);
-        if (CGRectEqualToRect(cellRectInTableView, intersection)) {
+        
+        BOOL isNearlyEqual = NO;
+        if (self.collectionView.isPagingEnabled) {
+            // when paging, use area to determine whether it is nearly equal
+            isNearlyEqual = HippyListCGRectGetArea(intersection) /
+            HippyListCGRectGetArea(cellRectInTableView) > gHippyPagingNearlyEqualThreshold;
+        } else {
+            isNearlyEqual = HippyCGRectNearlyEqual(cellRectInTableView, intersection);
+        }
+        if (isNearlyEqual) {
             [cell setCellShowState:CellFullShowState];
         } else if (!CGRectIsNull(intersection)) {
             [cell setCellShowState:CellHalfShowState];

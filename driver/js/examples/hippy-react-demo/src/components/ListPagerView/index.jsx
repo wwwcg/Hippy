@@ -27,10 +27,9 @@ const styles = StyleSheet.create({
   container: {
     collapsable: false,
     flex: 1,
-    height: 400,
   },
   itemContainer: {
-    //padding: 12,
+    padding: 12,
   },
   loading: {
     fontSize: 11,
@@ -75,19 +74,9 @@ const styles = StyleSheet.create({
 
 function Style1({ index }) {
   return (
-    <View style={styles.container1}
-          onClickCapture={(event) => {
-            console.log('onClickCapture style1', event.target.nodeId, event.currentTarget.nodeId);
-          }}
-          onTouchDown={(event) => {
-            // if stopPropagation && return false called at the same time, stopPropagation has higher priority
-            event.stopPropagation();
-            console.log('onTouchDown style1', event.target.nodeId, event.currentTarget.nodeId);
-            return false;
-          }}
+    <View style={ [styles.container1]}
           onClick={(event) => {
             console.log('click style1', event.target.nodeId, event.currentTarget.nodeId);
-            return false;
           }}
     >
       <Text style={{ fontSize: 31 }} >{ `${index}: Style 1 UI` }</Text>
@@ -106,7 +95,7 @@ function Style2({ index }) {
 function Style5({ index }) {
   return (
     <View style={styles.container3}>
-      <Text numberOfLines={1}>{ `${index}: Style 5 UI` }</Text>
+      <Text style={{ fontSize: 31 }}>{ `${index}: Style 5 UI` }</Text>
     </View>
   );
 }
@@ -139,9 +128,7 @@ export default class ListPagerExample extends React.Component {
 
 /**
    * 页面加载更多时触发
-   *
    * 这里触发加载更多还可以使用 PullFooter 组件。
-   *
    * onEndReached 更适合用来无限滚动的场景。
    */
 async onEndReached() {
@@ -163,7 +150,7 @@ async onEndReached() {
       footerRefreshText: '没有更多数据',
     });
   }
-  this.listView.collapsePullFooter();
+  this.listPager.collapsePullFooter();
   const newDataSource = [...dataSource, ...newData];
   this.setState({ dataSource: newDataSource });
   this.loadMoreDataFlag = false;
@@ -201,14 +188,14 @@ async onEndReached() {
   let dataSource = [];
   try {
     dataSource = await this.mockFetchData();
-    //dataSource = dataSource.reverse();
+    dataSource = dataSource.reverse();
   } catch (err) {}
   this.fetchingDataFlag = false;
   this.setState({
     dataSource,
     headerRefreshText: '2秒后收起',
   }, () => {
-    this.listView.collapsePullHeader({ time: 2000 });
+    this.listPager.collapsePullHeader({ time: 2000 });
   });
 }
 
@@ -225,15 +212,15 @@ onHeaderPulling(evt) {
     return;
   }
   console.log('onHeaderPulling', evt.contentOffset);
-  if (evt.contentOffset > styles.pullContent.height) {
-    this.setState({
-      headerRefreshText: '松手，即可触发刷新',
-    });
-  } else {
-    this.setState({
-      headerRefreshText: '继续下拉，触发刷新',
-    });
-  }
+  // if (evt.contentOffset > styles.pullContent.height) {
+  //   this.setState({
+  //     headerRefreshText: '松手，即可触发刷新',
+  //   });
+  // } else {
+  //   this.setState({
+  //     headerRefreshText: '继续下拉，触发刷新',
+  //   });
+  // }
 }
 
 onFooterPulling(evt) {
@@ -264,13 +251,6 @@ onFooterPulling(evt) {
         }}>{headerRefreshText}</Text>
       </View>
     );
-  }
-
-  getFooterStyle() {
-    const { horizontal } = this.state;
-    return !horizontal ? {} : {
-      width: 40,
-    };
   }
 
   /**
@@ -333,6 +313,7 @@ onFooterPulling(evt) {
   }
 
   renderRow(index) {
+    console.log('renderRow', index);
     const { dataSource } = this.state;
     let styleUI = null;
     const rowData = dataSource[index];
@@ -353,7 +334,7 @@ onFooterPulling(evt) {
       // pass
     }
     return (
-      <View style={styles.container}
+      <View style={ [ styles.container, { backgroundColor: `#${Math.floor(Math.random() * 0xffffff).toString(16)}` } ]}
             onClickCapture={(event) => {
               console.log('onClickCapture style outer', event.target.nodeId, event.currentTarget.nodeId);
             }}
@@ -385,27 +366,15 @@ onFooterPulling(evt) {
     return (
       <View style={{ flex: 1, collapsable: false }}>
         <ListPagerView
-          onTouchDown={(event) => {
-            console.log('onTouchDown ListView', event.target.nodeId, event.currentTarget.nodeId);
-          }}
-          onClickCapture={(event) => {
-            // if calling capture event stopPropagation function in one of node,
-            // all capture phase left, target phase and bubbling phase would stop.
-            // event.stopPropagation();
-            console.log('onClickCapture listview', event.target.nodeId, event.currentTarget.nodeId);
-          }}
-          onClick={(event) => {
-            console.log('click listview', event.target.nodeId, event.currentTarget.nodeId);
-            // return false means trigger bubble
-            return true;
-          }}
-
           style={[{ backgroundColor: '#ffffff' }, { flex: 1 }]}
-          bounces={true}
-          pagingEnabled={true}
-          showScrollIndicator={false}
-          preCreateItemNumber={1} // configure pre-create item number
+          ref={(ref) => {
+            this.listPager = ref;
+          }}
+          preCreateRowsNumber={1} // configure pre-create rows number
 
+          // all below props are same as ListView
+          bounces={true}
+          showScrollIndicator={false}
           numberOfRows={dataSource.length}
           renderRow={this.renderRow}
           onEndReached={this.onEndReached}
