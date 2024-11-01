@@ -79,10 +79,11 @@ static NSString *const kListViewItem = @"ListViewItem";
     BOOL layoutDirectionRTL = [self isLayoutSubviewsRTL];
     [[HippyCollectionViewFlowLayoutRTLStack sharedInstance] pushRTLConfig:layoutDirectionRTL];
     HippyNextCollectionViewFlowLayout *layout = [[HippyNextCollectionViewFlowLayout alloc] init];
-    layout.minimumLineSpacing = .0f;
-    layout.minimumInteritemSpacing = .0f;
+    layout.minimumLineSpacing = .0;
+    layout.minimumInteritemSpacing = .0;
     layout.sectionHeadersPinToVisibleBounds = YES;
     layout.scrollDirection = _horizontal ? UICollectionViewScrollDirectionHorizontal : UICollectionViewScrollDirectionVertical;
+    layout.estimatedItemSize = UICollectionViewFlowLayoutAutomaticSize;
     return layout;
 }
 
@@ -149,6 +150,7 @@ static NSString *const kListViewItem = @"ListViewItem";
     self->_dataSource = [[HippyNextBaseListViewDataSource alloc] initWithDataSource:datasource
                                                                        itemViewName:[self compoentItemName]
                                                                   containBannerView:NO];
+    HippyLogTrace(@"[ListViewDebug] %@ start reload data, count:%ld", self.hippyTag, datasource.count);
     [self.collectionView reloadData];
     
     if (self.initialContentOffset) {
@@ -275,7 +277,7 @@ referenceSizeForHeaderInSection:(NSInteger)section {
         if ([_keepAliveCellViews containsObject:cachedVisibleCellView] && shadowView.keepAlive == NO) {
             [_keepAliveCellViews removeObject:cachedVisibleCellView];
         }
-        HippyLogTrace(@"%@ 🟢 use cached visible cellView at {%ld - %ld} for %@",
+        HippyLogTrace(@"[ListViewDebug] %@ 🟢 use cached visible cellView at {%ld - %ld} for %@",
                       self.hippyTag, indexPath.section, indexPath.row, shadowView.hippyTag);
     } else {
         cellView = [self.uiManager createViewForShadowListItem:shadowView];
@@ -287,7 +289,7 @@ referenceSizeForHeaderInSection:(NSInteger)section {
             }
             [_keepAliveCellViews addObject:cellView];
         }
-        HippyLogTrace(@"%@ 🟡 create cellView at {%ld - %ld} for %@",
+        HippyLogTrace(@"[ListViewDebug] %@ 🟡 create cellView at {%ld - %ld} for %@",
                       self.hippyTag, indexPath.section, indexPath.row, shadowView.hippyTag);
     }
     return cellView;
@@ -298,10 +300,10 @@ referenceSizeForHeaderInSection:(NSInteger)section {
     HippyNextShadowListItem *shadowView = (HippyNextShadowListItem *)[self.dataSource cellForIndexPath:indexPath];
     
     // Create cellView
-    UIView * cellView = [self createCellViewForIndexPath:indexPath shadowView:shadowView];
+    UIView *cellView = [self createCellViewForIndexPath:indexPath shadowView:shadowView];
     
     HippyAssert([cellView conformsToProtocol:@protocol(ViewAppearStateProtocol)],
-        @"subviews of NativeRenderBaseListViewCell must conform to protocol ViewAppearStateProtocol");
+        @"Subviews of HippyBaseListViewCell must conform to ViewAppearStateProtocol");
     cell.cellView = cellView;
     cellView.parent = self;
     return cell;

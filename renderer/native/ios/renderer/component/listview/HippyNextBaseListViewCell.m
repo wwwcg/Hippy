@@ -88,4 +88,9 @@
     [super prepareForReuse];
 }
 
+- (UICollectionViewLayoutAttributes *)preferredLayoutAttributesFittingAttributes:(UICollectionViewLayoutAttributes *)layoutAttributes {
+    UICollectionViewLayoutAttributes *atts = [super preferredLayoutAttributesFittingAttributes:layoutAttributes];
+    return atts;
+}
+
 @end

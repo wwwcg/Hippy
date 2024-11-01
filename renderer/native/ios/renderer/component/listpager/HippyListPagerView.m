@@ -39,7 +39,7 @@
     _preCreateRowsNumber = preCreateRowsNumber;
     if (preCreateRowsNumber > 0) {
         // can only create preCreateRowsNumber * 2 rows with one buffer
-        self.cachedPreCreateRows = [NSMutableArray arrayWithCapacity:(preCreateRowsNumber * 2) + 1];
+        self.cachedPreCreateRows = [NSMutableArray arrayWithCapacity:(preCreateRowsNumber * 2)];
     }
 }
 
@@ -60,7 +60,20 @@
     
     // do pre-create
     [self preCreateCellsFromCurrentShowingIndexPath:indexPath];
+    
+    HippyLogTrace(@"[ListViewDebug] %@ will display cell:%ld", self.hippyTag, indexPath.row);
 }
+
+#if HIPPY_DEBUG
+- (void)collectionView:(UICollectionView *)collectionView
+  didEndDisplayingCell:(UICollectionViewCell *)cell
+    forItemAtIndexPath:(NSIndexPath *)indexPath {
+    if ([HippyNextBaseListView instancesRespondToSelector:_cmd]) {
+        [super collectionView:collectionView didEndDisplayingCell:cell forItemAtIndexPath:indexPath];
+    }
+    HippyLogTrace(@"[ListViewDebug] %@ did end display cell:%ld", self.hippyTag, indexPath.row);
+}
+#endif /* HIPPY_DEBUG */
 
 #pragma mark - Private
 
