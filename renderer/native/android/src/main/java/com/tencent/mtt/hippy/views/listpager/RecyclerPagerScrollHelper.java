@@ -103,6 +103,8 @@ public class RecyclerPagerScrollHelper {
     public class PagerOnFlingListener extends RecyclerView.OnFlingListener {
         @Override
         public boolean onFling(int velocityX, int velocityY) {
+            LogUtils.d(TAG, "===========================onFling: velocityY " + velocityY);
+
             final HippyRecyclerView recyclerView = recyclerViewRef.get();
             if (recyclerView == null) {
                 return false;
@@ -114,14 +116,14 @@ public class RecyclerPagerScrollHelper {
             int count = adapter.getItemCountExceptHeaderAndFooter() - 1;
             if (currentPageIndex == count && adapter.hasPullFooter()) {
                 if (adapter.getFooterVisibleHeight() > 0) {
-                    return false;
+                    return true;
                 }
                 offsetY = recyclerView.getContentOffsetY();
                 LogUtils.d(TAG, "onFling: offsetY " + offsetY + ", startY " + startY);
             }
             if (currentPageIndex == 0 && adapter.hasPullHeader()) {
                 if (adapter.getHeaderVisibleHeight() > 0) {
-                    return false;
+                    return true;
                 }
                 offsetY = recyclerView.getContentOffsetY();
                 LogUtils.d(TAG, "onFling: offsetY " + offsetY + ", startY " + startY);

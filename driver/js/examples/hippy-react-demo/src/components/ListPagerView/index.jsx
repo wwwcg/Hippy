@@ -193,9 +193,9 @@ async onEndReached() {
   this.fetchingDataFlag = false;
   this.setState({
     dataSource,
-    headerRefreshText: '2秒后收起',
+    headerRefreshText: '1秒后收起',
   }, () => {
-    this.listPager.collapsePullHeader({ time: 2000 });
+    this.listPager.collapsePullHeader({ time: 1000 });
   });
 }
 
@@ -357,7 +357,7 @@ onFooterPulling(evt) {
 
   mockFetchData() {
     return new Promise((resolve) => {
-      setTimeout(() => resolve(mockDataArray), 3000);
+      setTimeout(() => resolve(mockDataArray), 1600);
     });
   }
 
@@ -370,8 +370,8 @@ onFooterPulling(evt) {
           ref={(ref) => {
             this.listPager = ref;
           }}
-          preCreateRowsNumber={1} // configure pre-create rows number
-
+          preCreateRowsNumber={2} // configure pre-create rows number
+          preloadItemNumber={8}
           // all below props are same as ListView
           bounces={true}
           showScrollIndicator={false}
