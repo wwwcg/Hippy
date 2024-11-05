@@ -169,7 +169,8 @@ HIPPY_EXTERN NSString *HippyBridgeModuleNameForClass(Class bridgeModuleClass);
 ///
 /// @param delegate bridge delegate
 /// @param block for user-defined module
-/// @param launchOptions launch options, will not be sent to frontend
+/// @param launchOptions launch options, will not be sent to frontend, see `HippyLaunchOptions`
+/// For compatible with historical versions, launchOptions can also pass a NSDictionary object, but not recommended.
 /// @param executorKey key to engine instance. HippyBridge with same engine key will share same engine intance.
 ///
 /// Note: 多个bridge使用相同的共享engineKey时，只有全部bridge实例销毁时engine资源才将释放，因此，请注意合理使用，避免出现意外的内存泄漏。
@@ -187,7 +188,8 @@ HIPPY_EXTERN NSString *HippyBridgeModuleNameForClass(Class bridgeModuleClass);
 /// @param delegate bridge delegate
 /// @param bundleURL the
 /// @param block for user-defined module
-/// @param launchOptions launch options, will not be sent to frontend
+/// @param launchOptions launch options, will not be sent to frontend, see `HippyLaunchOptions`
+/// For compatible with historical versions, launchOptions can also pass a NSDictionary object, but not recommended.
 /// @param executorKey key to engine instance. HippyBridge with same engine key will share same engine intance.
 ///
 /// Note: 多个bridge使用相同的共享engineKey时，只有全部bridge实例销毁时engine资源才将释放，因此，请注意合理使用，避免出现意外的内存泄漏。
@@ -200,11 +202,6 @@ HIPPY_EXTERN NSString *HippyBridgeModuleNameForClass(Class bridgeModuleClass);
 
 /// The delegate of bridge
 @property (nonatomic, weak, readonly) id<HippyBridgeDelegate> delegate;
-
-/// SDK launch config
-/// For compatibility with older versions,
-/// type may be a dictionary, or a HippyLaunchOptions object.
-@property (nonatomic, strong, readonly) id launchOptions;
 
 /// Module name
 ///
