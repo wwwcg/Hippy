@@ -166,7 +166,7 @@ static const char * kHippyExceptionEventName = "uncaughtException";
             // inject device info information
             NSMutableDictionary *deviceInfo = [NSMutableDictionary dictionaryWithDictionary:[bridge deviceInfo]];
             NSString *deviceName = [[UIDevice currentDevice] name];
-            NSString *clientId = HippyMD5Hash([NSString stringWithFormat:@"%@%p", deviceName, strongSelf]);
+            NSString *clientId = HippyMD5Hash([NSString stringWithFormat:@"%@%p", deviceName, bridge]);
             NSDictionary *debugInfo = @{@"Debug" : @{@"debugClientId" : clientId}};
             [deviceInfo addEntriesFromDictionary:debugInfo];
 
