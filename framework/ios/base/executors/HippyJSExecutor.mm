@@ -883,7 +883,7 @@ static NSError *executeApplicationScript(NSData *script,
     }
     NSString *deviceName = [[UIDevice currentDevice] name];
     NSString *clientId = HippyMD5Hash([NSString stringWithFormat:@"%@%p", deviceName, bridge]);
-    return [devInfo assembleFullWSURLWithClientId:clientId contextName:bridge.contextName];
+    return [devInfo assembleFullWSURLWithClientId:clientId contextName:bridge.contextName isHermesEngine:bridge.usingHermesEngine];
 }
 
 
