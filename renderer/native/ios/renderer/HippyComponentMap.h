@@ -58,7 +58,7 @@ typedef NS_ENUM(NSUInteger, HippyComponentReferenceType) {
 #pragma mark - Root Component
 
 - (void)addRootComponent:(id<HippyComponent>)component
-                rootNode:(std::weak_ptr<hippy::RootNode>)rootNode
+                rootNode:(std::shared_ptr<hippy::RootNode>)rootNode
                   forTag:(NSNumber *)tag;
 
 /// Remove root component

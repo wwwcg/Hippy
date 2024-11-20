@@ -145,10 +145,10 @@ public:
      * Regitster a root view and register UIManager instance to RenderManager
      *
      * @param view a specitified view as root view
-     * @param root_node root node for root view
+     * @param rootNode root node for root view
      * @param uiManager HippyUIManager instance
      */
-    void RegisterRootView(UIView *view, std::weak_ptr<hippy::RootNode> root_node, HippyUIManager *uiManager);
+    void RegisterRootView(UIView *view, std::shared_ptr<hippy::RootNode> rootNode, HippyUIManager *uiManager);
 
     /**
      * Unregister a root view

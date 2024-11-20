@@ -401,7 +401,7 @@ HIPPY_NOT_IMPLEMENTED(-(instancetype)initWithCoder : (nonnull NSCoder *)aDecoder
             // TODO: check
             // hippy2 使用[_bridge.uiManager setFrame:frame fromOriginFrame:originFrame forView:self];
             // 进行frame更新时的UI重布局及刷新，有待检查hippy3此处架构合理性
-            [_bridge resetRootSize:frame.size];
+            [_bridge resetRootSize:frame.size withRootViewTag:self.hippyTag];
         }
     }
 }

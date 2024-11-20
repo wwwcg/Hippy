@@ -250,17 +250,16 @@ void NativeRenderManager::CallFunction(std::weak_ptr<hippy::RootNode> root_node,
 }
 
 void NativeRenderManager::RegisterRootView(UIView *view,
-                                           std::weak_ptr<hippy::RootNode> root_node,
+                                           std::shared_ptr<hippy::RootNode> rootNode,
                                            HippyUIManager *uiManager) {
     @autoreleasepool {
-        auto rootNode = root_node.lock();
         if (!rootNode) {
             return;
         }
         HippyAssertParam(uiManager);
         std::shared_lock<std::shared_mutex> lock(_mutex);
         _uiManagerMap[rootNode->GetId()] = uiManager;
-        [uiManager registerRootView:view asRootNode:root_node];
+        [uiManager registerRootView:view asRootNode:rootNode];
     }
 }
 

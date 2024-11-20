@@ -157,7 +157,6 @@ static inline void registerLogDelegateToHippyCore() {
     NSMutableArray<NSURL *> *_bundleURLs;
     
     std::shared_ptr<VFSUriLoader> _uriLoader;
-    std::shared_ptr<hippy::RootNode> _rootNode;
     
     // The C++ version of RenderManager instance, bridge holds,
     // One NativeRenderManager holds multiple UIManager instance.
@@ -260,12 +259,6 @@ dispatch_queue_t HippyJSThread;
     
     if (_uriLoader) {
         _uriLoader->Terminate();
-    }
-    if (_renderManager) {
-        _renderManager->RemoveVSyncEventListener(_rootNode);
-    }
-    if (_rootNode) {
-        _rootNode->ReleaseResources();
     }
 }
 
@@ -653,12 +646,13 @@ dispatch_queue_t HippyJSThread;
         if (auto scope = self.javaScriptExecutor.pScope) {
             scope->UnloadInstance(domValue);
         }
+        auto rootNode = [self.uiManager rootNodeForTag:rootTag].lock();
+        if (rootNode) {
+            rootNode->ReleaseResources();
+        }
         if (_renderManager) {
             _renderManager->UnregisterRootView([rootTag intValue]);
-        }
-        if (_rootNode) {
-            _rootNode->ReleaseResources();
-            _rootNode = nullptr;
+            _renderManager->RemoveVSyncEventListener(rootNode);
         }
     }
 }
@@ -1046,7 +1040,7 @@ dispatch_queue_t HippyJSThread;
         return;
     }
     self.javaScriptExecutor.pScope->SetDomManager(domManager);
-    self.javaScriptExecutor.pScope->SetRootNode(rootNode);
+    self.javaScriptExecutor.pScope->SetRootNode(rootNode.lock()->GetId(), rootNode);
 #ifdef ENABLE_INSPECTOR
     auto devtools_data_source = self.javaScriptExecutor.pScope->GetDevtoolsDataSource();
     if (devtools_data_source) {
@@ -1244,45 +1238,21 @@ static NSString *const hippyOnNightModeChangedParam2 = @"RootViewTag";
                                    args:@{@"eventName": eventName, @"extra": params ? : @{}}];
 }
 
-- (NSData *)snapShotData {
-    auto rootNode = _javaScriptExecutor.pScope->GetRootNode().lock();
-    if (!rootNode) {
-        return nil;
-    }
-    std::string data = hippy::DomManager::GetSnapShot(rootNode);
-    return [NSData dataWithBytes:reinterpret_cast<const void *>(data.c_str()) length:data.length()];
-}
-
-- (void)setSnapShotData:(NSData *)data {
-    auto domManager = _javaScriptExecutor.pScope->GetDomManager().lock();
-    if (!domManager) {
-        return;
-    }
-    auto rootNode = _javaScriptExecutor.pScope->GetRootNode().lock();
-    if (!rootNode) {
-        return;
-    }
-    std::string string(reinterpret_cast<const char *>([data bytes]), [data length]);
-    domManager->SetSnapShot(rootNode, string);
-}
-
-
 #pragma mark -
 
 - (void)setRootView:(UIView *)rootView {
     auto engineResource = [[HippyJSEnginesMapper defaultInstance] JSEngineResourceForKey:self.engineKey];
     auto domManager = engineResource->GetDomManager();
     NSNumber *rootTag = [rootView hippyTag];
-    //Create a RootNode instance with a root tag
-    _rootNode = std::make_shared<hippy::RootNode>([rootTag unsignedIntValue]);
-    //Set RootNode for AnimationManager in RootNode
-    _rootNode->GetAnimationManager()->SetRootNode(_rootNode);
-    //Set DomManager for RootNode
-    _rootNode->SetDomManager(domManager);
-    //Set screen scale factor and size for Layout system in RooNode
-    _rootNode->GetLayoutNode()->SetScaleFactor([UIScreen mainScreen].scale);
-    _rootNode->SetRootSize(rootView.frame.size.width, rootView.frame.size.height);
-    _rootNode->SetRootOrigin(rootView.frame.origin.x, rootView.frame.origin.y);
+    
+    // Create a RootNode instance with a root tag
+    // Set DomManager for RootNode
+    // Set screen scale factor and size for Layout system in RooNode
+    auto rootNode = std::make_shared<hippy::RootNode>([rootTag unsignedIntValue]);
+    rootNode->SetDomManager(domManager);
+    rootNode->GetLayoutNode()->SetScaleFactor([UIScreen mainScreen].scale);
+    rootNode->SetRootSize(rootView.frame.size.width, rootView.frame.size.height);
+    rootNode->SetRootOrigin(rootView.frame.origin.x, rootView.frame.origin.y);
     
     // Create NativeRenderManager if needed
     auto renderManager = domManager->GetRenderManager().lock();
@@ -1305,6 +1275,7 @@ static NSString *const hippyOnNightModeChangedParam2 = @"RootViewTag";
     // Note that one NativeRenderManager may have multiple UIManager,
     // and one UIManager may have multiple rootViews,
     // But one HippyBridge can only have one UIManager.
+    // One Bridge -- One UIManager -- Multi RootView
     HippyUIManager *uiManager = self.uiManager;
     if (!uiManager) {
         uiManager = [[HippyUIManager alloc] initWithBridge:self];
@@ -1313,16 +1284,16 @@ static NSString *const hippyOnNightModeChangedParam2 = @"RootViewTag";
     }
     
     //bind rootview and root node
-    _renderManager->RegisterRootView(rootView, _rootNode, uiManager);
+    _renderManager->RegisterRootView(rootView, rootNode, uiManager);
     
     //setup necessary params for bridge
-    [self setupDomManager:domManager rootNode:_rootNode];
+    [self setupDomManager:domManager rootNode:rootNode];
 }
 
-- (void)resetRootSize:(CGSize)size {
+- (void)resetRootSize:(CGSize)size withRootViewTag:(nonnull NSNumber *)rootViewTag {
     auto engineResource = [[HippyJSEnginesMapper defaultInstance] JSEngineResourceForKey:self.engineKey];
-    std::weak_ptr<hippy::RootNode> rootNode = _rootNode;
     auto domManager = engineResource->GetDomManager();
+    std::weak_ptr<hippy::RootNode> rootNode = [self.uiManager rootNodeForTag:rootViewTag];
     std::weak_ptr<hippy::DomManager> weakDomManager = domManager;
     std::vector<std::function<void()>> ops = {[rootNode, weakDomManager, size](){
         auto strongRootNode = rootNode.lock();

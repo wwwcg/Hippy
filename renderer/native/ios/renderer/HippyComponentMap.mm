@@ -29,7 +29,7 @@ using RootNode = hippy::RootNode;
 @interface HippyComponentMap () {
     NSMapTable<NSNumber *, id<HippyComponent>> *_rootComponentsMap;
     NSMutableDictionary<NSNumber *, id> *_componentsMap;
-    std::unordered_map<int32_t, std::weak_ptr<RootNode>> _rootNodesMap;
+    std::unordered_map<int32_t, std::shared_ptr<RootNode>> _rootNodesMap;
     
     NSMutableDictionary<NSNumber *, NSNumber *> *_enableWeakComponentsTempCache;
     NSMutableDictionary<NSNumber *, NSMutableDictionary *> *_cacheDictionaryForWeakComponentsMap;
@@ -57,7 +57,7 @@ using RootNode = hippy::RootNode;
 }
 
 - (void)addRootComponent:(id<HippyComponent>)component
-                rootNode:(std::weak_ptr<hippy::RootNode>)rootNode
+                rootNode:(std::shared_ptr<hippy::RootNode>)rootNode
                   forTag:(NSNumber *)tag {
     NSAssert(component && tag, @"component &&tag must not be null in method %@", NSStringFromSelector(_cmd));
     NSAssert([self threadCheck], @"%@ method needs run in main thread", NSStringFromSelector(_cmd));

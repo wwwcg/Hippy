@@ -320,7 +320,12 @@ NSString *const HippyFontChangeTriggerNotification = @"HippyFontChangeTriggerNot
     return componentData;
 }
 
-- (void)registerRootView:(UIView *)rootView asRootNode:(std::weak_ptr<RootNode>)rootNode {
+- (std::weak_ptr<hippy::RootNode>)rootNodeForTag:(NSNumber *)rootTag {
+    AssertMainQueue();
+    return [_viewRegistry rootNodeForTag:rootTag];
+}
+
+- (void)registerRootView:(UIView *)rootView asRootNode:(std::shared_ptr<RootNode>)rootNode {
     AssertMainQueue();
 
     NSNumber *hippyTag = rootView.hippyTag;

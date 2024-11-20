@@ -358,13 +358,6 @@ HIPPY_EXTERN NSString *HippyBridgeModuleNameForClass(Class bridgeModuleClass);
 - (id)turboModuleWithName:(NSString *)name;
 
 
-#pragma mark - Snapshot
-
-- (NSData *)snapShotData;
-
-- (void)setSnapShotData:(NSData *)data;
-
-
 #pragma mark - App UI State Related
 
 /// NightMode or not, default is NO.
@@ -378,7 +371,8 @@ HIPPY_EXTERN NSString *HippyBridgeModuleNameForClass(Class bridgeModuleClass);
 
 /// Update the size of RootView
 /// - Parameter size: CGSize
-- (void)resetRootSize:(CGSize)size;
+/// - Parameter rootViewTag: rootView's hippyTag
+- (void)resetRootSize:(CGSize)size withRootViewTag:(NSNumber *)rootViewTag;;
 
 
 #pragma mark - Debug Related

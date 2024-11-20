@@ -56,7 +56,11 @@ class HippyValue;
 
 @interface HippyUIManager (Private) <HippyUIManagerInternal>
 
-- (void)registerRootView:(UIView *)rootView asRootNode:(std::weak_ptr<hippy::RootNode>)rootNode;
+/// Get hippy::RootNode with given tag
+/// - Parameter rootTag: root's hippyTag
+- (std::weak_ptr<hippy::RootNode>)rootNodeForTag:(NSNumber *)rootTag;
+
+- (void)registerRootView:(UIView *)rootView asRootNode:(std::shared_ptr<hippy::RootNode>)rootNode;
 
 - (void)unregisterRootViewFromTag:(NSNumber *)rootTag;
 
