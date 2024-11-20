@@ -119,7 +119,7 @@ void UIManagerModule::CallUIFunction(CallbackInfo& info, void* data) {
   if (!dom_manager) {
     return;
   }
-  dom_manager->CallFunction(scope->GetRootNode(), static_cast<uint32_t>(id), name, param_value, cb);
+  dom_manager->CallFunction(scope->GetRootNode(0000000000), static_cast<uint32_t>(id), name, param_value, cb);
 }
 
 std::shared_ptr<CtxValue> UIManagerModule::BindFunction(std::shared_ptr<Scope> scope,

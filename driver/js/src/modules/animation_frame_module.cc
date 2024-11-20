@@ -61,7 +61,7 @@ void AnimationFrameModule::RequestAnimationFrame(hippy::napi::CallbackInfo &info
     return;
   }
 
-  auto root_node = scope->GetRootNode().lock();
+  auto root_node = scope->GetRootNode(0000000000).lock();
   if (!root_node) {
     return;
   }
@@ -107,7 +107,7 @@ void AnimationFrameModule::CancelAnimationFrame(hippy::napi::CallbackInfo &info,
     return;
   }
 
-  auto root_node = scope->GetRootNode().lock();
+  auto root_node = scope->GetRootNode(0000000000).lock();
   if (!root_node) {
     return;
   }

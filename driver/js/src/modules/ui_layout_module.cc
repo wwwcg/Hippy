@@ -55,7 +55,7 @@ void LayoutModule::ResetLayoutCache(CallbackInfo& info, void* data) {
   if (!scope) {
     return;
   }
-  auto root_node = scope->GetRootNode().lock();
+  auto root_node = scope->GetRootNode(0000000000).lock();
   if (root_node != nullptr) {
     root_node->ResetLayoutCache();
   }
