@@ -304,12 +304,12 @@ class Scope : public std::enable_shared_from_this<Scope> {
 
   inline std::weak_ptr<DomManager> GetDomManager() { return dom_manager_; }
 
-  inline std::weak_ptr<RootNode> GetRootNode() {
-    return root_node_;
+  inline std::weak_ptr<RootNode> GetRootNode(uint32_t root_id) {
+    return root_node_map_[root_id];
   }
 
-  inline void SetRootNode(std::weak_ptr<RootNode> root_node) {
-    root_node_ = root_node;
+  inline void SetRootNode(uint32_t root_id, std::weak_ptr<RootNode> root_node) {
+    root_node_map_[root_id] = root_node;
   }
 
   inline void AddWillExitCallback(std::function<void()> cb) { // cb will run in the js thread
@@ -485,7 +485,7 @@ class Scope : public std::enable_shared_from_this<Scope> {
   std::unique_ptr<ScopeWrapper> wrapper_;
   std::weak_ptr<UriLoader> loader_;
   std::weak_ptr<DomManager> dom_manager_;
-  std::weak_ptr<RootNode> root_node_;
+  std::unordered_map<uint32_t, std::weak_ptr<RootNode>> root_node_map_;
   std::unordered_map<std::string, std::shared_ptr<ModuleBase>> module_object_map_;
   std::unordered_map<string_view , std::shared_ptr<CtxValue>> javascript_class_map_;
   std::unordered_map<std::string, std::shared_ptr<CtxValue>> turbo_instance_map_;

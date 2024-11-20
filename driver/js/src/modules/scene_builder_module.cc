@@ -448,11 +448,10 @@ std::shared_ptr<ClassTemplate<SceneBuilder>> RegisterSceneBuilder(const std::wea
     if (argument_count == 2) {
        scope->GetContext()->GetValueBoolean(arguments[1], &needSortByIndex);
     }
-    std::shared_ptr<RootNode> root_node;
-    auto& persistent_map = RootNode::PersistentMap();
-    auto flag = persistent_map.Find(static_cast<uint32_t>(builder->rootViewId), root_node);
-    FOOTSTONE_CHECK(flag);
-    SceneBuilder::Create(scope->GetDomManager(), root_node, std::move(std::get<2>(nodes)), needSortByIndex);
+    SceneBuilder::Create(scope->GetDomManager(), 
+                         scope->GetRootNode(builder->rootViewId),
+                         std::move(std::get<2>(nodes)),
+                         needSortByIndex);
     return nullptr;
   };
   class_template.functions.emplace_back(std::move(create_func_def));
@@ -469,11 +468,7 @@ std::shared_ptr<ClassTemplate<SceneBuilder>> RegisterSceneBuilder(const std::wea
       return nullptr;
     }
     auto ret = HandleJsValue(scope->GetContext(), arguments[0], scope);
-    std::shared_ptr<RootNode> root_node;
-    auto& persistent_map = RootNode::PersistentMap();
-    auto flag = persistent_map.Find(static_cast<uint32_t>(builder->rootViewId), root_node);
-    FOOTSTONE_CHECK(flag);
-    SceneBuilder::Update(scope->GetDomManager(), root_node, std::move(std::get<2>(ret)));
+    SceneBuilder::Update(scope->GetDomManager(), scope->GetRootNode(builder->rootViewId), std::move(std::get<2>(ret)));
 
     return nullptr;
   };
@@ -516,17 +511,13 @@ std::shared_ptr<ClassTemplate<SceneBuilder>> RegisterSceneBuilder(const std::wea
               std::make_shared<DomNode>(
                   std::get<2>(id_tuple),
                   std::get<2>(pid_tuple),
-                  scope->GetRootNode()),
+                  scope->GetRootNode(builder->rootViewId)),
               std::get<2>(ref_info_tuple),
               nullptr));
         }
       }
     }
-    std::shared_ptr<RootNode> root_node;
-    auto& persistent_map = RootNode::PersistentMap();
-    auto flag = persistent_map.Find(static_cast<uint32_t>(builder->rootViewId), root_node);
-    FOOTSTONE_CHECK(flag);
-    SceneBuilder::Move(weak_dom_manager, root_node, std::move(dom_infos));
+    SceneBuilder::Move(weak_dom_manager, scope->GetRootNode(builder->rootViewId), std::move(dom_infos));
     return nullptr;
   };
   class_template.functions.emplace_back(std::move(move_func_def));
@@ -567,15 +558,11 @@ std::shared_ptr<ClassTemplate<SceneBuilder>> RegisterSceneBuilder(const std::wea
             std::make_shared<DomNode>(
                 std::get<2>(id_tuple),
                 std::get<2>(pid_tuple),
-                scope->GetRootNode()),
+                scope->GetRootNode(builder->rootViewId)),
             nullptr, nullptr));
       }
     }
-    std::shared_ptr<RootNode> root_node;
-    auto& persistent_map = RootNode::PersistentMap();
-    auto flag = persistent_map.Find(static_cast<uint32_t>(builder->rootViewId), root_node);
-    FOOTSTONE_CHECK(flag);
-    SceneBuilder::Delete(scope->GetDomManager(), root_node, std::move(dom_infos));
+    SceneBuilder::Delete(scope->GetDomManager(), scope->GetRootNode(builder->rootViewId), std::move(dom_infos));
 
     return nullptr;
   };
@@ -595,11 +582,7 @@ std::shared_ptr<ClassTemplate<SceneBuilder>> RegisterSceneBuilder(const std::wea
     Scope::EventListenerInfo listener_info;
     HandleEventListenerInfo(scope->GetContext(), argument_count, arguments, listener_info);
     auto dom_listener_info = scope->AddListener(listener_info);
-    std::shared_ptr<RootNode> root_node;
-    auto& persistent_map = RootNode::PersistentMap();
-    auto flag = persistent_map.Find(static_cast<uint32_t>(builder->rootViewId), root_node);
-    FOOTSTONE_CHECK(flag);
-    SceneBuilder::AddEventListener(scope->GetDomManager(), root_node, dom_listener_info);
+    SceneBuilder::AddEventListener(scope->GetDomManager(), scope->GetRootNode(builder->rootViewId), dom_listener_info);
     return nullptr;
   };
   class_template.functions.emplace_back(std::move(add_event_listener_def));
@@ -619,11 +602,7 @@ std::shared_ptr<ClassTemplate<SceneBuilder>> RegisterSceneBuilder(const std::wea
     Scope::EventListenerInfo listener_info;
     HandleEventListenerInfo(scope->GetContext(), argument_count, arguments, listener_info);
     auto dom_listener_info = scope->RemoveListener(listener_info);
-    std::shared_ptr<RootNode> root_node;
-    auto& persistent_map = RootNode::PersistentMap();
-    auto flag = persistent_map.Find(static_cast<uint32_t>(builder->rootViewId), root_node);
-    FOOTSTONE_CHECK(flag);
-    SceneBuilder::RemoveEventListener(scope->GetDomManager(), root_node, dom_listener_info);
+    SceneBuilder::RemoveEventListener(scope->GetDomManager(), scope->GetRootNode(builder->rootViewId), dom_listener_info);
     return nullptr;
   };
   class_template.functions.emplace_back(std::move(remove_event_listener_def));
@@ -642,11 +621,7 @@ std::shared_ptr<ClassTemplate<SceneBuilder>> RegisterSceneBuilder(const std::wea
       TDF_PERF_LOG("SceneBuilder.build() exit with error");
       return nullptr;
     }
-    std::shared_ptr<RootNode> root_node;
-    auto& persistent_map = RootNode::PersistentMap();
-    auto flag = persistent_map.Find(static_cast<uint32_t>(builder->rootViewId), root_node);
-    FOOTSTONE_CHECK(flag);
-    SceneBuilder::Build(scope->GetDomManager(), root_node);
+    SceneBuilder::Build(scope->GetDomManager(), scope->GetRootNode(builder->rootViewId));
     TDF_PERF_LOG("SceneBuilder.build() End");
     return nullptr;
   };
