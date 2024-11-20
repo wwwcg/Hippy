@@ -29,7 +29,7 @@
     if (![object isKindOfClass:[self class]]) {
         return NO;
     }
-    return _hippyBridge == [object hippyBridge];
+    return _hippyBridge == [object hippyBridge] && _rootView == [object rootView];
 }
 
 - (NSUInteger)hash {

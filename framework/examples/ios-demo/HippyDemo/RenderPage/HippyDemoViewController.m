@@ -96,20 +96,26 @@
     HippySetLogFunction(HippyDefaultLogFunction);
 }
 
+static HippyBridge *globalBridge = nil;
+
 - (void)runHippyDemo {
     // Necessary configuration:
     NSString *moduleName = @"Demo";
     NSDictionary *launchOptions = @{ @"DebugMode": @(_debugMode) };
     NSDictionary *initialProperties = @{ @"isSimulator": @(TARGET_OS_SIMULATOR) };
     
-    HippyBridge *bridge = nil;
+    HippyBridge *bridge = globalBridge;
     HippyRootView *rootView = nil;
     if (_debugMode) {
-        bridge = [[HippyBridge alloc] initWithDelegate:self
-                                             bundleURL:_debugURL
-                                        moduleProvider:nil
-                                         launchOptions:launchOptions
-                                           executorKey:nil];
+        if (!bridge) {
+            bridge = [[HippyBridge alloc] initWithDelegate:self
+                                                 bundleURL:_debugURL
+                                            moduleProvider:nil
+                                             launchOptions:launchOptions
+                                               executorKey:nil];
+            globalBridge = bridge;
+        }
+        
         rootView = [[HippyRootView alloc] initWithBridge:bridge
                                               moduleName:moduleName
                                        initialProperties:initialProperties
@@ -117,11 +123,14 @@
     } else {
         NSURL *vendorBundleURL = [self vendorBundleURL];
         NSURL *indexBundleURL = [self indexBundleURL];
-        bridge = [[HippyBridge alloc] initWithDelegate:self
-                                             bundleURL:vendorBundleURL
-                                        moduleProvider:nil
-                                         launchOptions:launchOptions
-                                           executorKey:moduleName];
+        if (!bridge) {
+            bridge = [[HippyBridge alloc] initWithDelegate:self
+                                                 bundleURL:vendorBundleURL
+                                            moduleProvider:nil
+                                             launchOptions:launchOptions
+                                               executorKey:moduleName];
+            globalBridge = bridge;
+        }
         rootView = [[HippyRootView alloc] initWithBridge:bridge
                                              businessURL:indexBundleURL
                                               moduleName:moduleName
