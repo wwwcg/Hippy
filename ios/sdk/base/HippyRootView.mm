@@ -149,6 +149,22 @@ NSString *const HippyContentDidAppearNotification = @"HippyContentDidAppearNotif
                    businessURL:(NSURL *)businessURL
                     moduleName:(NSString *)moduleName
              initialProperties:(NSDictionary *)initialProperties
+                  shareOptions:(NSDictionary *)shareOptions
+                      delegate:(id<HippyRootViewDelegate>)delegate {
+    return [self initWithBridge:bridge 
+                    businessURL:businessURL
+                     moduleName:moduleName
+              initialProperties:initialProperties
+                  launchOptions:nil
+                   shareOptions:shareOptions
+                      debugMode:NO
+                       delegate:delegate];
+}
+
+- (instancetype)initWithBridge:(HippyBridge *)bridge
+                   businessURL:(NSURL *)businessURL
+                    moduleName:(NSString *)moduleName
+             initialProperties:(NSDictionary *)initialProperties
                  launchOptions:(NSDictionary *)launchOptions
                   shareOptions:(NSDictionary *)shareOptions
                      debugMode:(BOOL)mode
