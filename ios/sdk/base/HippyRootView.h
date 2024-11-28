@@ -188,4 +188,6 @@ extern NSString *const HippyContentDidAppearNotification;
 // MttRN:
 - (void)bundleFinishedLoading:(HippyBridge *)bridge;
 - (void)runApplication:(HippyBridge *)bridge;
+
+- (void)onHostControllerTransitionedToSize:(CGSize)size;
 @end
