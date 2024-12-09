@@ -66,6 +66,8 @@ export default class NestedScrollExample extends React.Component {
     this.state = {
       layoutHeight: 0,
       currentSlide: 0,
+      currentSlideInner1: 0,
+      currentSlideInner2: 0,
     };
   }
 
@@ -74,8 +76,19 @@ export default class NestedScrollExample extends React.Component {
     this.viewPager?.setPage(i);
   }
 
+  selectPageInner1(i) {
+    this.setState({ currentSlideInner1: i });
+    this.viewPagerInner1?.setPage(i);
+  }
+
+  selectPageInner2(i) {
+    this.setState({ currentSlideInner2: i });
+    this.viewPagerInner2?.setPage(i);
+  }
+
+
   render() {
-    const { layoutHeight, currentSlide } = this.state;
+    const { layoutHeight, currentSlide, currentSlideInner1, currentSlideInner2 } = this.state;
     return (
       <ScrollView
         style={styles.demoWrap}
@@ -102,25 +115,108 @@ export default class NestedScrollExample extends React.Component {
           initialPage={currentSlide}
           style={{ height: layoutHeight - 80 }}
           onPageSelected={e => this.setState({ currentSlide: e.position })}>
-          <ListView nestedScrollTopPriority={'parent'} key={'slide1'}
-            numberOfRows={30}
-            getRowKey={i => `item${i}`}
-            initialListSize={30}
-            renderRow={i => (
-              <Text style={i % 2 ? styles.itemEvenText : styles.itemOddText}>Item {i}</Text>
-            )}
-            getRowStyle={i => (i % 2 ? styles.itemEven : styles.itemOdd)}
-          />
-          <ListView nestedScrollTopPriority={'self'} key={'slide2'}
-                    numberOfRows={30}
-                    getRowKey={i => `item${i}`}
-                    initialListSize={30}
-                    renderRow={i => (
-                        <Text style={i % 2 ? styles.itemEvenText : styles.itemOddText}>Item {i}</Text>
-                    )}
-                    getRowStyle={i => (i % 2 ? styles.itemEven : styles.itemOdd)}
-          />
+
+          <ScrollView
+            style={{...styles.demoWrap, backgroundColor: 'yellow', height: layoutHeight - 80}}
+            scrollEventThrottle={50}
+            nestedScrollPriority={'parent'}
+          >
+            <View style={[styles.banner, {height: 250,}]}>
+            </View>
+            <View style={styles.tabs}>
+              <Text
+                key="tab1"
+                style={(currentSlideInner1 === 0) ? styles.tabSelected : styles.tabText}
+                onClick={() => this.selectPageInner1(0)}>
+                tab 1 (parent first)
+              </Text>
+              <Text
+                key="tab2"
+                style={(currentSlideInner1 === 1) ? styles.tabSelected : styles.tabText}
+                onClick={() => this.selectPageInner1(1)}>
+                tab 2 (self first)
+              </Text>
+            </View>
+            <ViewPager
+              ref={ref => this.viewPagerInner1 = ref}
+              initialPage={currentSlideInner1}
+              style={{ height: layoutHeight - 80 }}
+              onPageSelected={e => this.setState({ currentSlideInner1: e.position })}
+            >
+
+              <ListView nestedScrollPriority={'parent'} key={'slide1'}
+                        numberOfRows={30}
+                        getRowKey={i => `item${i}`}
+                        initialListSize={30}
+                        renderRow={i => (
+                          <Text style={i % 2 ? styles.itemEvenText : styles.itemOddText}>Item {i}</Text>
+                        )}
+                        getRowStyle={i => (i % 2 ? styles.itemEven : styles.itemOdd)}
+              />
+              <ListView nestedScrollTopPriority={'self'} key={'slide2'}
+                        numberOfRows={30}
+                        getRowKey={i => `item${i}`}
+                        initialListSize={30}
+                        renderRow={i => (
+                          <Text style={i % 2 ? styles.itemEvenText : styles.itemOddText}>Item {i}</Text>
+                        )}
+                        getRowStyle={i => (i % 2 ? styles.itemEven : styles.itemOdd)}
+              />
+
+            </ViewPager >
+          </ScrollView >
+
+          <ScrollView
+            style={{...styles.demoWrap, backgroundColor: 'lightblue', height: layoutHeight - 80}}
+            scrollEventThrottle={50}
+            nestedScrollPriority={'self'}
+          >
+            <View style={styles.banner}>
+            </View>
+            <View style={styles.tabs}>
+              <Text
+                key="tab1"
+                style={(currentSlideInner2 === 0) ? styles.tabSelected : styles.tabText}
+                onClick={() => this.selectPageInner2(0)}>
+                tab 1 (parent first)
+              </Text>
+              <Text
+                key="tab2"
+                style={(currentSlideInner2 === 1) ? styles.tabSelected : styles.tabText}
+                onClick={() => this.selectPageInner2(1)}>
+                tab 2 (self first)
+              </Text>
+            </View>
+            <ViewPager
+              ref={ref => this.viewPagerInner2 = ref}
+              initialPage={currentSlideInner2}
+              style={{ height: layoutHeight - 80 }}
+              onPageSelected={e => this.setState({ currentSlideInner2: e.position })}>
+
+              <ListView nestedScrollPriority={'parent'} key={'slide1'}
+                        numberOfRows={30}
+                        getRowKey={i => `item${i}`}
+                        initialListSize={30}
+                        renderRow={i => (
+                          <Text style={i % 2 ? styles.itemEvenText : styles.itemOddText}>Item {i}</Text>
+                        )}
+                        getRowStyle={i => (i % 2 ? styles.itemEven : styles.itemOdd)}
+              />
+              <ListView nestedScrollTopPriority={'self'} key={'slide2'}
+                        numberOfRows={30}
+                        getRowKey={i => `item${i}`}
+                        initialListSize={30}
+                        renderRow={i => (
+                          <Text style={i % 2 ? styles.itemEvenText : styles.itemOddText}>Item {i}</Text>
+                        )}
+                        getRowStyle={i => (i % 2 ? styles.itemEven : styles.itemOdd)}
+              />
+
+            </ViewPager >
+          </ScrollView >
+
         </ViewPager >
-      </ScrollView >);
+      </ScrollView >
+    );
   }
 }
