@@ -18,6 +18,7 @@
  * limitations under the License.
  */
 #include "connector/dom_interceptor.h"
+#include "connector/js2ark.h"
 
 #include "dom/animation/animation_manager.h"
 #include "dom/diff_utils.h"
@@ -28,12 +29,12 @@
 #include "dom/render_manager.h"
 #include "dom/root_node.h"
 #include "dom/scene_builder.h"
+#include "driver/js_driver_utils.h"
 #include "footstone/serializer.h"
 #include "footstone/deserializer.h"
 #include "footstone/one_shot_timer.h"
 #include "footstone/string_view_utils.h"
 #include "footstone/task_runner.h"
-#include "footstone/time_delta.h"
 #include "footstone/worker.h"
 #include "oh_napi/data_holder.h"
 #include "footstone/worker_impl.h"
@@ -142,8 +143,14 @@ class DomInterceptor : public DomManager {
       return;
     }
     event_callback_map_[listener_id] = std::move(cb);
-    handler_.AddEventListener(handler_.context, id_, dom_id, event_name.c_str(),
-                              listener_id, use_capture);
+    json params = {
+      {"id", dom_id},
+      {"event", event_name},
+      {"listener", listener_id},
+      {"capture", use_capture}
+    };
+
+    handler_.AddEventListener(handler_.context, id_, params.dump().c_str());
   }
 
   void RemoveEventListener(const std::weak_ptr<RootNode> &weak_root_node, uint32_t dom_id,
@@ -153,7 +160,13 @@ class DomInterceptor : public DomManager {
       return;
     }
     event_callback_map_.erase(listener_id);
-    handler_.RemoveEventListener(handler_.context, id_, dom_id, event_name.c_str(), listener_id);
+    json params = {
+      {"id", dom_id},
+      {"event", event_name},
+      {"listener", listener_id}
+    };
+
+    handler_.RemoveEventListener(handler_.context, id_, params.dump().c_str());
   }
     
   void HandleEventListener(const char* param) {
@@ -304,6 +317,32 @@ uint32_t HippyCreateDomInterceptor(HippyDomInterceptor handler) {
   dom_manager->SetWorker(worker);
   
   hippy::global_dom_manager_num_holder.Insert(dom_manager_id, 1u);
+  hippy::bridge::SetCallHostInterceptor([handler](
+    const std::shared_ptr<hippy::Scope> &scope,
+    const string_view &module,
+    const string_view &func,
+    const string_view &cb_id,
+    const std::string &buffer
+  ) {
+    auto dom_manager = scope->GetDomManager().lock();
+    if (!dom_manager) {
+      return false;
+    }
+    using StringViewUtils = footstone::stringview::StringViewUtils;
+    auto module_str = StringViewUtils::ToStdString(
+        StringViewUtils::ConvertEncoding(module, string_view::Encoding::Utf8).utf8_value());
+    auto func_str = StringViewUtils::ToStdString(
+        StringViewUtils::ConvertEncoding(func, string_view::Encoding::Utf8).utf8_value());
+    auto cb_id_str = StringViewUtils::ToStdString(
+        StringViewUtils::ConvertEncoding(cb_id, string_view::Encoding::Utf8).utf8_value());
+    nlohmann::json params = {
+      {"module", module_str},
+      {"method", func_str},
+      {"callback", cb_id_str},
+      {"buffer", buffer}
+    };
+    return handler.CallHost(handler.context, dom_manager->GetId(), params.dump().c_str());
+  });
   return dom_manager_id;
 }
 
@@ -332,5 +371,22 @@ void HippyDestroyDomInterceptor(uint32_t dom_interceptor_id) {
   dom_manager_object->GetWorker()->Terminate();
   flag = hippy::global_data_holder.Erase(dom_interceptor_id);
   FOOTSTONE_DCHECK(flag);
+}
+
+void HippyBridgeCallFunction(uint32_t scope_id, const char *action_name, const char *buffer) {
+  std::any scope_object;
+  auto flag = hippy::global_data_holder.Find(scope_id, scope_object);
+  if (!flag) {
+    FOOTSTONE_LOG(ERROR) << "scope can not found, scope id = " << scope_id << "!!!";
+    return;
+  }
+  auto scope = std::any_cast<std::shared_ptr<hippy::Scope>>(scope_object);
+  hippy::JsDriverUtils::CallJs(
+    action_name,
+    scope,
+    [](hippy::CALL_FUNCTION_CB_STATE state, const string_view &msg) {},
+    buffer,
+    []() {}
+  );
 }
 EXTERN_C_END

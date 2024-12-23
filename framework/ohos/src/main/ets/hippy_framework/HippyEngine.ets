@@ -130,7 +130,14 @@ export class EngineInitParams {
   public providers: Array<HippyAPIProvider> | null = null;
   // public processors: Array<Processor> | null = null;
   // Optional  is use V8 serialization or json
-  public enableV8Serialization = false;
+  private enableV8SerializationField = false;
+  public set enableV8Serialization(value: boolean) {
+    this.enableV8SerializationField = value;
+  }
+  public get enableV8Serialization(): boolean {
+    // domInterceptor不支持v8序列化
+    return this.enableV8SerializationField && !this.domInterceptor;
+  }
   // 可选参数 是否打印引擎的完整的log。默认为false
   public enableLog = false;
   // 可选参数 是否打印更新动画的log。默认为true

@@ -138,6 +138,7 @@ class DomManager {
   inline auto GetDomEndTimePoint() { return dom_end_time_point_; }
   inline DomManagerType GetType() { return type_; }
   inline void SetId(uint32_t id) { id_ = id; }
+  inline uint32_t GetId() { return id_; }
 
  protected:
   uint32_t id_;
