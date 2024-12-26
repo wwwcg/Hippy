@@ -18,6 +18,7 @@
  * limitations under the License.
  */
 
+#include <cstdint>
 #define EXPERIMENT_LAYER_OPTIMIZATION
 
 #include "dom/dom_manager.h"
@@ -187,7 +188,7 @@ void DomManagerImpl::RemoveEventListener(const std::weak_ptr<RootNode>& weak_roo
 }
 
 void DomManagerImpl::CallFunction(const std::weak_ptr<RootNode>& weak_root_node, uint32_t id, const std::string& name,
-                              const DomArgument& param, const CallFunctionCallback& cb) {
+                                  const DomArgument& param, uint32_t cb_id, const CallFunctionCallback& cb) {
   auto root_node = weak_root_node.lock();
   if (!root_node) {
     return;

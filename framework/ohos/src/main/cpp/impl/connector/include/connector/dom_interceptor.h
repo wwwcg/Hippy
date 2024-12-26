@@ -36,8 +36,7 @@ typedef struct {
   void (*EndBatch)(const char *context, uint32_t dom_interceptor_id);
   void (*AddEventListener)(const char *context, uint32_t dom_interceptor_id, const char *params);
   void (*RemoveEventListener)(const char *context, uint32_t dom_interceptor_id, const char *params);
-  void (*CallFunction)(const char *context, uint32_t dom_interceptor_id, uint32_t dom_id,
-                       const char *name, const void *param, const void *cb);
+  void (*CallFunction)(const char *context, uint32_t dom_interceptor_id, const char *params);
   void (*SetRootSize)(const char *context, uint32_t dom_interceptor_id, float width, float height);
   void (*DoLayout)(const char *context, uint32_t dom_interceptor_id);
   bool (*CallHost)(const char *context, uint32_t dom_interceptor_id, const char *params);
@@ -45,6 +44,7 @@ typedef struct {
 
 uint32_t HippyCreateDomInterceptor(HippyDomInterceptor handler);
 void HippyDomInterceptorSendEvent(uint32_t dom_interceptor_id, uint32_t root_id, const char *param);
+void HippyDomInterceptorDoCallback(uint32_t dom_interceptor_id, uint32_t root_id, const char *param);
 void HippyDestroyDomInterceptor(uint32_t dom_interceptor_id);
 void HippyBridgeCallFunction(uint32_t scope_id, const char *action_name, const char *buffer);
 EXTERN_C_END

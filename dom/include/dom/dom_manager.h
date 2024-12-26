@@ -113,7 +113,7 @@ class DomManager {
   virtual void RemoveEventListener(const std::weak_ptr<RootNode>& weak_root_node, uint32_t id, const std::string& name,
                                    uint64_t listener_id) = 0;
   virtual void CallFunction(const std::weak_ptr<RootNode>& weak_root_node, uint32_t id, const std::string& name,
-                            const DomArgument& param, const CallFunctionCallback& cb) = 0;
+                            const DomArgument& param, uint32_t cb_id, const CallFunctionCallback& cb) = 0;
   virtual void SetRootSize(const std::weak_ptr<RootNode>& weak_root_node, float width, float height) = 0;
   virtual void DoLayout(const std::weak_ptr<RootNode>& weak_root_node) = 0;
   void PostTask(const Scene&& scene);
@@ -190,6 +190,7 @@ class DomManagerImpl : public DomManager {
                     uint32_t id,
                     const std::string& name,
                     const DomArgument& param,
+                    uint32_t cb_id,
                     const CallFunctionCallback& cb) override;
   void SetRootSize(const std::weak_ptr<RootNode>& weak_root_node, float width, float height) override;
   void DoLayout(const std::weak_ptr<RootNode>& weak_root_node) override;

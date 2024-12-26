@@ -32,6 +32,7 @@ inline namespace dom {
 enum class ArgumentType {
   BSON,
   OBJECT,
+  JSON,
 };
 
 class DomArgument {
@@ -46,6 +47,8 @@ class DomArgument {
   DomArgument(const std::pair<uint8_t*, size_t>& bson_value)
       : data_(std::make_any<std::vector<uint8_t>>(bson_value.first, bson_value.first + bson_value.second)),
         argument_type_(ArgumentType::BSON){}
+  DomArgument(const std::string& json_value)
+      : data_(std::make_any<std::string>(json_value)), argument_type_(ArgumentType::JSON){}
 
   ~DomArgument();
 
@@ -53,6 +56,7 @@ class DomArgument {
 
   bool ToBson(std::vector<uint8_t>& bson) const;
   bool ToObject(footstone::value::HippyValue& hippy_value) const;
+  bool ToJson(std::string& json) const;
 
  private:
   static bool ConvertObjectToBson(const footstone::value::HippyValue& hippy_value, std::vector<uint8_t>& bson) ;

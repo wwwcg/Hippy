@@ -65,6 +65,7 @@ class DomInterceptor : public DomManager {
   DomInterceptor(HippyDomInterceptor handler) : DomManager(DomManagerType::kJson), handler_(handler) {}
   ~DomInterceptor() override {
     event_callback_map_.clear();
+    function_callback_map_.clear();
   }
 
   void SetRenderManager(const std::weak_ptr<RenderManager> &render_manager) override {
@@ -243,13 +244,38 @@ class DomInterceptor : public DomManager {
   }
 
   void CallFunction(const std::weak_ptr<RootNode> &weak_root_node, uint32_t dom_id,
-                    const std::string &name, const DomArgument &param,
+                    const std::string &name, const DomArgument &param, uint32_t cb_id,
                     const CallFunctionCallback &cb) override {
     auto root_node = weak_root_node.lock();
     if (!root_node) {
       return;
     }
-    handler_.CallFunction(handler_.context, id_, dom_id, name.c_str(), &param, &cb);
+    std::string buffer;
+    if (!param.ToJson(buffer)) {
+      return;
+    }
+    json params = {
+      {"id", dom_id},
+      {"method", name},
+      {"buffer", buffer}
+    };
+    if (cb) {
+      params["callback"] = cb_id;
+      function_callback_map_[cb_id] = cb;
+    }
+    handler_.CallFunction(handler_.context, id_, params.dump().c_str());
+  }
+    
+  void HandleFunctionCallback(const char* param) {
+    auto callback_json = json::parse(param);
+    uint32_t cb_id = callback_json["callback"];
+    std::string buffer = callback_json["buffer"];
+    if (function_callback_map_.find(cb_id) != function_callback_map_.end()) {
+      auto cb = function_callback_map_[cb_id];
+      function_callback_map_.erase(cb_id);
+      auto args = std::make_shared<hippy::DomArgument>(buffer);
+      cb(args);
+    }
   }
 
   void SetRootSize(const std::weak_ptr<RootNode> &weak_root_node, float width,
@@ -293,9 +319,9 @@ class DomInterceptor : public DomManager {
     return oss;
   }
 
-  std::unordered_map<uint32_t, std::shared_ptr<BaseTimer>> timer_map_;
   HippyDomInterceptor handler_;
   std::unordered_map<uint64_t, EventCallback> event_callback_map_;
+  std::unordered_map<uint32_t, CallFunctionCallback> function_callback_map_;
 };
 
 } // namespace dom
@@ -346,30 +372,36 @@ uint32_t HippyCreateDomInterceptor(HippyDomInterceptor handler) {
   return dom_manager_id;
 }
 
-void HippyDomInterceptorSendEvent(uint32_t dom_interceptor_id, uint32_t root_id, const char *param) {
+static std::shared_ptr<hippy::DomManager> GetDomManager(uint32_t dom_interceptor_id) {
   uint32_t dom_manager_num = 0;
   auto flag = hippy::global_dom_manager_num_holder.Find(dom_interceptor_id, dom_manager_num);
   FOOTSTONE_CHECK(dom_manager_num == 1);
   std::any dom_manager;
   flag = hippy::global_data_holder.Find(dom_interceptor_id, dom_manager);
   FOOTSTONE_CHECK(flag);
-  auto dom_manager_object = std::any_cast<std::shared_ptr<hippy::DomManager>>(dom_manager);
+  return std::any_cast<std::shared_ptr<hippy::DomManager>>(dom_manager);
+}
+
+void HippyDomInterceptorSendEvent(uint32_t dom_interceptor_id, uint32_t root_id, const char *param) {
+  auto dom_manager_object = GetDomManager(dom_interceptor_id);
   auto dom_interceptor = std::dynamic_pointer_cast<hippy::DomInterceptor>(dom_manager_object);
   if (dom_interceptor) {
     dom_interceptor->HandleEventListener(param);
   }
 }
 
+void HippyDomInterceptorDoCallback(uint32_t dom_interceptor_id, uint32_t root_id, const char *param) {
+  auto dom_manager_object = GetDomManager(dom_interceptor_id);
+  auto dom_interceptor = std::dynamic_pointer_cast<hippy::DomInterceptor>(dom_manager_object);
+  if (dom_interceptor) {
+    dom_interceptor->HandleFunctionCallback(param);
+  }
+}
+
 void HippyDestroyDomInterceptor(uint32_t dom_interceptor_id) {
-  uint32_t dom_manager_num = 0;
-  auto flag = hippy::global_dom_manager_num_holder.Find(dom_interceptor_id, dom_manager_num);
-  FOOTSTONE_CHECK(dom_manager_num == 1);
-  std::any dom_manager;
-  flag = hippy::global_data_holder.Find(dom_interceptor_id, dom_manager);
-  FOOTSTONE_CHECK(flag);
-  auto dom_manager_object = std::any_cast<std::shared_ptr<hippy::DomManager>>(dom_manager);
+  auto dom_manager_object = GetDomManager(dom_interceptor_id);
   dom_manager_object->GetWorker()->Terminate();
-  flag = hippy::global_data_holder.Erase(dom_interceptor_id);
+  bool flag = hippy::global_data_holder.Erase(dom_interceptor_id);
   FOOTSTONE_DCHECK(flag);
 }
 

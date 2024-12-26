@@ -58,6 +58,15 @@ bool DomArgument::ToObject(footstone::value::HippyValue& hippy_value) const {
   return false;
 }
 
+bool DomArgument::ToJson(std::string& json) const {
+  if (argument_type_ == ArgumentType::JSON) {
+    auto str = std::any_cast<std::string>(&data_);
+    json = *str;
+    return true;
+  }
+  return false;
+}
+
 bool DomArgument::ConvertObjectToBson(const footstone::value::HippyValue& hippy_value, std::vector<uint8_t>& bson) {
   footstone::value::Serializer serializer;
   serializer.WriteHeader();
