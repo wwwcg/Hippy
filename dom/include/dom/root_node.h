@@ -71,12 +71,14 @@ class RootNode : public DomNode {
   using EventCallback = std::function<void(const std::shared_ptr<DomEvent>&)>;
   using EventCallBackRunner = std::function<void(const std::shared_ptr<DomEvent>&)>;
 
-  RootNode(uint32_t id);
+  RootNode(uint32_t id, bool enable_animation = true);
   RootNode();
 
   inline std::weak_ptr<DomManager> GetDomManager() { return dom_manager_; }
   inline void SetDomManager(std::weak_ptr<DomManager> dom_manager) {
-    animation_manager_->SetRootNode(GetWeakSelf());
+    if (animation_manager_) {
+      animation_manager_->SetRootNode(GetWeakSelf());
+    }
     dom_manager_ = dom_manager;
   }
   inline std::shared_ptr<AnimationManager> GetAnimationManager() { return animation_manager_; }

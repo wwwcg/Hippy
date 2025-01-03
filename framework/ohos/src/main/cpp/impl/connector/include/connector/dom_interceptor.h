@@ -24,7 +24,14 @@
 #include <cstdint>
 
 EXTERN_C_START
-
+constexpr int32_t kAnimationOpCreate = 1;
+constexpr int32_t kAnimationOpUpdate = 2;
+constexpr int32_t kAnimationOpStart = 3;
+constexpr int32_t kAnimationOpResume = 4;
+constexpr int32_t kAnimationOpPause = 5;
+constexpr int32_t kAnimationOpDestroy = 6;
+constexpr int32_t kAnimationOpAddListener = 7;
+constexpr int32_t kAnimationOpRemoveListener = 8;
 typedef struct {
   char context[128];
   void (*CreateDomNodes)(const char *context, uint32_t dom_interceptor_id, const char *nodes,
@@ -32,7 +39,7 @@ typedef struct {
   void (*UpdateDomNodes)(const char *context, uint32_t dom_interceptor_id, const char *nodes);
   void (*MoveDomNodes)(const char *context, uint32_t dom_interceptor_id, const char *nodes);
   void (*DeleteDomNodes)(const char *context, uint32_t dom_interceptor_id, const char *nodes);
-  void (*UpdateAnimation)(const char *context, uint32_t dom_interceptor_id, const char *nodes);
+  void (*UpdateAnimation)(const char *context, uint32_t dom_interceptor_id, int32_t op, uint32_t animation_id, const char *params, bool is_set);
   void (*EndBatch)(const char *context, uint32_t dom_interceptor_id);
   void (*AddEventListener)(const char *context, uint32_t dom_interceptor_id, const char *params);
   void (*RemoveEventListener)(const char *context, uint32_t dom_interceptor_id, const char *params);

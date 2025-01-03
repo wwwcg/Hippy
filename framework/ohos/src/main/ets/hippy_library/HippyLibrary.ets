@@ -47,7 +47,7 @@ export interface HippyLibrary {
   DomManager_SetRenderManager(instanceId: number, renderId: number): void;
   DomManager_CreateDomManager(domManagerNum: number): number;
   DomManager_DestroyDomManager(domManagerId: number): void;
-  DomManager_CreateRoot(rootId: number, density: number): void;
+  DomManager_CreateRoot(rootId: number, density: number, enableAnimation: boolean): void;
   DomManager_DestroyRoot(rootId: number): void;
   DomManager_ReleaseRootResources(rootId: number): void;
   DomManager_SetDomManager(rootId: number, instanceId: number): void;

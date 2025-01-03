@@ -100,10 +100,12 @@ bool DomNodeStyleDiffer::Calculate(const std::shared_ptr<hippy::dom::RootNode>& 
   return true;
 }
 
-RootNode::RootNode(uint32_t id) : DomNode(id, 0, 0, "", "", nullptr, nullptr, {}) {
+RootNode::RootNode(uint32_t id, bool enable_animation) : DomNode(id, 0, 0, "", "", nullptr, nullptr, {}) {
   SetRenderInfo({id, 0, 0});
-  animation_manager_ = std::make_shared<AnimationManager>();
-  interceptors_.push_back(animation_manager_);
+  if (enable_animation) {
+    animation_manager_ = std::make_shared<AnimationManager>();
+    interceptors_.push_back(animation_manager_);
+  }
   style_differ_ = std::make_unique<DomNodeStyleDiffer>();
 }
 

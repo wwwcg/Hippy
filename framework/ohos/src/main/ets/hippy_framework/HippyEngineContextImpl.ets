@@ -227,7 +227,7 @@ export class HippyEngineContextImpl implements HippyEngineContext {
 
   attachRootView(rootView: HippyRootView) {
     if (this.mJsDriver && this.nativeRenderer) {
-      this.attachDomToRootView(rootView.getRootId())
+      this.attachDomToRootView(rootView.getRootId(), true)
       this.attachJsToRootView(rootView.getRootId())
       if (this.mDevtoolsManager != null) {
         this.mDevtoolsManager.attachToRoot(rootView.getRootId());
@@ -240,7 +240,7 @@ export class HippyEngineContextImpl implements HippyEngineContext {
     if (this.mEngineInitParams.domInterceptor) {
       // hippy规定使用整10数作为rootId，暂定使用DomInterceptorId * 10
       const rootId = this.mEngineInitParams.domInterceptor.instanceId * 10;
-      this.attachDomToRootView(rootId);
+      this.attachDomToRootView(rootId, false);
       this.attachJsToRootView(rootId);
       return null;
     }
@@ -251,8 +251,8 @@ export class HippyEngineContextImpl implements HippyEngineContext {
     return rootView;
   }
 
-  attachDomToRootView(rootId: number): void {
-    this.mDomManager.createRootNode(rootId, PixelUtil.getDensity())
+  attachDomToRootView(rootId: number, animation: boolean): void {
+    this.mDomManager.createRootNode(rootId, PixelUtil.getDensity(), animation)
     this.mDomManager.attachToRoot(rootId)
   }
 

@@ -120,10 +120,11 @@ static napi_value DestroyDomManager(napi_env env, napi_callback_info info) {
 
 static napi_value CreateRoot(napi_env env, napi_callback_info info) {
   ArkTS arkTs(env);
-  auto args = arkTs.GetCallbackArgs(info, 2);
+  auto args = arkTs.GetCallbackArgs(info, 3);
   uint32_t root_id = static_cast<uint32_t>(arkTs.GetInteger(args[0]));
   double density = arkTs.GetDouble(args[1]);
-  auto root_node = std::make_shared<hippy::RootNode>(root_id);
+  bool enable_animation = arkTs.GetBoolean(args[2]);
+  auto root_node = std::make_shared<hippy::RootNode>(root_id, enable_animation);
   auto layout = root_node->GetLayoutNode();
   layout->SetScaleFactor(static_cast<float>(density));
   auto& persistent_map = RootNode::PersistentMap();

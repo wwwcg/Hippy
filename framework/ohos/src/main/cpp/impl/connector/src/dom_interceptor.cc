@@ -30,6 +30,7 @@
 #include "dom/root_node.h"
 #include "dom/scene_builder.h"
 #include "driver/js_driver_utils.h"
+#include "driver/modules/animation_module.h"
 #include "footstone/serializer.h"
 #include "footstone/deserializer.h"
 #include "footstone/one_shot_timer.h"
@@ -325,6 +326,52 @@ class DomInterceptor : public DomManager {
 };
 
 } // namespace dom
+
+inline namespace animation {
+
+class AnimationDelegator : public Animation {
+ public:
+  AnimationDelegator(
+      std::string &param,
+      bool is_set,
+      std::function<void(int32_t, uint32_t, const char*, bool)> handler)
+      : Animation(), param_(param), is_set_(is_set), handler_(handler) {
+    handler(kAnimationOpCreate, id_, param_.c_str(), is_set_);
+  }
+  
+  ~AnimationDelegator() override = default;
+  
+  virtual void AddEventListener(const std::string& event, AnimationCb cb) override {
+    Animation::AddEventListener(event, cb);
+    handler_(kAnimationOpAddListener, id_, event.c_str(), false);
+  }
+  virtual void RemoveEventListener(const std::string& event) override {
+    Animation::RemoveEventListener(event);
+    handler_(kAnimationOpRemoveListener, id_, event.c_str(), false);
+  }
+  virtual void Start() override {
+    handler_(kAnimationOpStart, id_, "", false);
+  }
+  virtual void Destroy() override {
+    handler_(kAnimationOpDestroy, id_, "", false);    
+  }
+  virtual void Pause() override {
+    handler_(kAnimationOpPause, id_, "", false);
+  }
+  virtual void Resume() override {
+    handler_(kAnimationOpResume, id_, "", false);
+  }
+  virtual void Update(std::any param) override {
+    std::string json_str = std::any_cast<std::string>(param);
+    handler_(kAnimationOpUpdate, id_, json_str.c_str(), false);
+  }
+ private:
+  std::string param_;
+  bool is_set_;
+  std::function<void(int32_t op, uint32_t animation_id, const char *params, bool is_set)> handler_;
+};
+
+} // namespace animation
 } // namespace hippy
 
 EXTERN_C_START
@@ -368,6 +415,14 @@ uint32_t HippyCreateDomInterceptor(HippyDomInterceptor handler) {
       {"buffer", buffer}
     };
     return handler.CallHost(handler.context, dom_manager->GetId(), params.dump().c_str());
+  });
+  hippy::SetAnimationInterceptor([handler](std::shared_ptr<hippy::DomManager> dom_manager, std::string& param, bool is_set) {
+    return std::make_shared<hippy::AnimationDelegator>(
+        param,
+        is_set,
+        [handler, dom_interceptor_id = dom_manager->GetId()](int32_t op, uint32_t animation_id, const char *params, bool is_set) {
+            handler.UpdateAnimation(handler.context, dom_interceptor_id, op, animation_id, params, is_set);
+        });
   });
   return dom_manager_id;
 }

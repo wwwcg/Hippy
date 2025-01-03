@@ -50,9 +50,10 @@ export class DomManager {
 
   createRootNode(
     rootId: number,
-    density: number
+    density: number,
+    animation: boolean
   ) {
-    this.libHippy?.DomManager_CreateRoot(rootId, density)
+    this.libHippy?.DomManager_CreateRoot(rootId, density, animation)
   }
 
   destroyRootNode(
