@@ -39,7 +39,6 @@ typedef struct {
   void (*UpdateDomNodes)(const char *context, uint32_t dom_interceptor_id, const char *nodes);
   void (*MoveDomNodes)(const char *context, uint32_t dom_interceptor_id, const char *nodes);
   void (*DeleteDomNodes)(const char *context, uint32_t dom_interceptor_id, const char *nodes);
-  void (*UpdateAnimation)(const char *context, uint32_t dom_interceptor_id, int32_t op, uint32_t animation_id, const char *params, bool is_set);
   void (*EndBatch)(const char *context, uint32_t dom_interceptor_id);
   void (*AddEventListener)(const char *context, uint32_t dom_interceptor_id, const char *params);
   void (*RemoveEventListener)(const char *context, uint32_t dom_interceptor_id, const char *params);
@@ -47,6 +46,7 @@ typedef struct {
   void (*SetRootSize)(const char *context, uint32_t dom_interceptor_id, float width, float height);
   void (*DoLayout)(const char *context, uint32_t dom_interceptor_id);
   bool (*CallHost)(const char *context, uint32_t dom_interceptor_id, const char *params);
+  void (*CallAnimation)(const char *context, uint32_t dom_interceptor_id, int32_t op, uint32_t animation_id, const char *params, bool is_set);
 } HippyDomInterceptor;
 
 uint32_t HippyCreateDomInterceptor(HippyDomInterceptor handler);
@@ -54,4 +54,5 @@ void HippyDomInterceptorSendEvent(uint32_t dom_interceptor_id, uint32_t root_id,
 void HippyDomInterceptorDoCallback(uint32_t dom_interceptor_id, uint32_t root_id, const char *param);
 void HippyDestroyDomInterceptor(uint32_t dom_interceptor_id);
 void HippyBridgeCallFunction(uint32_t scope_id, const char *action_name, const char *buffer);
+void HippyDomInterceptorSendAnimationEvent(uint32_t dom_interceptor_id, const char *buffer);
 EXTERN_C_END

@@ -320,8 +320,7 @@ std::tuple<bool, std::string, std::shared_ptr<RefInfo>> CreateRefInfo(
 std::tuple<bool, std::string, std::shared_ptr<DomInfo>> CreateDomInfo(
     const std::shared_ptr<Ctx> &context,
     const std::shared_ptr<CtxValue> &node,
-    const std::shared_ptr<Scope> &scope,
-    const DomManager::DomManagerType type) {
+    const std::shared_ptr<Scope> &scope) {
   std::shared_ptr<DomInfo> dom_info = nullptr;
   std::shared_ptr<DomNode> dom_node = nullptr;
   std::shared_ptr<RefInfo> ref_info = nullptr;
@@ -394,7 +393,7 @@ std::tuple<bool, std::string, std::vector<std::shared_ptr<DomInfo>>> HandleJsVal
       }
       dom_nodes.push_back(stringifyDomInfo);
     } else {
-      auto tuple = CreateDomInfo(context, domInfo, scope, type);
+      auto tuple = CreateDomInfo(context, domInfo, scope);
       if (!std::get<0>(tuple)) {
         return std::make_tuple(false, std::move(std::get<1>(tuple)), std::move(dom_nodes));
       }
