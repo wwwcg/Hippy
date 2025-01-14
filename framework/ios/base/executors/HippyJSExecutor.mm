@@ -540,13 +540,13 @@ static const char * kHippyExceptionEventName = "uncaughtException";
                     SharedCtxValuePtr method_value = context->GetProperty(batchedbridge_value, methodName);
                     if (method_value) {
                         if (context->IsFunction(method_value)) {
-                            SharedCtxValuePtr function_params[arguments.count];
+                            std::vector<SharedCtxValuePtr> function_params(arguments.count);
                             for (NSUInteger i = 0; i < arguments.count; i++) {
                                 id obj = arguments[i];
                                 function_params[i] = [obj convertToCtxValue:context];
                             }
                             auto tryCatch = hippy::CreateTryCatchScope(true, context);
-                            resultValue = context->CallFunction(method_value, context->GetGlobalObject(), arguments.count, function_params);
+                            resultValue = context->CallFunction(method_value, context->GetGlobalObject(), arguments.count, function_params.data());
                             if (tryCatch->HasCaught()) {
                                 exception = tryCatch->GetExceptionMessage();
                             }
