@@ -556,8 +556,12 @@ void Scope::LoadInstance(const std::shared_ptr<HippyValue>& value) {
 #endif
         std::shared_ptr<CtxValue> argv[] = {param};
         context->CallFunction(fn, context->GetGlobalObject(), 1, argv);
+        
+        FOOTSTONE_LOG(INFO) << "Load instance finish";
       } else {
-        context->ThrowException("Application entry not found");
+        auto errMsg = "Application entry not found when LoadInstance";
+        FOOTSTONE_LOG(ERROR) << errMsg;
+        context->ThrowException(errMsg);
       }
     }
   };

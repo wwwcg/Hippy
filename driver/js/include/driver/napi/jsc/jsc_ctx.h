@@ -78,6 +78,8 @@ public:
   
   inline std::shared_ptr<JSCCtxValue> GetException() { return exception_; }
   inline void SetException(std::shared_ptr<JSCCtxValue> exception) {
+    FOOTSTONE_LOG(ERROR) << GetExceptionMessage(std::static_pointer_cast<CtxValue>(exception));
+      
     if (is_exception_handled_) {
       return;
     }
