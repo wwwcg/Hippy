@@ -154,6 +154,7 @@ export default class AnimationExample extends React.Component {
             duration: 2000,
             delay: 0,
             mode: 'timing',
+            valueType: 'deg',
             timingFunction: 'linear',
           }),
           follow: false, // 配置子动画的执行是否跟随执行
@@ -165,6 +166,7 @@ export default class AnimationExample extends React.Component {
             duration: 2000,
             delay: 0,
             mode: 'timing',
+            valueType: 'deg',
             timingFunction: 'linear',
           }),
           follow: true,
@@ -182,6 +184,7 @@ export default class AnimationExample extends React.Component {
             duration: 2000,
             delay: 0,
             mode: 'timing',
+            valueType: 'deg',
             timingFunction: 'linear',
           }),
           follow: false, // 配置子动画的执行是否跟随执行
@@ -193,6 +196,7 @@ export default class AnimationExample extends React.Component {
             duration: 2000,
             delay: 0,
             mode: 'timing',
+            valueType: 'deg',
             timingFunction: 'linear',
           }),
           follow: true,
@@ -230,7 +234,6 @@ export default class AnimationExample extends React.Component {
       ],
       repeatCount: 'loop',
     });
-    // TODO iOS暂不支持文字颜色渐变动画
     this.txtColorAnimationSet = new AnimationSet({
       children: [
         {
@@ -556,12 +559,13 @@ export default class AnimationExample extends React.Component {
             }}
             style={[styles.square, {
               transform: [{
-                scale: this.scaleAnimationSet,
+                scaleX: this.scaleAnimationSet,
+                scaleY: this.scaleAnimationSet,
               }],
             }]}
           />
         </View>
-        <Text style={styles.title}>颜色渐变动画（文字渐变仅Android支持）</Text>
+        <Text style={styles.title}>颜色渐变动画</Text>
         <View style={styles.buttonContainer}>
           <View
               style={styles.button}
@@ -607,8 +611,7 @@ export default class AnimationExample extends React.Component {
           ><Text ref={(ref) => {
             this.textColorRef = ref;
           }} style={[styles.colorText, {
-            // TODO iOS暂不支持文字颜色渐变动画
-            color: Platform.OS === 'android' ? this.txtColorAnimationSet : 'white',
+            color: this.txtColorAnimationSet,
           }]}>颜色渐变背景和文字</Text></View>
         </View>
 

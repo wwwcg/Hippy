@@ -18,5 +18,13 @@
  * limitations under the License.
  */
 
+export * from "./HippyBizViewBuilder"
 export * from "./HippyRootView"
+export * from "./HippyViewEvent"
+export * from "./NativeRender"
+export * from "./NativeRenderContext"
+
 export * from "./components/base/HippyRenderBaseView"
+export * from "./components/custom/HippyCustomComponentView"
+
+export * from "./dom_node/HRNodeProps"

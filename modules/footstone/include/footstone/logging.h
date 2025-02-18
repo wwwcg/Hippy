@@ -59,8 +59,11 @@ inline std::ostream& operator<<(std::ostream& stream, const string_view& str_vie
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wdeprecated-declarations"
       const std::u16string& str = str_view.utf16_value();
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated"
       std::wstring_convert<std::codecvt_utf8_utf16<char16_t>, char16_t> convert(
           kCharConversionFailedPrompt, kU16CharConversionFailedPrompt);
+#pragma clang diagnostic pop
       stream << convert.to_bytes(str);
 #pragma clang diagnostic pop
       break;
@@ -69,8 +72,11 @@ inline std::ostream& operator<<(std::ostream& stream, const string_view& str_vie
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wdeprecated-declarations"
       const std::u32string& str = str_view.utf32_value();
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated"
       std::wstring_convert<std::codecvt_utf8<char32_t>, char32_t> convert(
           kCharConversionFailedPrompt, kU32CharConversionFailedPrompt);
+#pragma clang diagnostic pop
       stream << convert.to_bytes(str);
 #pragma clang diagnostic pop
       break;
@@ -238,9 +244,9 @@ public:
 
 #define HP_CSTR_NOT_NULL( p ) (p ? p : "")
 
-#ifdef DEBUG
+#ifdef ENABLE_HIPPY_PERFLOG
+// enable perf log output when `ENABLE_HIPPY_PERFLOG` is set
 
-// enable perf log output in debug mode only
 #define TDF_PERF_LOG(format, ...) \
 footstone::LogMessage::LogWithFormat(__FILE_NAME__, __LINE__, "[HP PERF] " format,                                    \
          ##__VA_ARGS__)
@@ -254,4 +260,4 @@ footstone::LogMessage::LogWithFormat(__FILE_NAME__, __LINE__, "[HP PERF] " forma
 #define TDF_PERF_LOG(format, ...)
 #define TDF_PERF_DO_STMT_AND_LOG(STMT , format, ...)
 
-#endif
+#endif /* ENABLE_HIPPY_PERFLOG */

@@ -79,7 +79,7 @@ extern NSString *const HippySecondaryBundleDidLoadNotification DEPRECATED_MSG_AT
 @property (nonatomic, copy, nullable) NSDictionary *appProperties;
 
 /// The backing view controller of the root view.
-@property (nonatomic, weak) UIViewController *hippyViewController;
+@property (nonatomic, weak, nullable) UIViewController *hippyViewController;
 
 /// Whether to disable automatic RunHippyApplication execution after loading.
 /// By default, the runHippyApplication is automatically called after resources have loaded.
@@ -183,6 +183,16 @@ extern NSString *const HippySecondaryBundleDidLoadNotification DEPRECATED_MSG_AT
 /// When you touch down on a touchable component and drag your finger up,
 /// you don't want any touch to be registered as soon as the UIScrollView starts scrolling.
 - (void)cancelTouches;
+
+
+#pragma mark - Snapshot
+
+/// Retrieves the current snapshot data.
+- (nullable NSData *)retrieveCurrentSnapshotData;
+
+/// Restores the snapshot data with the provided NSData object.
+/// - Parameter data: NSData object
+- (BOOL)restoreSnapshotData:(nullable NSData *)data;
 
 @end
 

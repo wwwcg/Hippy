@@ -41,6 +41,8 @@
 #include "footstone/base_timer.h"
 #include "footstone/worker.h"
 
+#define HIPPY_EXPERIMENT_LAYER_OPTIMIZATION
+
 namespace hippy {
 inline namespace dom {
 
@@ -198,11 +200,22 @@ class DomManagerImpl : public DomManager {
   byte_string GetSnapShot(const std::shared_ptr<RootNode>& root_node) override;
   bool SetSnapShot(const std::shared_ptr<RootNode>& root_node, const byte_string& buffer) override;
     
+  void RecordDomStartTimePoint(uint32_t root_id);
+  void RecordDomEndTimePoint(uint32_t root_id);
+  inline auto GetDomStartTimePoint(uint32_t root_id) { return dom_start_time_point_[root_id]; }
+  inline auto GetDomEndTimePoint(uint32_t root_id) { return dom_end_time_point_[root_id]; }
+
  private:
   friend class DomNode;
 
+#ifdef HIPPY_EXPERIMENT_LAYER_OPTIMIZATION
   std::shared_ptr<LayerOptimizedRenderManager> optimized_render_manager_;
-  std::weak_ptr<RenderManager> render_manager_;
+  std::shared_ptr<RenderManager> render_manager_;
+#else
+  std::shared_ptr<RenderManager> render_manager_;
+#endif
+  std::unordered_map<uint32_t, footstone::TimePoint> dom_start_time_point_;
+  std::unordered_map<uint32_t, footstone::TimePoint> dom_end_time_point_;
 };
 }  // namespace dom
 }  // namespace hippy

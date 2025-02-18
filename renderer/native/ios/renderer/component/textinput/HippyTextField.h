@@ -32,12 +32,13 @@
 @end
 
 @interface HippyUITextField : UITextField
+/// iOS18's UITextInput adds an `editable` property, to avoid conflict, rename to `canEdit`
+@property (nonatomic, assign) BOOL canEdit;
 @property (nonatomic, assign) BOOL textWasPasted;
 @property (nonatomic, weak) id<HippyUITextFieldResponseDelegate> responderDelegate;
 
 @property (nonatomic, copy) HippyDirectEventBlock onBlur;
 @property (nonatomic, copy) HippyDirectEventBlock onFocus;
-@property (nonatomic, assign) BOOL editable;
 @end
 
 @interface HippyTextField : HippyBaseTextInput <UITextFieldDelegate>
@@ -57,8 +58,6 @@
 @property (nonatomic, copy) HippyDirectEventBlock onBlur;
 @property (nonatomic, copy) HippyDirectEventBlock onFocus;
 @property (nonatomic, copy) HippyDirectEventBlock onEndEditing;
-@property (nonatomic, copy) HippyDirectEventBlock onKeyboardWillShow;
-@property (nonatomic, copy) HippyDirectEventBlock onKeyboardWillHide;
 
 @property (nonatomic, copy) NSString *value;
 @property (nonatomic, strong) NSString *defaultValue;

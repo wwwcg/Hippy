@@ -19,8 +19,6 @@
  */
 
 #include <cstdint>
-#define EXPERIMENT_LAYER_OPTIMIZATION
-
 #include "dom/dom_manager.h"
 
 #include <mutex>
@@ -74,11 +72,11 @@ void DomManager::CancelTask(uint32_t id) {
 }
 
 void DomManagerImpl::SetRenderManager(const std::weak_ptr<RenderManager>& render_manager) {
-#ifdef EXPERIMENT_LAYER_OPTIMIZATION
+#ifdef HIPPY_EXPERIMENT_LAYER_OPTIMIZATION
   optimized_render_manager_ = std::make_shared<LayerOptimizedRenderManager>(render_manager.lock());
   render_manager_ = optimized_render_manager_;
 #else
-  render_manager_ = render_manager;
+  render_manager_ = render_manager.lock();
 #endif
 }
 
@@ -145,7 +143,7 @@ void DomManagerImpl::DeleteDomNodes(const std::weak_ptr<RootNode>& weak_root_nod
 }
 
 void DomManagerImpl::EndBatch(const std::weak_ptr<RootNode>& weak_root_node) {
-  auto render_manager = render_manager_.lock();
+  auto render_manager = render_manager_;
   FOOTSTONE_DCHECK(render_manager);
   if (!render_manager) {
     return;
@@ -209,7 +207,7 @@ void DomManagerImpl::DoLayout(const std::weak_ptr<RootNode>& weak_root_node) {
   if (!root_node) {
     return;
   }
-  auto render_manager = render_manager_.lock();
+  auto render_manager = render_manager_;
   // check render_manager, measure text dependent render_manager
   FOOTSTONE_DCHECK(render_manager);
   if (!render_manager) {
@@ -275,6 +273,19 @@ bool DomManagerImpl::SetSnapShot(const std::shared_ptr<RootNode>& root_node, con
   EndBatch(root_node);
 
   return true;
+}
+
+void DomManager::RecordDomStartTimePoint(uint32_t root_id) {
+  if (dom_start_time_point_[root_id].ToEpochDelta() == TimeDelta::Zero()) {
+    dom_start_time_point_[root_id] = footstone::TimePoint::SystemNow();
+  }
+}
+
+void DomManager::RecordDomEndTimePoint(uint32_t root_id) {
+  if (dom_end_time_point_[root_id].ToEpochDelta() == TimeDelta::Zero()
+  && dom_start_time_point_[root_id].ToEpochDelta() != TimeDelta::Zero()) {
+    dom_end_time_point_[root_id] = footstone::TimePoint::SystemNow();
+  }
 }
 
 }  // namespace dom

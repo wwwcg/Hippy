@@ -101,6 +101,7 @@ bool DomNodeStyleDiffer::Calculate(const std::shared_ptr<hippy::dom::RootNode>& 
 }
 
 RootNode::RootNode(uint32_t id, bool enable_animation) : DomNode(id, 0, 0, "", "", nullptr, nullptr, {}) {
+  InitLayoutConsts();
   SetRenderInfo({id, 0, 0});
   if (enable_animation) {
     animation_manager_ = std::make_shared<AnimationManager>();
@@ -307,8 +308,9 @@ void RootNode::UpdateAnimation(std::vector<std::shared_ptr<DomNode>>&& nodes) {
     auto event = std::make_shared<DomEvent>(kDomUpdated, node, nullptr);
     node->HandleEvent(event);
   }
-  auto event = std::make_shared<DomEvent>(kDomTreeUpdated, weak_from_this(), nullptr);
-  HandleEvent(event);
+  // TODO: update properties instead of dom tree in debug front end
+  // auto event = std::make_shared<DomEvent>(kDomTreeUpdated, weak_from_this(), nullptr);
+  // HandleEvent(event);
   if (!nodes_to_update.empty()) {
     dom_operations_.push_back({DomOperation::Op::kOpUpdate, nodes_to_update});
   }
@@ -334,7 +336,7 @@ void RootNode::SyncWithRenderManager(const std::shared_ptr<RenderManager>& rende
   TDF_PERF_LOG("RootNode::DoAndFlushLayout Done");
   auto dom_manager = dom_manager_.lock();
   if (dom_manager) {
-    dom_manager->RecordDomEndTimePoint();
+    dom_manager->RecordDomEndTimePoint(this->GetId());
   }
   render_manager->EndBatch(GetWeakSelf());
   TDF_PERF_LOG("RootNode::SyncWithRenderManager End");
@@ -577,6 +579,17 @@ void RootNode::Traverse(const std::function<void(const std::shared_ptr<DomNode>&
       }
     }
   }
+}
+
+std::vector<std::weak_ptr<DomNode>> RootNode::GetAllTextNodes() {
+  std::vector<std::weak_ptr<DomNode>> textNodes;
+  for (auto it = nodes_.begin(); it != nodes_.end(); it++) {
+    auto node = it->second.lock();
+    if (node && node->GetViewName() == "Text") {
+      textNodes.emplace_back(node);
+    }
+  }
+  return textNodes;
 }
 
 }  // namespace dom

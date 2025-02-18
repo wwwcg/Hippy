@@ -73,12 +73,12 @@ import com.tencent.mtt.hippy.utils.UIThreadUtils;
 import com.tencent.mtt.hippy.views.modal.HippyModalHostManager;
 import com.tencent.mtt.hippy.views.modal.HippyModalHostView;
 import com.tencent.renderer.FrameworkProxy;
-import com.tencent.renderer.NativeRenderContext;
 import com.tencent.renderer.component.image.ImageDecoderAdapter;
 import com.tencent.renderer.component.text.FontAdapter;
 import com.tencent.renderer.node.RenderNode;
 import com.tencent.vfs.DefaultProcessor;
 import com.tencent.vfs.Processor;
+import com.tencent.vfs.UrlUtils;
 import com.tencent.vfs.VfsManager;
 import com.openhippy.connector.JsDriver.V8InitParams;
 import java.util.ArrayList;
@@ -119,6 +119,7 @@ public abstract class HippyEngineManagerImpl extends HippyEngineManager implemen
     HippyEngineContextImpl mEngineContext;
     private ModuleLoadParams moduleLoadParams;
     private HippyBundleLoader jsBundleLoader;
+    private String mBundlePath = null;
     // 从网络上加载jsbundle
     final boolean mDebugMode;
     // Hippy Server的jsbundle名字，调试模式下有效
@@ -160,7 +161,7 @@ public abstract class HippyEngineManagerImpl extends HippyEngineManager implemen
         mGroupId = params.groupId;
         mThirdPartyAdapter = params.thirdPartyAdapter;
         v8InitParams = params.v8InitParams;
-        mMonitor = new TimeMonitor();
+        mMonitor = new TimeMonitor(getEngineId());
     }
 
     @Override
@@ -235,8 +236,8 @@ public abstract class HippyEngineManagerImpl extends HippyEngineManager implemen
     }
 
     @Override
-    public void onFirstPaint() {
-        mEngineContext.getJsDriver().recordFirstPaintEndTime(System.currentTimeMillis());
+    public void onFirstPaint(int rootId) {
+        mEngineContext.getJsDriver().recordFirstPaintEndTime(System.currentTimeMillis(), rootId);
         mEngineContext.getMonitor().addPoint(TimeMonitor.MONITOR_GROUP_PAINT,
                 TimeMonitor.MONITOR_POINT_FIRST_CONTENTFUL_PAINT);
         mGlobalConfigs.getEngineMonitorAdapter().onFirstPaintCompleted(mEngineContext.getComponentName());
@@ -250,6 +251,9 @@ public abstract class HippyEngineManagerImpl extends HippyEngineManager implemen
         mEngineContext.getJsDriver().recordFirstContentfulPaintEndTime(System.currentTimeMillis());
         mEngineContext.getMonitor().endGroup(TimeMonitor.MONITOR_GROUP_PAINT);
         mGlobalConfigs.getEngineMonitorAdapter().onFirstContentfulPaintCompleted(mEngineContext.getComponentName());
+        if (mModuleListener != null) {
+            mModuleListener.onFirstContentfulPaint();
+        }
     }
 
     @Override
@@ -338,8 +342,11 @@ public abstract class HippyEngineManagerImpl extends HippyEngineManager implemen
     public String getBundlePath() {
         if (jsBundleLoader != null) {
             return jsBundleLoader.getPath();
+        } else if (mBundlePath != null && !mBundlePath.startsWith(UrlUtils.PREFIX_FILE)
+                && !mBundlePath.startsWith(UrlUtils.PREFIX_ASSETS)) {
+            return UrlUtils.PREFIX_FILE + mBundlePath;
         }
-        return null;
+        return mBundlePath;
     }
 
     @Override
@@ -359,7 +366,8 @@ public abstract class HippyEngineManagerImpl extends HippyEngineManager implemen
     }
 
     @Nullable
-    public View replaySnapshot(@NonNull Context context, @NonNull byte[] buffer) {
+    public View replaySnapshot(@NonNull Context context, @NonNull byte[] buffer, String bundlePath) {
+        mBundlePath = bundlePath;
         if (mEngineContext != null) {
             return mEngineContext.getRenderer().replaySnapshot(context, buffer);
         }
@@ -367,7 +375,8 @@ public abstract class HippyEngineManagerImpl extends HippyEngineManager implemen
     }
 
     @Nullable
-    public View replaySnapshot(@NonNull Context context, @NonNull Map<String, Object> snapshotMap) {
+    public View replaySnapshot(@NonNull Context context, @NonNull Map<String, Object> snapshotMap, String bundlePath) {
+        mBundlePath = bundlePath;
         if (mEngineContext != null) {
             return mEngineContext.getRenderer().replaySnapshot(context, snapshotMap);
         }
@@ -690,7 +699,6 @@ public abstract class HippyEngineManagerImpl extends HippyEngineManager implemen
     }
 
     private void onEngineInitialized(EngineInitStatus statusCode, Throwable error) {
-        mEngineContext.getJsDriver().recordNativeInitEndTime(mInitStartTime, System.currentTimeMillis());
         mGlobalConfigs.getEngineMonitorAdapter().onEngineInitialized(statusCode);
         for (EngineListener listener : mEventListeners) {
             listener.onInitialized(statusCode, error == null ? null : error.toString());
@@ -722,6 +730,7 @@ public abstract class HippyEngineManagerImpl extends HippyEngineManager implemen
         try {
             mEngineContext = new HippyEngineContextImpl(domManager);
         } catch (RuntimeException e) {
+            mEngineContext = null;
             LogUtils.e(TAG, "new HippyEngineContextImpl(): " + e.getMessage());
             notifyEngineInitialized(EngineInitStatus.STATUS_INIT_EXCEPTION, e);
             return;
@@ -757,8 +766,8 @@ public abstract class HippyEngineManagerImpl extends HippyEngineManager implemen
     }
 
     /**
-     * After init engine callback, send load instance message to js invoke render If debug mode js
-     * bundle load with common bundle after init engine
+     * After init engine callback, send load instance message to js invoke render If debug mode js bundle load with
+     * common bundle after init engine
      */
     private void loadJsModule() {
         if (mEngineContext == null || mRootView == null || moduleLoadParams == null) {
@@ -880,8 +889,8 @@ public abstract class HippyEngineManagerImpl extends HippyEngineManager implemen
             mJsDriver = new JsDriver();
             mBridgeManager = new HippyBridgeManagerImpl(this, mCoreBundleLoader,
                     getBridgeType(), enableV8Serialization, mDebugMode,
-                    mServerHost, mGroupId, mThirdPartyAdapter, v8InitParams, mJsDriver);
-            mDomManager = (domManager != null) ? domManager : new DomManager();
+                    mServerHost, mGroupId, mThirdPartyAdapter, v8InitParams, mJsDriver, mInitStartTime);
+            mDomManager = (domManager != null) ? domManager : new DomManager(mGroupId);
             mRenderer = createRenderer(RenderConnector.NATIVE_RENDERER);
             mDomManager.attachToRenderer(mRenderer);
             mRenderer.attachToDom(mDomManager);

@@ -33,6 +33,7 @@
 @class HippyComponentMap;
 @protocol HippyImageProviderProtocol;
 
+NS_ASSUME_NONNULL_BEGIN
 
 /**
  * Posted whenever a new root view is registered with HippyUIManager. The userInfo property
@@ -61,15 +62,48 @@ HIPPY_EXTERN NSString *const HippyUIManagerRootViewTagKey;
  */
 HIPPY_EXTERN NSString *const HippyUIManagerDidEndBatchNotification;
 
+/**
+ * This notification can be sent when the font is registered or modified on the native side
+ * and hippy needs to be refreshed.
+ *
+ * `notification.object` can carry rootTag to filter the RootView that needs to be refreshed.
+ *  Default value nil indicating that a refresh is required.
+ */
+HIPPY_EXTERN NSString *const HippyFontChangeTriggerNotification;
+
 
 
 /// The HippyUIManager responsible for updating the view hierarchy.
 @interface HippyUIManager : NSObject <HippyInvalidating>
 
-@property (nonatomic, weak) HippyBridge *bridge;
+/// HippyBridge instance
+@property (weak, readonly) HippyBridge *bridge;
+
+/// View Registry of all nodes
 @property (nonatomic, readonly) HippyComponentMap *viewRegistry;
+
+/// Specify whether UI hierarchy will be created instantly.
+/// When setting YES, UI hierarchy will not be created automatically,
+/// default is NO.
 @property (nonatomic, assign) BOOL uiCreationLazilyEnabled;
 
+/// Init method
+/// - Parameter bridge: HippyBridge
+- (instancetype)initWithBridge:(HippyBridge *)bridge NS_DESIGNATED_INITIALIZER;
+- (instancetype)init NS_UNAVAILABLE;
++ (instancetype)new NS_UNAVAILABLE;
+
+/// Set hippyBridge for UIManager
+/// - Parameter bridge: HippyBridge instance
+- (void)setBridge:(HippyBridge * _Nullable)bridge;
+
+/// Get all rootView
+- (NSArray<__kindof UIView *> *)rootViews;
+
+/// Get rootView with given tag
+/// Note: this is root's contentView, 
+/// NOT the HippyRootView instance!
+- (UIView *)rootContentViewForTag:(NSNumber *)rootTag;
 
 /// Gets the view associated with a hippyTag.
 /// - Parameters:
@@ -107,20 +141,17 @@ HIPPY_EXTERN NSString *const HippyUIManagerDidEndBatchNotification;
 /// - Parameter tag: root tag
 - (void)setNeedsLayoutForRootNodeTag:(NSNumber *)tag;
 
-/// Get all rootView
-- (NSArray<__kindof UIView *> *)rootViews;
-
 /// Update view with props
 - (void)updateView:(NSNumber *)componentTag onRootTag:(NSNumber *)rootTag props:(NSDictionary *)pros;
 
 
 /**
- * Manully create views recursively from renderObject
+ * Manully create views recursively from shadowView
  *
- * @param renderObject HippyShadowView corresponding to UIView
+ * @param shadowView HippyShadowView corresponding to UIView
  * @return view created by HippyShadowView
  */
-- (UIView *)createViewForShadowListItem:(HippyShadowView *)renderObject;
+- (UIView *)createViewForShadowListItem:(HippyShadowView *)shadowView;
 
 /// Register extra components
 /// @param extraComponents extra components classes
@@ -142,10 +173,12 @@ HIPPY_EXTERN NSString *const HippyUIManagerDidEndBatchNotification;
 @interface HippyBridge (HippyUIManager)
 
 /// The current HippyUIManager instance
-@property (nonatomic, readonly) HippyUIManager *uiManager;
+@property (nonatomic, strong) HippyUIManager *uiManager;
 
 /// A custom touch handler for gesture special processing
 /// You can use it when you need to modify Hippy's default gesture handling logic
 @property (nonatomic, strong, readonly) id<HippyCustomTouchHandlerProtocol> customTouchHandler;
 
 @end
+
+NS_ASSUME_NONNULL_END

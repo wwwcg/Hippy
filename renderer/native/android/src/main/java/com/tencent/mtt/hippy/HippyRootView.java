@@ -21,6 +21,7 @@ import android.os.Parcelable;
 import android.util.SparseArray;
 import android.view.View;
 import android.view.ViewTreeObserver;
+import android.view.ViewTreeObserver.OnDrawListener;
 import android.widget.FrameLayout;
 
 import androidx.annotation.NonNull;
@@ -34,6 +35,7 @@ import com.tencent.renderer.NativeRender;
 import com.tencent.renderer.NativeRenderContext;
 import com.tencent.renderer.NativeRendererManager;
 
+import java.lang.ref.WeakReference;
 import java.util.Map;
 
 import static android.content.res.Configuration.ORIENTATION_UNDEFINED;
@@ -45,6 +47,7 @@ public class HippyRootView extends FrameLayout {
     protected boolean firstViewAdded = false;
     @Nullable
     private GlobalLayoutListener mGlobalLayoutListener;
+    private DrawListener mOnDrawListener;
 
     public HippyRootView(Context context, int instanceId, int rootId) {
         super(new NativeRenderContext(context, instanceId, rootId));
@@ -53,6 +56,7 @@ public class HippyRootView extends FrameLayout {
         setTag(tagMap);
         if (rootId != SCREEN_SNAPSHOT_ROOT_ID) {
             getViewTreeObserver().addOnGlobalLayoutListener(getGlobalLayoutListener());
+            getViewTreeObserver().addOnDrawListener(getDrawListener());
         }
     }
 
@@ -62,7 +66,7 @@ public class HippyRootView extends FrameLayout {
             firstViewAdded = true;
             NativeRender nativeRenderer = NativeRendererManager.getNativeRenderer(getContext());
             if (nativeRenderer != null) {
-                nativeRenderer.onFirstPaint();
+                nativeRenderer.onFirstPaint(getId());
             }
         }
     }
@@ -114,9 +118,44 @@ public class HippyRootView extends FrameLayout {
         }
     }
 
+    public void onFcpBatchEnd() {
+        DrawListener drawListener = getDrawListener();
+        drawListener.onFcpBatchEnd();
+    }
+
+    private class DrawListener implements ViewTreeObserver.OnDrawListener {
+
+        private boolean mFirstContentfulPaint = false;
+
+        public void onFcpBatchEnd() {
+            LogUtils.d(TAG, "onFcpBatchEnd: id " + HippyRootView.this.getId() + ", time " + System.currentTimeMillis());
+            mFirstContentfulPaint = true;
+        }
+
+        @Override
+        public void onDraw() {
+            Context context = getContext();
+            if (context != null && mFirstContentfulPaint) {
+                LogUtils.d(TAG, "onDraw: id " + HippyRootView.this.getId() + ", time " + System.currentTimeMillis());
+                NativeRender nativeRenderer = NativeRendererManager.getNativeRenderer(context);
+                if (nativeRenderer != null) {
+                    nativeRenderer.onFirstContentfulPaint(HippyRootView.this.getId());
+                }
+                mFirstContentfulPaint = false;
+            }
+        }
+    }
+
+    private DrawListener getDrawListener() {
+        if (mOnDrawListener == null) {
+            mOnDrawListener = new DrawListener();
+        }
+        return mOnDrawListener;
+    }
+
     private GlobalLayoutListener getGlobalLayoutListener() {
         if (mGlobalLayoutListener == null) {
-            mGlobalLayoutListener = new GlobalLayoutListener();
+            mGlobalLayoutListener = new GlobalLayoutListener(this);
         }
         return mGlobalLayoutListener;
     }
@@ -124,6 +163,11 @@ public class HippyRootView extends FrameLayout {
     private class GlobalLayoutListener implements ViewTreeObserver.OnGlobalLayoutListener {
 
         private int mOrientation = ORIENTATION_UNDEFINED;
+        private final WeakReference<View> mRootViewRef;
+
+        GlobalLayoutListener(View rootView) {
+            mRootViewRef = new WeakReference<>(rootView);
+        }
 
         @Override
         public void onGlobalLayout() {
@@ -137,7 +181,10 @@ public class HippyRootView extends FrameLayout {
                 sendOrientationChangeEvent(mOrientation);
                 NativeRender nativeRenderer = NativeRendererManager.getNativeRenderer(context);
                 if (nativeRenderer != null) {
-                    nativeRenderer.updateDimension(-1, -1);
+                    View rootView = mRootViewRef.get();
+                    int width = (rootView != null) ? rootView.getWidth() : -1;
+                    int height = (rootView != null) ? rootView.getHeight() : -1;
+                    nativeRenderer.updateDimension(width, height);
                 }
             }
         }

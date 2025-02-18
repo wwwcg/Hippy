@@ -74,6 +74,7 @@ export default class ListExample extends React.Component {
     this.onHeaderPulling = this.onHeaderPulling.bind(this);
     this.onFooterPulling = this.onFooterPulling.bind(this);
     this.renderBanner = this.renderBanner.bind(this);
+    this.renderFooter = this.renderFooter.bind(this);
     this.getItemStyle = this.getItemStyle.bind(this);
     this.getHeaderStyle = this.getHeaderStyle.bind(this);
     this.onScroll = this.onScroll.bind(this);
@@ -236,10 +237,10 @@ export default class ListExample extends React.Component {
   }
 
   onScroll(obj) {
-
+    console.log('onScroll', obj);
   }
 
-  // render banner(it is not supported on Android yet)
+  // render banner
   renderBanner() {
     if (this.state.dataSource.length === 0) return null;
     return (<View style={{
@@ -254,6 +255,24 @@ export default class ListExample extends React.Component {
         lineHeight: 100,
         height: 100,
       }}>Banner View</Text>
+    </View>);
+  }
+
+  // render footer (currently only iOS support)
+  renderFooter() {
+    if (this.state.dataSource.length === 0) return null;
+    return (<View style={{
+      backgroundColor: 'grey',
+      height: 100,
+      justifyContent: 'center',
+      alignItems: 'center',
+    }}>
+      <Text style={{
+        fontSize: 20,
+        color: 'white',
+        lineHeight: 100,
+        height: 100,
+      }}>Footer View</Text>
     </View>);
   }
 
@@ -299,7 +318,7 @@ export default class ListExample extends React.Component {
   }
 
   getWaterfallContentInset() {
-    return { top: 0, left: 0, bottom: 0, right: 0 };
+    return { top: 12, left: 12, bottom: 12, right: 12 };
   }
 
   getItemStyle() {
@@ -357,11 +376,14 @@ export default class ListExample extends React.Component {
               columnSpacing={columnSpacing}
               interItemSpacing={interItemSpacing}
               numberOfItems={dataSource.length}
-              preloadItemNumber={4}
+              contentInset={contentInset}
+              preloadItemNumber={12}
               style={{ flex: 1 }}
               onScroll={this.onScroll}
               renderBanner={this.renderBanner}
+              renderFooter={this.renderFooter}
               renderPullHeader={this.renderPullHeader}
+              renderPullFooter={this.renderPullFooter}
               onEndReached={this.onEndReached}
               onFooterReleased={this.onEndReached}
               onHeaderReleased={this.onHeaderReleased}
@@ -371,7 +393,6 @@ export default class ListExample extends React.Component {
               getItemKey={this.getItemKey}
               getItemStyle={this.getItemStyle}
               getHeaderStyle={this.getHeaderStyle}
-              contentInset={contentInset}
           />
     );
   }

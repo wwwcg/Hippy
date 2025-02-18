@@ -24,14 +24,28 @@
 
 @interface HippyBaseTextInput : HippyView
 
+/// Font property - FontSize
+@property (nonatomic, strong) NSNumber *fontSize;
+/// Font property - FontWeight
+@property (nonatomic, strong) NSString *fontWeight;
+/// Font property - FontStyle
+@property (nonatomic, strong) NSString *fontStyle;
+/// Font property - FontFamily
+@property (nonatomic, strong) NSString *fontFamily;
+
 @property (nonatomic, strong) UIFont *font;
 @property (nonatomic, assign) UIEdgeInsets contentInset;
 @property (nonatomic, copy) NSString *value;
 
+/// Keyboard will show event
+@property (nonatomic, copy) HippyDirectEventBlock onKeyboardWillShow;
+/// Keyboard will hide event
+@property (nonatomic, copy) HippyDirectEventBlock onKeyboardWillHide;
+/// Keyboard height change event
+@property (nonatomic, copy) HippyDirectEventBlock onKeyboardHeightChanged;
+
 - (void)focus;
 - (void)blur;
 - (void)clearText;
-- (void)keyboardWillShow:(NSNotification *)aNotification;
-- (void)keyboardWillHide:(NSNotification *)aNotification;
 
 @end

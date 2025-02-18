@@ -47,18 +47,6 @@ HIPPY_EXPORT_MODULE(TextInput)
     } else {
         theView = [[HippyTextView alloc] init];
     }
-    if (self.props[@"onKeyboardWillShow"]) {
-        [[NSNotificationCenter defaultCenter] addObserver:theView
-                                                 selector:@selector(keyboardWillShow:)
-                                                     name:UIKeyboardWillShowNotification
-                                                   object:nil];
-    }
-    if (self.props[@"onKeyboardWillHide"]) {
-        [[NSNotificationCenter defaultCenter] addObserver:theView
-                                                 selector:@selector(keyboardWillHide:)
-                                                     name:UIKeyboardWillHideNotification
-                                                   object:nil];
-    }
     return theView;
 }
 
@@ -72,6 +60,8 @@ HIPPY_EXPORT_VIEW_PROPERTY(onKeyPress, HippyDirectEventBlock)
 HIPPY_EXPORT_VIEW_PROPERTY(onBlur, HippyDirectEventBlock)
 HIPPY_EXPORT_VIEW_PROPERTY(onFocus, HippyDirectEventBlock)
 HIPPY_EXPORT_VIEW_PROPERTY(onKeyboardWillShow, HippyDirectEventBlock)
+HIPPY_EXPORT_VIEW_PROPERTY(onKeyboardWillHide, HippyDirectEventBlock)
+HIPPY_EXPORT_VIEW_PROPERTY(onKeyboardHeightChanged, HippyDirectEventBlock)
 HIPPY_EXPORT_VIEW_PROPERTY(defaultValue, NSString)
 HIPPY_EXPORT_VIEW_PROPERTY(isNightMode, BOOL)
 
@@ -150,6 +140,11 @@ HIPPY_EXPORT_SHADOW_PROPERTY(lineHeight, NSNumber)
 HIPPY_EXPORT_SHADOW_PROPERTY(lineSpacing, NSNumber)
 HIPPY_EXPORT_SHADOW_PROPERTY(lineHeightMultiple, NSNumber)
 
+HIPPY_EXPORT_SHADOW_PROPERTY(fontSize, NSNumber)
+HIPPY_EXPORT_SHADOW_PROPERTY(fontWeight, NSString)
+HIPPY_EXPORT_SHADOW_PROPERTY(fontStyle, NSString)
+HIPPY_EXPORT_SHADOW_PROPERTY(fontFamily, NSString)
+
 HIPPY_EXPORT_VIEW_PROPERTY(lineHeight, NSNumber)
 HIPPY_EXPORT_VIEW_PROPERTY(lineSpacing, NSNumber)
 HIPPY_EXPORT_VIEW_PROPERTY(lineHeightMultiple, NSNumber)
@@ -159,7 +154,7 @@ HIPPY_EXPORT_VIEW_PROPERTY(blurOnSubmit, BOOL)
 HIPPY_EXPORT_VIEW_PROPERTY(clearTextOnFocus, BOOL)
 HIPPY_REMAP_VIEW_PROPERTY(color, textView.textColor, UIColor)
 HIPPY_REMAP_VIEW_PROPERTY(textAlign, textView.textAlignment, NSTextAlignment)
-HIPPY_REMAP_VIEW_PROPERTY(editable, textView.editable, BOOL)
+HIPPY_REMAP_VIEW_PROPERTY(editable, textView.canEdit, BOOL)
 HIPPY_REMAP_VIEW_PROPERTY(enablesReturnKeyAutomatically, textView.enablesReturnKeyAutomatically, BOOL)
 HIPPY_REMAP_VIEW_PROPERTY(keyboardType, textView.keyboardType, UIKeyboardType)
 HIPPY_REMAP_VIEW_PROPERTY(keyboardAppearance, textView.keyboardAppearance, UIKeyboardAppearance)
@@ -178,44 +173,10 @@ HIPPY_EXPORT_VIEW_PROPERTY(selection, HippyTextSelection)
 HIPPY_EXPORT_VIEW_PROPERTY(text, NSString)
 HIPPY_REMAP_VIEW_PROPERTY(caretColor, textView.caretColor, UIColor)
 
-HIPPY_CUSTOM_SHADOW_PROPERTY(fontSize, NSNumber, HippyShadowTextView) {
-    view.font = [HippyFont updateFont:view.font withSize:json];
-}
-
-HIPPY_CUSTOM_SHADOW_PROPERTY(fontWeight, NSString, HippyShadowTextView) {
-    view.font = [HippyFont updateFont:view.font withWeight:json];
-}
-
-HIPPY_CUSTOM_SHADOW_PROPERTY(fontStyle, NSString, HippyShadowTextView) {
-    view.font = [HippyFont updateFont:view.font withStyle:json];  // defaults to normal
-}
-
-HIPPY_CUSTOM_SHADOW_PROPERTY(fontFamily, NSString, HippyShadowTextView) {
-    // Convert fontName to fontFamily if needed
-    NSString *familyName = [self familyNameWithCSSNameMatching:json];
-    view.font = [HippyFont updateFont:view.font withFamily:familyName];
-}
-
-HIPPY_CUSTOM_VIEW_PROPERTY(fontSize, NSNumber, HippyBaseTextInput) {
-    UIFont *theFont = [HippyFont updateFont:view.font withSize:json ?: @(defaultView.font.pointSize)];
-    view.font = theFont;
-}
-
-HIPPY_CUSTOM_VIEW_PROPERTY(fontWeight, NSString, __unused HippyBaseTextInput) {
-    UIFont *theFont = [HippyFont updateFont:view.font withWeight:json];  // defaults to normal
-    view.font = theFont;
-}
-
-HIPPY_CUSTOM_VIEW_PROPERTY(fontStyle, NSString, __unused HippyBaseTextInput) {
-    UIFont *theFont = [HippyFont updateFont:view.font withStyle:json];
-    view.font = theFont;  // defaults to normal
-}
-
-HIPPY_CUSTOM_VIEW_PROPERTY(fontFamily, NSString, HippyBaseTextInput) {
-    // Convert fontName to fontFamily if needed
-    NSString *familyName = [self familyNameWithCSSNameMatching:json];
-    view.font = [HippyFont updateFont:view.font withFamily:familyName ?: defaultView.font.familyName];
-}
+HIPPY_EXPORT_VIEW_PROPERTY(fontSize, NSNumber)
+HIPPY_EXPORT_VIEW_PROPERTY(fontWeight, NSString)
+HIPPY_EXPORT_VIEW_PROPERTY(fontStyle, NSString)
+HIPPY_EXPORT_VIEW_PROPERTY(fontFamily, NSString)
 
 - (HippyViewManagerUIBlock)uiBlockToAmendWithShadowView:(HippyShadowView *)hippyShadowView {
     NSNumber *componentTag = hippyShadowView.hippyTag;
@@ -224,24 +185,5 @@ HIPPY_CUSTOM_VIEW_PROPERTY(fontFamily, NSString, HippyBaseTextInput) {
         viewRegistry[componentTag].contentInset = padding;
     };
 }
-
-
-#pragma mark - Private
-
-/// Get the
-/// JS side usually pass a `fontName` instead of `fontFamily`
-/// - Parameter json: id
-- (NSString *)familyNameWithCSSNameMatching:(id)json {
-    NSString *familyName = json;
-    if (json && ![[UIFont familyNames] containsObject:json]) {
-        // Not a real FamilyName
-        // Using CSS name matching semantics.
-        // fontSize here is just a placeholder for getting font.
-        UIFont *cssFont = [UIFont fontWithName:json size:14.0];
-        familyName = cssFont.familyName;
-    }
-    return familyName;
-}
-
 
 @end

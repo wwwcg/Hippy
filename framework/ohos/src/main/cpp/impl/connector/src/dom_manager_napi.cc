@@ -74,7 +74,7 @@ static napi_value CreateDomManager(napi_env env, napi_callback_info info) {
   uint32_t dom_manager_num = static_cast<uint32_t>(arkTs.GetInteger(args[0]));
   uint32_t first_dom_manager_id = 0;
   for (uint32_t i = 0; i < dom_manager_num; i++) {
-    std::shared_ptr<DomManager> dom_manager = std::make_shared<DomManagerImpl>();
+    auto dom_manager = std::make_shared<DomManager>();
     auto dom_manager_id = hippy::global_data_holder_key.fetch_add(1);
     dom_manager->SetId(dom_manager_id);
     hippy::global_data_holder.Insert(dom_manager_id, dom_manager);
@@ -120,11 +120,10 @@ static napi_value DestroyDomManager(napi_env env, napi_callback_info info) {
 
 static napi_value CreateRoot(napi_env env, napi_callback_info info) {
   ArkTS arkTs(env);
-  auto args = arkTs.GetCallbackArgs(info, 3);
+  auto args = arkTs.GetCallbackArgs(info, 2);
   uint32_t root_id = static_cast<uint32_t>(arkTs.GetInteger(args[0]));
   double density = arkTs.GetDouble(args[1]);
-  bool enable_animation = arkTs.GetBoolean(args[2]);
-  auto root_node = std::make_shared<hippy::RootNode>(root_id, enable_animation);
+  auto root_node = std::make_shared<hippy::RootNode>(root_id);
   auto layout = root_node->GetLayoutNode();
   layout->SetScaleFactor(static_cast<float>(density));
   auto& persistent_map = RootNode::PersistentMap();

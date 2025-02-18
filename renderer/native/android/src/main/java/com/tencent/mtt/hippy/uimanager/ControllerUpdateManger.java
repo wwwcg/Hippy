@@ -16,6 +16,9 @@
 
 package com.tencent.mtt.hippy.uimanager;
 
+import static com.tencent.renderer.NativeRenderer.EVENT_PREFIX;
+import static com.tencent.renderer.NativeRenderer.SCREEN_SNAPSHOT_ROOT_ID;
+
 import android.graphics.Color;
 import android.view.View;
 
@@ -39,6 +42,7 @@ import com.tencent.renderer.utils.PropertyUtils;
 import com.tencent.renderer.utils.PropertyUtils.PropertyMethodHolder;
 import com.tencent.renderer.node.RenderNode;
 
+import java.lang.ref.WeakReference;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -64,7 +68,7 @@ public class ControllerUpdateManger<T> {
             NodeProps.OVERFLOW
     };
     @Nullable
-    private Renderer mRenderer;
+    private final WeakReference<Renderer> mRendererWeakRef;
     @Nullable
     private ComponentController mComponentController;
     @Nullable
@@ -79,11 +83,11 @@ public class ControllerUpdateManger<T> {
     }
 
     public ControllerUpdateManger(@NonNull Renderer renderer) {
-        mRenderer = renderer;
+        mRendererWeakRef = new WeakReference<>(renderer);
     }
 
-    public void clear() {
-        mRenderer = null;
+    void destroy() {
+
     }
 
     public void setCustomPropsController(T controller) {
@@ -111,6 +115,13 @@ public class ControllerUpdateManger<T> {
                 propsMethodHolder.defaultBoolean = controllerProps.defaultBoolean();
                 propsMethodHolder.method = method;
                 propsMethodHolder.hostClass = cls;
+                if (propsMethodHolder.defaultType.equals(HippyControllerProps.EVENT)) {
+                    style = style.toLowerCase();
+                    // Compatible with events prefixed with on in old version
+                    if (style.startsWith(EVENT_PREFIX)) {
+                        style = style.substring(EVENT_PREFIX.length());
+                    }
+                }
                 methodHolderMap.put(style, propsMethodHolder);
             }
         }
@@ -144,10 +155,7 @@ public class ControllerUpdateManger<T> {
             return true;
         }
         // Special case: property "opacity" in TextVirtualNode also need to process in HippyViewController
-        if (NodeProps.OPACITY.equals(name)) {
-            return true;
-        }
-        return false;
+        return NodeProps.OPACITY.equals(name);
     }
 
     void findViewPropsMethod(Class<?> cls,
@@ -172,6 +180,7 @@ public class ControllerUpdateManger<T> {
             if (value == null) {
                 switch (methodHolder.defaultType) {
                     case HippyControllerProps.BOOLEAN:
+                    case HippyControllerProps.EVENT:
                         methodHolder.method.invoke(obj, arg1, methodHolder.defaultBoolean);
                         break;
                     case HippyControllerProps.NUMBER:
@@ -198,8 +207,9 @@ public class ControllerUpdateManger<T> {
                 methodHolder.method.invoke(obj, arg1, value);
             }
         } catch (Exception exception) {
-            if (mRenderer != null) {
-                mRenderer.handleRenderException(
+            Renderer renderer = mRendererWeakRef.get();
+            if (renderer != null) {
+                renderer.handleRenderException(
                         PropertyUtils.makePropertyConvertException(exception, key,
                                 methodHolder.method));
             }
@@ -270,7 +280,7 @@ public class ControllerUpdateManger<T> {
                     view.setBackgroundColor(
                             MapUtils.getIntValue(props, NodeProps.BACKGROUND_COLOR,
                                     Color.TRANSPARENT));
-                } else if (!handleComponentProps(node, key, props, skipComponentProps)) {
+                } else if (!handleComponentProps(node, key, props, skipComponentProps) && node.getRootId() != SCREEN_SNAPSHOT_ROOT_ID) {
                     PropertyMethodHolder customMethodHolder = getCustomPropsMethodHolder(key);
                     if (customMethodHolder != null && view == null) {
                         // If the host has a custom attribute that needs to be processed, this element cannot be

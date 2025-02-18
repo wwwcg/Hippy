@@ -34,10 +34,12 @@
     [self removeFromSuperview];
 }
 
-- (void)scrollViewDidScroll {
+- (void)scrollViewDidScroll:(UIScrollView *)scrollView {
+    // nop
 }
 
-- (void)scrollViewDidEndDragging {
+- (void)scrollViewDidEndDragging:(UIScrollView *)scrollView {
+    //nop
 }
 
 - (void)setStatus:(HippyRefreshStatus)status {
@@ -51,7 +53,7 @@
 }
 
 - (void)refresh {
-    [UIView animateWithDuration:.2f animations:^{
+    [UIView animateWithDuration:HIPPY_REFRESH_ANIM_DURATION animations:^{
         self.scrollView.contentOffset = CGPointZero;
     } completion:^(BOOL finished) {
         self.status = HippyRefreshStatusStartLoading;

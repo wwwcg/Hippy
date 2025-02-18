@@ -19,6 +19,7 @@ package androidx.recyclerview.widget;
 import android.view.View;
 
 import android.view.ViewGroup;
+
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView.Adapter;
 import androidx.recyclerview.widget.RecyclerView.State;
@@ -29,8 +30,6 @@ import com.tencent.mtt.hippy.utils.LogUtils;
 import com.tencent.mtt.hippy.views.hippylist.HippyRecyclerListAdapter;
 import com.tencent.mtt.hippy.views.hippylist.PullRefreshContainer;
 import com.tencent.renderer.node.ListItemRenderNode;
-import com.tencent.renderer.node.PullFooterRenderNode;
-import com.tencent.renderer.node.PullHeaderRenderNode;
 import com.tencent.renderer.node.RenderNode;
 import com.tencent.renderer.node.WaterfallItemRenderNode;
 
@@ -62,19 +61,22 @@ public class HippyStaggeredGridLayoutManager extends StaggeredGridLayoutManager 
                 (StaggeredGridLayoutManager.LayoutParams) child.getLayoutParams();
         final int spanIndex = lp.getSpanIndex();
         final boolean isFullSpan = lp.isFullSpan();
+        int lf = left;
+        int rt = right;
         if (isFullSpan) {
             child.layout(left, top, right, bottom);
         } else {
-            int lf = spanIndex * (lp.width + mItemDecoration.getColumnSpacing());
-            int rt = (spanIndex + 1) * lp.width + spanIndex * mItemDecoration.getColumnSpacing();
-            child.layout(lf, top, rt, bottom);
+            lf = mRecyclerView.getPaddingLeft() + spanIndex * (lp.width
+                    + mItemDecoration.getColumnSpacing());
+            rt = mRecyclerView.getPaddingLeft() + (spanIndex + 1) * lp.width
+                    + spanIndex * mItemDecoration.getColumnSpacing();
         }
+        super.layoutDecoratedWithMargins(child, lf, top, rt, bottom);
         int size;
         if (child instanceof PullRefreshContainer) {
             size = getOrientation() == RecyclerView.VERTICAL ? bottom - top : right - left;
         } else {
-            size = getOrientation() == RecyclerView.VERTICAL ? lp.height + mItemDecoration.getItemSpacing()
-                    : lp.width + mItemDecoration.getItemSpacing();
+            size = getOrientation() == RecyclerView.VERTICAL ? lp.height : lp.width;
         }
         RenderNode childNode = RenderManager.getRenderNode(child);
         if (childNode instanceof WaterfallItemRenderNode) {
@@ -158,11 +160,7 @@ public class HippyStaggeredGridLayoutManager extends StaggeredGridLayoutManager 
     private int getChildSize(@NonNull ListItemRenderNode child) {
         Integer size = itemSizeMaps.get(child.getId());
         if (size == null) {
-            if (child.isPullFooter() || child.isPullHeader()) {
-                size = getItemSizeFromAdapter(child);
-            } else {
-                size = getItemSizeFromAdapter(child) + mItemDecoration.getItemSpacing();
-            }
+            size = getItemSizeFromAdapter(child);
         }
         return Math.max(size, 0);
     }
@@ -276,6 +274,7 @@ public class HippyStaggeredGridLayoutManager extends StaggeredGridLayoutManager 
             ItemLayoutParams layoutInfo = (ItemLayoutParams) adapter;
             resetLayoutParams();
             layoutInfo.getItemLayoutParams(node, ITEM_LAYOUT_PARAMS);
+            LogUtils.d(TAG, "getItemSizeFromAdapter id " + node.getId() + ", height " + ITEM_LAYOUT_PARAMS.height);
             if (getOrientation() == RecyclerView.VERTICAL) {
                 if (ITEM_LAYOUT_PARAMS.height >= 0) {
                     int size = ITEM_LAYOUT_PARAMS.height + ITEM_LAYOUT_PARAMS.bottomMargin

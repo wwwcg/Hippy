@@ -52,64 +52,41 @@ void InitBridge(napi_env env) {
   s_env = env;
 }
 
-static void CallArkTs(
-    const std::shared_ptr<Scope>& scope,
-    const string_view& module,
-    const string_view& func,
-    const string_view& cb_id,
-    bool is_heap_buffer,
-    const byte_string& buffer
-) {
-  auto env = s_env;
-  FOOTSTONE_DCHECK(env != nullptr);
-  if (!env) {
-    FOOTSTONE_LOG(ERROR) << "CallHost cb, bridge not initialized";
-    return;
-  }
-  auto bridge = std::any_cast<std::shared_ptr<Bridge>>(scope->GetBridge());
-  napi_ref object_ref = bridge->GetRef();
-  std::u16string module_str = StringViewUtils::ConvertEncoding(module, string_view::Encoding::Utf16).utf16_value();
-  std::u16string func_str = StringViewUtils::ConvertEncoding(func, string_view::Encoding::Utf16).utf16_value();
-  std::u16string cb_id_str = StringViewUtils::ConvertEncoding(cb_id, string_view::Encoding::Utf16).utf16_value();
-
-  void* new_buffer = malloc(buffer.size());
-  FOOTSTONE_DCHECK(new_buffer != nullptr);
-  if (!new_buffer) {
-    FOOTSTONE_LOG(ERROR) << "CallHost cb, malloc fail, size = " << buffer.size();
-    return;
-  }
-  memcpy(new_buffer, buffer.data(), buffer.size());
-  auto buffer_pair = std::make_pair(reinterpret_cast<uint8_t*>(new_buffer), buffer.size());
-
-  OhNapiTaskRunner *taskRunner = OhNapiTaskRunner::Instance(env);
-  taskRunner->RunAsyncTask([env, object_ref, module_str, func_str, cb_id_str, buffer_pair]() {
-    ArkTS arkTs(env);
-    std::vector<napi_value> args = {
-      arkTs.CreateStringUtf16(module_str),
-      arkTs.CreateStringUtf16(func_str),
-      arkTs.CreateStringUtf16(cb_id_str),
-      arkTs.CreateExternalArrayBuffer(buffer_pair.first, buffer_pair.second)
-    };
-    auto jsDriverObject = arkTs.GetObject(object_ref);
-    jsDriverObject.Call("callNatives", args);
-  });
-}
-
 void CallHost(CallbackInfo& info) {
-  auto cb = [](
+  auto cb = [env = s_env](
       const std::shared_ptr<Scope>& scope,
       const string_view& module,
       const string_view& func,
       const string_view& cb_id,
       bool is_heap_buffer,
       const byte_string& buffer) {
-    if (s_call_host_interceptor) {
-      bool handled = s_call_host_interceptor(scope, module, func, cb_id, buffer);
-      if (handled) {
-        return;
-      }
+    auto bridge = std::any_cast<std::shared_ptr<Bridge>>(scope->GetBridge());
+    napi_ref object_ref = bridge->GetRef();
+    std::u16string module_str = StringViewUtils::ConvertEncoding(module, string_view::Encoding::Utf16).utf16_value();
+    std::u16string func_str = StringViewUtils::ConvertEncoding(func, string_view::Encoding::Utf16).utf16_value();
+    std::u16string cb_id_str = StringViewUtils::ConvertEncoding(cb_id, string_view::Encoding::Utf16).utf16_value();
+
+    void* new_buffer = malloc(buffer.size());
+    FOOTSTONE_DCHECK(new_buffer != nullptr);
+    if (!new_buffer) {
+      FOOTSTONE_LOG(ERROR) << "CallHost cb, malloc fail, size = " << buffer.size();
+      return;
     }
-    CallArkTs(scope, module, func, cb_id, is_heap_buffer, buffer);
+    memcpy(new_buffer, buffer.data(), buffer.size());
+    auto buffer_pair = std::make_pair(reinterpret_cast<uint8_t*>(new_buffer), buffer.size());
+
+    OhNapiTaskRunner *taskRunner = OhNapiTaskRunner::Instance(env);
+    taskRunner->RunAsyncTask([env, object_ref, module_str, func_str, cb_id_str, buffer_pair]() {
+      ArkTS arkTs(env);
+      std::vector<napi_value> args = {
+        arkTs.CreateStringUtf16(module_str),
+        arkTs.CreateStringUtf16(func_str),
+        arkTs.CreateStringUtf16(cb_id_str),
+        arkTs.CreateExternalArrayBuffer(buffer_pair.first, buffer_pair.second)
+      };
+      auto jsDriverObject = arkTs.GetObject(object_ref);
+      jsDriverObject.Call("callNatives", args);
+    });
   };
   JsDriverUtils::CallNative(info, cb);
 }

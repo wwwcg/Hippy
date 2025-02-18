@@ -67,6 +67,8 @@ public interface NativeRender extends RenderExceptionHandler, RenderLogHandler {
     @Nullable
     BaseEngineContext getEngineContext();
 
+    void deleteVirtualChildNode(int rootId, int nodeId);
+
     int getEngineId();
 
     /**
@@ -95,9 +97,9 @@ public interface NativeRender extends RenderExceptionHandler, RenderLogHandler {
     VirtualNode createVirtualNode(int rootId, int id, int pid, int index, @NonNull String className,
             @Nullable Map<String, Object> props);
 
-    void onFirstPaint();
+    void onFirstPaint(int rootId);
 
-    void onFirstContentfulPaint();
+    void onFirstContentfulPaint(int rootId);
 
     void onSizeChanged(int rootId, int width, int height, int oldWidth, int oldHeight);
 

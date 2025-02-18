@@ -30,6 +30,8 @@
 HIPPY_EXPORT_MODULE(WaterfallView)
 
 HIPPY_EXPORT_VIEW_PROPERTY(contentInset, UIEdgeInsets)
+HIPPY_EXPORT_VIEW_PROPERTY(headerInset, UIEdgeInsets)
+HIPPY_EXPORT_VIEW_PROPERTY(footerInset, UIEdgeInsets)
 HIPPY_EXPORT_VIEW_PROPERTY(numberOfColumns, NSInteger)
 HIPPY_EXPORT_VIEW_PROPERTY(preloadItemNumber, NSInteger)
 HIPPY_EXPORT_VIEW_PROPERTY(columnSpacing, CGFloat)
@@ -44,6 +46,12 @@ HIPPY_EXPORT_VIEW_PROPERTY(containPullHeader, BOOL)
 HIPPY_EXPORT_VIEW_PROPERTY(containPullFooter, BOOL)
 HIPPY_EXPORT_VIEW_PROPERTY(scrollEventThrottle, double)
 HIPPY_EXPORT_VIEW_PROPERTY(onScroll, HippyDirectEventBlock)
+HIPPY_EXPORT_VIEW_PROPERTY(nestedScrollPriority, HippyNestedScrollPriority)
+HIPPY_EXPORT_VIEW_PROPERTY(nestedScrollTopPriority, HippyNestedScrollPriority)
+HIPPY_EXPORT_VIEW_PROPERTY(nestedScrollLeftPriority, HippyNestedScrollPriority)
+HIPPY_EXPORT_VIEW_PROPERTY(nestedScrollBottomPriority, HippyNestedScrollPriority)
+HIPPY_EXPORT_VIEW_PROPERTY(nestedScrollRightPriority, HippyNestedScrollPriority)
+HIPPY_REMAP_VIEW_PROPERTY(showScrollIndicator, collectionView.showsVerticalScrollIndicator, BOOL)
 
 - (UIView *)view {
     return [[HippyWaterfallView alloc] init];

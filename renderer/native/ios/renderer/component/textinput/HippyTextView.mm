@@ -21,15 +21,15 @@
  */
 
 #import "HippyTextView.h"
-
 #import "HippyConvert.h"
 #import "HippyShadowText.h"
 #import "HippyText.h"
 #import "HippyUtils.h"
 #import "HippyTextSelection.h"
 #import "UIView+Hippy.h"
+#import "HippyRenderUtils.h"
 
-@implementation NativeRenderUITextView
+@implementation HippyUITextView
 
 - (void)paste:(id)sender {
     _textWasPasted = YES;
@@ -70,9 +70,15 @@
 - (void)setCaretColor:(UIColor*)color{
     self.tintColor = color;
 }
+
+- (void)setCanEdit:(BOOL)canEdit {
+    _canEdit = canEdit;
+    [self setEditable:canEdit];
+}
+
 @end
 
-@interface HippyTextView () <NativeRenderUITextViewResponseDelegate>
+@interface HippyTextView () <HippyUITextViewResponseDelegate>
 
 /// ParagraphStyle for TextView and PlaceholderView,
 /// used for lineHeight config and etc.
@@ -104,33 +110,12 @@
 @dynamic lineSpacing;
 @dynamic lineHeightMultiple;
 
-#pragma mark - Keyboard Events
-
-- (void)keyboardWillShow:(NSNotification *)aNotification {
-    [super keyboardWillShow:aNotification];
-    //获取键盘的高度
-    NSDictionary *userInfo = [aNotification userInfo];
-    NSValue *aValue = [userInfo objectForKey:UIKeyboardFrameEndUserInfoKey];
-    CGRect keyboardRect = [aValue CGRectValue];
-    CGFloat keyboardHeight = keyboardRect.size.height;
-    if (self.isFirstResponder && _onKeyboardWillShow) {
-        _onKeyboardWillShow(@{ @"keyboardHeight": @(keyboardHeight) });
-    }
-}
-
-- (void)keyboardWillHide:(NSNotification *)aNotification {
-    [super keyboardWillHide:aNotification];
-    if (_onKeyboardWillHide) {
-        _onKeyboardWillHide(@{});
-    }
-}
-
 - (instancetype)initWithFrame:(CGRect)frame {
     if ((self = [super initWithFrame:frame])) {
         [self setContentInset:UIEdgeInsetsZero];
         _placeholderTextColor = [self defaultPlaceholderTextColor];
         _blurOnSubmit = NO;
-        _textView = [[NativeRenderUITextView alloc] initWithFrame:CGRectZero];
+        _textView = [[HippyUITextView alloc] initWithFrame:CGRectZero];
         _textView.responderDelegate = self;
         _textView.backgroundColor = [UIColor clearColor];
         _textView.textColor = [UIColor blackColor];
@@ -285,7 +270,8 @@ static NSAttributedString *removeComponentTagFromString(NSAttributedString *stri
     CGSize contentSize = (CGSize) { CGRectGetMaxX(_scrollView.frame), INFINITY };
     contentSize.height = [_textView sizeThatFits:contentSize].height;
     
-    if (_viewDidCompleteInitialLayout && _onContentSizeChange && !CGSizeEqualToSize(_previousContentSize, contentSize)) {
+    if (_viewDidCompleteInitialLayout && _onContentSizeChange 
+        && !HippyCGSizeRoundInPixelNearlyEqual(_previousContentSize, contentSize)) {
         _previousContentSize = contentSize;
         _onContentSizeChange(@{
             @"contentSize": @ {
@@ -557,7 +543,7 @@ static BOOL findMismatch(NSString *first, NSString *second, NSRange *firstRange,
     return YES;
 }
 
-- (BOOL)textView:(NativeRenderUITextView *)textView shouldChangeTextInRange:(NSRange)range replacementText:(NSString *)text {
+- (BOOL)textView:(HippyUITextView *)textView shouldChangeTextInRange:(NSRange)range replacementText:(NSString *)text {
     if (_onKeyPress) {
         NSString *resultKey = text;
         if ([text isEqualToString:@" "]) {
@@ -627,7 +613,7 @@ static BOOL findMismatch(NSString *first, NSString *second, NSRange *firstRange,
     return YES;
 }
 
-- (void)textViewDidChangeSelection:(NativeRenderUITextView *)textView {
+- (void)textViewDidChangeSelection:(HippyUITextView *)textView {
     if (_onSelectionChange && textView.selectedTextRange != _previousSelectionRange
         && ![textView.selectedTextRange isEqual:_previousSelectionRange]) {
         _previousSelectionRange = textView.selectedTextRange;

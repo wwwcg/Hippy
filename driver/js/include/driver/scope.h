@@ -166,6 +166,24 @@ class Scope : public std::enable_shared_from_this<Scope> {
   inline std::any GetTurbo() { return turbo_; }
   inline void SetTurbo(std::any turbo) { turbo_ = turbo; }
   inline std::weak_ptr<Engine> GetEngine() { return engine_; }
+  inline std::unique_ptr<RegisterMap>& GetRegisterMap() { return extra_function_map_; }
+    
+  inline bool RegisterExtraCallback(const std::string& key, RegisterFunction func) {
+    if (!func) {
+      return false;
+    }
+    (*extra_function_map_)[key] = std::move(func);
+    return true;
+  }
+  
+  inline bool GetExtraCallback(const std::string& key, RegisterFunction& outFunc) const {
+    auto it = extra_function_map_->find(key);
+    if (it != extra_function_map_->end()) {
+      outFunc = it->second;
+      return true;
+    }
+    return false;
+  }
 
   inline std::any GetClassTemplate(const string_view& name) {
     auto engine = engine_.lock();
@@ -294,14 +312,6 @@ class Scope : public std::enable_shared_from_this<Scope> {
     return dom_manager_;
   }
 
-  inline void SetRenderManager(std::shared_ptr<RenderManager> render_manager) {
-    render_manager_ = render_manager;
-  }
-
-  inline std::weak_ptr<RenderManager> GetRenderManager() {
-    return render_manager_;
-  }
-
   inline std::weak_ptr<RootNode> GetRootNode() {
     return root_node_;
   }
@@ -351,26 +361,32 @@ class Scope : public std::enable_shared_from_this<Scope> {
 
       auto class_template = reinterpret_cast<ClassTemplate<T>*>(data);
       auto len = info.Length();
-      std::shared_ptr<CtxValue> argv[len];
+      std::vector<std::shared_ptr<CtxValue>> argv(len);
       for (size_t i = 0; i < len; i++) {
         argv[i] = info[i];
       }
       auto receiver = info.GetReceiver();
       auto external = info.GetData();
       std::shared_ptr<CtxValue> exception = nullptr;
-      auto ret = class_template->constructor(receiver, static_cast<size_t>(len), argv, external, exception);
+      auto ret = class_template->constructor(receiver, static_cast<size_t>(len), argv.data(), external, exception);
       if (exception) {
         info.GetExceptionValue()->Set(exception);
         return;
       }
       info.SetData(ret.get());
+#ifdef __OHOS__
+      context->SetReceiverData(receiver, ret.get());
+#endif
+      // FOOTSTONE_DLOG(INFO) << "hippy gc, holder map insert, class_tp: " << class_template << ", " << class_template->name << ", obj: " << ret.get();
       class_template->holder_map.insert({ret.get(), ret});
       FOOTSTONE_CHECK(context);
       auto weak_callback_wrapper = std::make_unique<WeakCallbackWrapper>([](void* callback_data, void* internal_data) {
         auto class_template = reinterpret_cast<ClassTemplate<T>*>(callback_data);
         auto& holder_map = class_template->holder_map;
+        // FOOTSTONE_DLOG(INFO) << "hippy gc, holder map erase, class_tp: " << class_template << ", " << class_template->name << ", obj: " << internal_data;
         auto it = holder_map.find(internal_data);
         if (it != holder_map.end()) {
+          // FOOTSTONE_DLOG(INFO) << "hippy gc, holder map erase success";
           holder_map.erase(it);
         }
       }, class_template);
@@ -428,7 +444,7 @@ class Scope : public std::enable_shared_from_this<Scope> {
       auto function = std::make_unique<FunctionWrapper>([](CallbackInfo& info, void* data) {
         auto function_define = reinterpret_cast<FunctionDefine<T>*>(data);
         auto len = info.Length();
-        std::shared_ptr<CtxValue> param[len];
+        std::vector<std::shared_ptr<CtxValue>> param(len);
         for (size_t i = 0; i < len; i++) {
           param[i] = info[i];
         }
@@ -438,7 +454,7 @@ class Scope : public std::enable_shared_from_this<Scope> {
         }
         auto t = reinterpret_cast<T*>(info_data);
         std::shared_ptr<CtxValue> exception = nullptr;
-        auto ret = (function_define->callback)(t, static_cast<size_t>(len), param, exception);
+        auto ret = (function_define->callback)(t, static_cast<size_t>(len), param.data(), exception);
         if (exception) {
           info.GetReturnValue()->Set(exception);
           return;
@@ -474,6 +490,7 @@ class Scope : public std::enable_shared_from_this<Scope> {
   std::any bridge_;
   std::any turbo_;
   std::string name_;
+  std::unique_ptr<RegisterMap> extra_function_map_; // store some callback functions
   uint32_t call_ui_function_callback_id_;
   std::unordered_map<uint32_t, std::shared_ptr<CtxValue>> call_ui_function_callback_holder_;
   std::unordered_map<uint32_t, std::unordered_map<std::string, std::unordered_map<uint64_t, std::shared_ptr<CtxValue>>>>
@@ -482,7 +499,6 @@ class Scope : public std::enable_shared_from_this<Scope> {
   std::unique_ptr<ScopeWrapper> wrapper_;
   std::weak_ptr<UriLoader> loader_;
   std::weak_ptr<DomManager> dom_manager_;
-  std::weak_ptr<RenderManager> render_manager_;
   std::weak_ptr<RootNode> root_node_;
   std::unordered_map<std::string, std::shared_ptr<ModuleBase>> module_object_map_;
   std::unordered_map<string_view , std::shared_ptr<CtxValue>> javascript_class_map_;

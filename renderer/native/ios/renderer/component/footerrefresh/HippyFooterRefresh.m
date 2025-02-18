@@ -22,15 +22,18 @@
 
 #import "HippyFooterRefresh.h"
 
+static NSString *const kContentSizeKey = @"contentSize";
+static NSString *const kContentOffsetParamKey = @"contentOffset";
+
 @implementation HippyFooterRefresh
 
 - (void)setScrollView:(UIScrollView *)scrollView {
     [super setScrollView:scrollView];
-    [scrollView addObserver:self forKeyPath:@"contentSize" options:NSKeyValueObservingOptionNew context:NULL];
+    [scrollView addObserver:self forKeyPath:kContentSizeKey options:NSKeyValueObservingOptionNew context:NULL];
 }
 
 - (void)unsetFromScrollView {
-    [_scrollView removeObserver:self forKeyPath:@"contentSize"];
+    [_scrollView removeObserver:self forKeyPath:kContentSizeKey];
     [super unsetFromScrollView];
 }
 
@@ -38,30 +41,30 @@
                       ofObject:(id)object
                         change:(NSDictionary<NSKeyValueChangeKey, id> *)change
                        context:(void *)context {
-    if ([keyPath isEqualToString:@"contentSize"]) {
+    if ([keyPath isEqualToString:kContentSizeKey]) {
         NSValue *sizeValue = change[@"new"];
         CGSize size = [sizeValue CGSizeValue];
         self.frame = CGRectMake(0, size.height, CGRectGetWidth(self.bounds), CGRectGetHeight(self.bounds));
     }
 }
 
-- (void)scrollViewDidScroll {
-    if (_scrollView && _scrollView.contentSize.height > 0) {
-        if (self.onFooterPulling && HippyRefreshStatusStartLoading != [self status] && HippyRefreshStatusFinishLoading != [self status]) {
-            CGFloat offset = _scrollView.contentOffset.y;
-            if (offset >= 0) {
-                self.onFooterPulling(@{ @"contentOffset": @(offset) });
+- (void)scrollViewDidScroll:(UIScrollView *)scrollView {
+    CGFloat contentSizeHeight = scrollView.contentSize.height;
+    if (self.onFooterPulling && contentSizeHeight > 0) {
+        if (HippyRefreshStatusStartLoading != [self status] &&
+            HippyRefreshStatusFinishLoading != [self status]) {
+            CGFloat offset = scrollView.contentOffset.y;
+            if (offset >= (contentSizeHeight - CGRectGetHeight(scrollView.bounds))) {
+                self.onFooterPulling(@{ kContentOffsetParamKey : @(offset) });
             }
         }
     }
 }
 
-- (void)scrollViewDidEndDragging {
-    if (_scrollView) {
-        CGFloat offset = _scrollView.contentOffset.y;
-        if (offset > _scrollView.contentSize.height - CGRectGetHeight(_scrollView.bounds) + CGRectGetHeight(self.bounds)) {
-            self.status = HippyRefreshStatusStartLoading;
-        }
+- (void)scrollViewDidEndDragging:(UIScrollView *)scrollView {
+    CGFloat offset = scrollView.contentOffset.y;
+    if (offset >= scrollView.contentSize.height - CGRectGetHeight(scrollView.bounds) + CGRectGetHeight(self.bounds)) {
+        self.status = HippyRefreshStatusStartLoading;
     }
 }
 
@@ -71,7 +74,7 @@
     }
     switch (status) {
         case HippyRefreshStatusIdle: {
-            [UIView animateWithDuration:.2f animations:^{
+            [UIView animateWithDuration:HIPPY_REFRESH_ANIM_DURATION animations:^{
                 UIEdgeInsets insets = self.scrollView.contentInset;
                 self.scrollView.contentInset = UIEdgeInsetsMake(insets.top, insets.left, 0, insets.right);
             } completion:^(BOOL finished) {
@@ -84,13 +87,13 @@
                 CGFloat maxOffset = _scrollView.contentSize.height - height + CGRectGetHeight(self.bounds);
                 height = currentOffset - maxOffset + height;
             }
-            [UIView animateWithDuration:.2f animations:^{
+            [UIView animateWithDuration:HIPPY_REFRESH_ANIM_DURATION animations:^{
                 UIEdgeInsets insets = self.scrollView.contentInset;
                 self.scrollView.contentInset = UIEdgeInsetsMake(insets.top, insets.left, height, insets.right);
             } completion:^(BOOL finished) {
                 if (self.onFooterReleased) {
                     CGFloat offset = self.scrollView.contentOffset.y;
-                    self.onFooterReleased(@{@"contentOffset": @(offset)});
+                    self.onFooterReleased(@{ kContentOffsetParamKey : @(offset) });
                 }
             }];
         } break;
@@ -106,10 +109,10 @@
 }
 
 - (void)refresh {
-    [UIView animateWithDuration:.2f animations:^{
+    [UIView animateWithDuration:HIPPY_REFRESH_ANIM_DURATION animations:^{
         CGPoint bottomOffset
             = CGPointMake(0, self.scrollView.contentSize.height - self.scrollView.bounds.size.height + self.scrollView.contentInset.bottom);
-        [self.scrollView setContentOffset:bottomOffset animated:YES];
+        self.scrollView.contentOffset = bottomOffset;
     } completion:^(BOOL finished) {
         self.status = HippyRefreshStatusStartLoading;
     }];

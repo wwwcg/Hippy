@@ -20,6 +20,7 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.view.View;
 
+import android.view.ViewGroup;
 import androidx.annotation.NonNull;
 import com.tencent.mtt.hippy.annotation.HippyController;
 import com.tencent.mtt.hippy.annotation.HippyControllerProps;
@@ -60,8 +61,7 @@ public class HippyModalHostManager extends HippyGroupController<HippyModalHostVi
     @Override
     public void onViewDestroy(HippyModalHostView hippyModalHostView) {
         super.onViewDestroy(hippyModalHostView);
-        int rootId = NativeRendererManager.getRootId(hippyModalHostView.getContext());
-        hippyModalHostView.onInstanceDestroy(rootId);
+        hippyModalHostView.onDestroy();
     }
 
     @HippyControllerProps(name = "animationType", defaultType = HippyControllerProps.STRING,
@@ -101,4 +101,13 @@ public class HippyModalHostManager extends HippyGroupController<HippyModalHostVi
         v.showOrUpdate();
     }
 
+    @Override
+    public int getChildCount(HippyModalHostView modalHostView) {
+        return modalHostView.getModalChildCount();
+    }
+
+    @Override
+    public View getChildAt(HippyModalHostView modalHostView, int i) {
+        return modalHostView.getModalChildAt(i);
+    }
 }

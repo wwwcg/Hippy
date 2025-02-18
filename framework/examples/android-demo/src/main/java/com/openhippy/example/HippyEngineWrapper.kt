@@ -66,6 +66,7 @@ class HippyEngineWrapper//TODO: Coming soon
         initParams.debugMode = isDebug
         initParams.enableLog = true
         initParams.logAdapter = DefaultLogAdapter()
+        initParams.groupId = 1
         when(driverMode) {
             PageConfiguration.DriverMode.JS_REACT -> {
                 initParams.coreJSAssetsPath = "react/vendor.android.js"
@@ -179,7 +180,8 @@ class HippyEngineWrapper//TODO: Coming soon
                     if (!isDebugMode && isSnapshotMode) {
                         val buffer = renderNodeSnapshot[driverMode]
                         buffer?.let {
-                            snapshotView = hippyEngine.replaySnapshot(context, it)
+                            var bundlePath = "assets://" + loadParams.jsAssetsPath
+                            snapshotView = hippyEngine.replaySnapshot(context, it, bundlePath)
                         }
                         snapshotView?.let {
                             hippySnapshotView = snapshotView as ViewGroup
@@ -201,6 +203,10 @@ class HippyEngineWrapper//TODO: Coming soon
                                     hippyEngine.removeSnapshotView()
                                 }, 400)
                             }
+                        }
+
+                        override fun onFirstContentfulPaint() {
+
                         }
                     })
 

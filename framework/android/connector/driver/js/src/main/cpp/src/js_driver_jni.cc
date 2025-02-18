@@ -112,7 +112,7 @@ REGISTER_JNI("com/openhippy/connector/JsDriver", // NOLINT(cert-err58-cpp)
 
 REGISTER_JNI("com/openhippy/connector/JsDriver", // NOLINT(cert-err58-cpp)
              "onFirstPaintEnd",
-             "(IJ)V",
+             "(IJI)V",
              OnFirstPaintEnd)
 
 REGISTER_JNI("com/openhippy/connector/JsDriver", // NOLINT(cert-err58-cpp)
@@ -192,7 +192,7 @@ void OnNativeInitEnd(JNIEnv* j_env, jobject j_object, jint j_scope_id, jlong sta
   }
 }
 
-void OnFirstPaintEnd(JNIEnv* j_env, jobject j_object, jint j_scope_id, jlong time) {
+void OnFirstPaintEnd(JNIEnv* j_env, jobject j_object, jint j_scope_id, jlong time, jint j_root_id) {
   auto scope = GetScope(j_scope_id);
   if (!scope) {
     return;
@@ -204,7 +204,7 @@ void OnFirstPaintEnd(JNIEnv* j_env, jobject j_object, jint j_scope_id, jlong tim
   auto runner = engine->GetJsTaskRunner();
   if (runner) {
     std::weak_ptr<Scope> weak_scope = scope;
-    auto task = [weak_scope, time]() {
+    auto task = [weak_scope, time, j_root_id]() {
       auto scope = weak_scope.lock();
       if (!scope) {
         return;
@@ -214,9 +214,11 @@ void OnFirstPaintEnd(JNIEnv* j_env, jobject j_object, jint j_scope_id, jlong tim
         return;
       }
       auto entry = scope->GetPerformance()->PerformanceNavigation("hippyInit");
-      entry->SetHippyDomStart(dom_manager->GetDomStartTimePoint());
-      entry->SetHippyDomEnd(dom_manager->GetDomEndTimePoint());
-      entry->SetHippyFirstFrameStart(dom_manager->GetDomEndTimePoint());
+      auto rootId = footstone::checked_numeric_cast<jint, uint32_t>(j_root_id);
+      entry->SetHippyRunApplicationEnd(dom_manager->GetDomStartTimePoint(rootId));
+      entry->SetHippyDomStart(dom_manager->GetDomStartTimePoint(rootId));
+      entry->SetHippyDomEnd(dom_manager->GetDomEndTimePoint(rootId));
+      entry->SetHippyFirstFrameStart(dom_manager->GetDomEndTimePoint(rootId));
       entry->SetHippyFirstFrameEnd(footstone::TimePoint::FromEpochDelta(footstone::TimeDelta::FromMilliseconds(time)));
     };
     runner->PostTask(std::move(task));
@@ -314,6 +316,7 @@ jint CreateJsDriver(JNIEnv* j_env,
   auto param = std::make_shared<V8VMInitParam>();
   param->enable_v8_serialization =  static_cast<bool>(j_enable_v8_serialization);
   param->is_debug = static_cast<bool>(j_is_dev_module);
+  param->group_id = static_cast<int64_t>(j_group_id);
   if (j_vm_init_param) {
     jclass cls = j_env->GetObjectClass(j_vm_init_param);
     jfieldID init_field = j_env->GetFieldID(cls, "initialHeapSize", "J");
@@ -409,6 +412,9 @@ void DestroyJsDriver(__unused JNIEnv* j_env,
     scope_cv_map.erase(scope_id);
   }
   auto scope = GetScope(j_scope_id);
+  if (!scope) {
+    return;
+  }
   auto engine = scope->GetEngine().lock();
   FOOTSTONE_CHECK(engine);
   {

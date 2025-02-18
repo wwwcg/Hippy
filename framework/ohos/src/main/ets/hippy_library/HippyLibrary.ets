@@ -47,7 +47,7 @@ export interface HippyLibrary {
   DomManager_SetRenderManager(instanceId: number, renderId: number): void;
   DomManager_CreateDomManager(domManagerNum: number): number;
   DomManager_DestroyDomManager(domManagerId: number): void;
-  DomManager_CreateRoot(rootId: number, density: number, enableAnimation: boolean): void;
+  DomManager_CreateRoot(rootId: number, density: number): void;
   DomManager_DestroyRoot(rootId: number): void;
   DomManager_ReleaseRootResources(rootId: number): void;
   DomManager_SetDomManager(rootId: number, instanceId: number): void;
@@ -82,7 +82,7 @@ export interface HippyLibrary {
   ): boolean;
   JsDriver_SetRootNode(instanceId: number, rootId: number): void;
   JsDriver_OnNativeInitEnd(instanceId: number, startTime: number, endTime: number): void;
-  JsDriver_OnFirstFrameEnd(instanceId: number, time: number): void;
+  JsDriver_OnFirstFrameEnd(instanceId: number, rootId: number, time: number): void;
   JsDriver_OnResourceLoadEnd(
     instanceId: number,
     uri: string,
@@ -128,6 +128,7 @@ export interface HippyLibrary {
   TurboModuleManager_Install(turbo: TurboModuleManager, v8RuntimeId: number): void;
 
   Setting_SetFlags(enableUpdateAnimLog: boolean): void;
+  Setting_SetDensity(density: number): void;
   Setting_SetDensityScale(densityScale: number): void;
   Setting_SetFontSizeScale(fontSizeScale: number): void;
 }

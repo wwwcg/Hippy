@@ -61,10 +61,10 @@ export class ExampleNativeTurboModule extends HippyNativeModuleBase {
   }
 
   public getTurboConfig(): TurboConfig {
-		return new TurboConfig();
+		return TurboConfig.getInstance();
 	}
 
   public printTurboConfig(turboConfig: TurboConfig): string {
-    return turboConfig.info;
+    return turboConfig.toString();
   }
 }

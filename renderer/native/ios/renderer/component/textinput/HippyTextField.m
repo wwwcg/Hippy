@@ -63,9 +63,9 @@
     }
 }
 
-- (void)setEditable:(BOOL)editable {
-    _editable = editable;
-    [self setEnabled:editable];
+- (void)setCanEdit:(BOOL)canEdit {
+    _canEdit = canEdit;
+    [self setEnabled:canEdit];
 }
 
 - (void)paste:(id)sender {
@@ -122,24 +122,6 @@
 @dynamic lineHeight;
 @dynamic lineSpacing;
 @dynamic lineHeightMultiple;
-
-- (void)keyboardWillShow:(NSNotification *)aNotification {
-    [super keyboardWillShow:aNotification];
-    NSDictionary *userInfo = [aNotification userInfo];
-    NSValue *aValue = [userInfo objectForKey:UIKeyboardFrameEndUserInfoKey];
-    CGRect keyboardRect = [aValue CGRectValue];
-    CGFloat keyboardHeight = keyboardRect.size.height;
-    if (_textView.isFirstResponder && _onKeyboardWillShow) {
-        _onKeyboardWillShow(@{ @"keyboardHeight": @(keyboardHeight) });
-    }
-}
-
-- (void)keyboardWillHide:(NSNotification *)aNotification {
-    [super keyboardWillHide:aNotification];
-    if (_onKeyboardWillHide) {
-        _onKeyboardWillHide(@{});
-    }
-}
 
 - (instancetype)initWithFrame:(CGRect)frame {
     if ((self = [super initWithFrame:frame])) {

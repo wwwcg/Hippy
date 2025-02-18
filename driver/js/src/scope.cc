@@ -114,11 +114,11 @@ static void InternalBindingCallback(hippy::napi::CallbackInfo& info, void* data)
   }
   auto len = info.Length();
   auto argc = len > 1 ? (len - 1) : 0;
-  std::shared_ptr<CtxValue> rest_args[argc];
+  std::vector<std::shared_ptr<CtxValue>> rest_args(argc);
   for (size_t i = 0; i < argc; ++i) {
     rest_args[i] = info[i + 1];
   }
-  auto js_object = module_object->BindFunction(scope, rest_args);
+  auto js_object = module_object->BindFunction(scope, rest_args.data());
   info.GetReturnValue()->Set(js_object);
 }
 
@@ -129,17 +129,17 @@ Scope::Scope(std::weak_ptr<Engine> engine,
     : engine_(std::move(engine)),
       context_(nullptr),
       name_(std::move(name)),
+      extra_function_map_(std::make_unique<RegisterMap>()),
       call_ui_function_callback_id_(0),
       performance_(std::make_shared<Performance>()) {}
 
 Scope::~Scope() {
   FOOTSTONE_DLOG(INFO) << "~Scope";
-#ifdef JS_JSC
-/*
- * JSObjectFinalizeCallback will be called when you call JSContextGroupRelease, so it is necessary to hold the wrapper when ctx is destroyed.
- */
-#else
+#ifdef JS_JSH
   context_->InvalidWeakCallbackWrapper();
+#else
+  context_ = nullptr;
+#endif
   auto engine = engine_.lock();
   FOOTSTONE_DCHECK(engine);
   if (engine) {
@@ -148,7 +148,6 @@ Scope::~Scope() {
     engine->ClearFunctionWrapper(key);
     engine->ClearClassTemplate(key);
   }
-#endif
 }
 
 void Scope::WillExit() {
@@ -538,7 +537,7 @@ void Scope::LoadInstance(const std::shared_ptr<HippyValue>& value) {
   auto cb = [WEAK_THIS, weak_context, value]() mutable {
 #endif
     DEFINE_AND_CHECK_SELF(Scope)
-    // perfromance start time
+    // perfromance - RunApplication start time (end at DomStart)
     auto entry = self->GetPerformance()->PerformanceNavigation(kPerfNavigationHippyInit);
     entry->SetHippyRunApplicationStart(footstone::TimePoint::SystemNow());
 
@@ -572,9 +571,6 @@ void Scope::LoadInstance(const std::shared_ptr<HippyValue>& value) {
         context->ThrowException("Application entry not found");
       }
     }
-
-    // perfromance end time
-    entry->SetHippyRunApplicationEnd(footstone::TimePoint::SystemNow());
   };
   auto runner = GetTaskRunner();
   if (footstone::Worker::IsTaskRunning() && runner == footstone::runner::TaskRunner::GetCurrentTaskRunner()) {

@@ -74,9 +74,11 @@ class ArkTsTurboModule {
     
   std::shared_ptr<CtxValue> InvokeArkTsMethod(
       const std::shared_ptr<CtxValue>& prop_name,
+      ArkTsTurboModule* module,
       hippy::napi::CallbackInfo& info,
-      void* data);
-  void InitMethodSet();
+      void* data,
+      std::shared_ptr<Ctx> ctx);
+  std::set<std::string> InitMethodSet();
 
 };
 

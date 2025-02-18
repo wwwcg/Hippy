@@ -55,6 +55,7 @@ Worker::Worker(std::string name, bool is_schedulable, std::unique_ptr<Driver> dr
       is_stacking_mode_(false),
       has_migration_data_(false),
       is_schedulable_(is_schedulable),
+      reuse_count_(1),
       group_id_(0),
       driver_(std::move(driver)) {
 }
@@ -386,9 +387,11 @@ std::unique_ptr<Task> Worker::GetNextTask() {
     }
   }
   if (idle_task) {
+    auto begin_time = idle_task->GetBeginTime();
+    auto timeout = idle_task->GetTimeout();
     auto wrapper_idle_task = std::make_unique<Task>(
-        MakeCopyable([begin_time = idle_task->GetBeginTime(),
-                      timeout = idle_task->GetTimeout(),
+        MakeCopyable([begin_time,
+                      timeout,
                       task = std::move(idle_task),
                       time = min_wait_time_]() {
           auto now = TimePoint::Now();
@@ -401,6 +404,7 @@ std::unique_ptr<Task> Worker::GetNextTask() {
         }));
     return wrapper_idle_task;
   }
+  std::unique_lock<std::mutex> lock(driver_->Mutex());
   if (driver_->IsTerminated()) {
     return nullptr;
   }

@@ -28,9 +28,8 @@
 #import "UIView+Hippy.h"
 #import "HippyShadowView+Internal.h"
 #import "HippyAssert.h"
+#import "HippyRenderUtils.h"
 
-
-static NSString *const HippyBackgroundColorPropKey = @"backgroundColor";
 
 @implementation HippyShadowView
 
@@ -44,14 +43,17 @@ static NSString *const HippyBackgroundColorPropKey = @"backgroundColor";
     if (NativeRenderUpdateLifecycleComputed == _propagationLifecycle) {
         return;
     }
+    
+    // do some additional layout adjust
+    [self processUpdatedPropertiesBeforeMount:blocks];
+    
     _propagationLifecycle = NativeRenderUpdateLifecycleComputed;
-    for (HippyShadowView *renderObjectView in self.subcomponents) {
-        [renderObjectView amendLayoutBeforeMount:blocks];
+    for (HippyShadowView *subShadowView in self.hippySubviews) {
+        [subShadowView amendLayoutBeforeMount:blocks];
     }
 }
 
-- (NSDictionary<NSString *, id> *)processUpdatedProperties:(NSMutableSet<NativeRenderApplierBlock> *)applierBlocks
-                                          parentProperties:(NSDictionary<NSString *, id> *)parentProperties {
+- (void)processUpdatedPropertiesBeforeMount:(NSMutableSet<NativeRenderApplierBlock> *)applierBlocks {
     if (_didUpdateSubviews) {
         _didUpdateSubviews = NO;
         [self didUpdateHippySubviews];
@@ -69,34 +71,13 @@ static NSString *const HippyBackgroundColorPropKey = @"backgroundColor";
         }];
         _confirmedLayoutDirectionDidUpdated = NO;
     }
-    if (!_backgroundColor) {
-        UIColor *parentBackgroundColor = parentProperties[HippyBackgroundColorPropKey];
-        if (parentBackgroundColor) {
-            [applierBlocks addObject:^(NSDictionary<NSNumber *, UIView *> *viewRegistry, UIView * _Nullable lazyCreatedView) {
-                UIView *view = lazyCreatedView ?: viewRegistry[self->_hippyTag];
-                [view hippySetInheritedBackgroundColor:parentBackgroundColor];
-            }];
-        }
-    } else {
-        // Update parent properties for children
-        NSMutableDictionary<NSString *, id> *properties = [NSMutableDictionary dictionaryWithDictionary:parentProperties];
-        CGFloat alpha = CGColorGetAlpha(_backgroundColor.CGColor);
-        if (alpha < 1.0) {
-            // If bg is non-opaque, don't propagate further
-            properties[HippyBackgroundColorPropKey] = [UIColor clearColor];
-        } else {
-            properties[HippyBackgroundColorPropKey] = _backgroundColor;
-        }
-        return properties;
-    }
-    return parentProperties;
 }
 
 - (instancetype)init {
     if ((self = [super init])) {
         _propagationLifecycle = NativeRenderUpdateLifecycleUninitialized;
         _frame = CGRectMake(0, 0, NAN, NAN);
-        _objectSubviews = [NSMutableArray arrayWithCapacity:8];
+        _objectSubviews = [NSMutableArray array];
         _confirmedLayoutDirection = hippy::Direction::Inherit;
         _layoutDirection = hippy::Direction::Inherit;
     }
@@ -160,15 +141,15 @@ static NSString *const HippyBackgroundColorPropKey = @"backgroundColor";
 
 - (void)synchronousRecusivelySetCreationTypeToInstant {
     self.creationType = HippyCreationTypeInstantly;
-    for (HippyShadowView *subShadowView in self.subcomponents) {
+    for (HippyShadowView *subShadowView in self.hippySubviews) {
         [subShadowView synchronousRecusivelySetCreationTypeToInstant];
     }
 }
 
 - (UIView *)createView:(HippyViewCreationBlock)creationBlock insertChildren:(HippyViewInsertionBlock)insertionBlock {
     UIView *container = creationBlock(self);
-    NSMutableArray *children = [NSMutableArray arrayWithCapacity:[self.subcomponents count]];
-    for (HippyShadowView *subviews in self.subcomponents) {
+    NSMutableArray *children = [NSMutableArray arrayWithCapacity:[self.hippySubviews count]];
+    for (HippyShadowView *subviews in self.hippySubviews) {
         UIView *subview = [subviews createView:creationBlock insertChildren:insertionBlock];
         if (subview) {
             [children addObject:subview];
@@ -217,7 +198,7 @@ static NSString *const HippyBackgroundColorPropKey = @"backgroundColor";
     [superview removeHippySubview:self];
 }
 
-- (NSArray<HippyShadowView *> *)subcomponents {
+- (NSArray<HippyShadowView *> *)hippySubviews {
     return _objectSubviews;
 }
 
@@ -286,7 +267,7 @@ static NSString *const HippyBackgroundColorPropKey = @"backgroundColor";
 
 - (void)setLayoutFrame:(CGRect)frame dirtyPropagation:(BOOL)dirtyPropagation {
     CGRect currentFrame = self.frame;
-    if (CGRectEqualToRect(currentFrame, frame)) {
+    if (HippyCGRectRoundInPixelNearlyEqual(currentFrame, frame)) {
         return;
     }
     [self setFrame:frame];
@@ -294,29 +275,27 @@ static NSString *const HippyBackgroundColorPropKey = @"backgroundColor";
     if (domManager) {
         __weak HippyShadowView *weakSelf = self;
         std::vector<std::function<void()>> ops = {[weakSelf, domManager, frame, dirtyPropagation](){
-            @autoreleasepool {
-                HippyShadowView *strongSelf = weakSelf;
-                if (!strongSelf) {
-                    return;
-                }
-                int32_t componentTag = [[strongSelf hippyTag] intValue];
-                auto node = domManager->GetNode(strongSelf.rootNode, componentTag);
-                auto renderManager = domManager->GetRenderManager().lock();
-                if (!node || !renderManager) {
-                    return;
-                }
-                node->SetLayoutOrigin(frame.origin.x, frame.origin.y);
-                node->SetLayoutSize(frame.size.width, frame.size.height);
-                std::vector<std::shared_ptr<hippy::DomNode>> changed_nodes;
-                node->DoLayout(changed_nodes);
-                if (!changed_nodes.empty()) {
-                    renderManager->UpdateLayout(strongSelf.rootNode, changed_nodes);
-                }
-                if (dirtyPropagation) {
-                    [strongSelf dirtyPropagation:NativeRenderUpdateLifecycleLayoutDirtied];
-                }
-                renderManager->EndBatch(strongSelf.rootNode);
+            HippyShadowView *strongSelf = weakSelf;
+            if (!strongSelf) {
+                return;
             }
+            int32_t componentTag = [[strongSelf hippyTag] intValue];
+            auto node = domManager->GetNode(strongSelf.rootNode, componentTag);
+            auto renderManager = domManager->GetRenderManager().lock();
+            if (!node || !renderManager) {
+                return;
+            }
+            node->SetLayoutOrigin(frame.origin.x, frame.origin.y);
+            node->SetLayoutSize(frame.size.width, frame.size.height);
+            std::vector<std::shared_ptr<hippy::DomNode>> changed_nodes;
+            node->DoLayout(changed_nodes);
+            if (!changed_nodes.empty()) {
+                renderManager->UpdateLayout(strongSelf.rootNode, changed_nodes);
+            }
+            if (dirtyPropagation) {
+                [strongSelf dirtyPropagation:NativeRenderUpdateLifecycleLayoutDirtied];
+            }
+            renderManager->EndBatch(strongSelf.rootNode);
         }};
         domManager->PostTask(hippy::dom::Scene(std::move(ops)));
     }
@@ -325,6 +304,16 @@ static NSString *const HippyBackgroundColorPropKey = @"backgroundColor";
 - (void)setBackgroundColor:(UIColor *)color {
     _backgroundColor = color;
     [self dirtyPropagation:NativeRenderUpdateLifecyclePropsDirtied];
+}
+
+- (void)setZIndex:(NSInteger)zIndex {
+    _zIndex = zIndex;
+    HippyShadowView *superShadowView = _superview;
+    if (superShadowView) {
+        // Changing zIndex means the subview order of the parent needs updating
+        superShadowView->_didUpdateSubviews = YES;
+        [superShadowView dirtyPropagation:NativeRenderUpdateLifecycleLayoutDirtied];
+    }
 }
 
 - (void)didUpdateHippySubviews {
@@ -415,7 +404,7 @@ static NSString *const HippyBackgroundColorPropKey = @"backgroundColor";
 
 - (void)applyConfirmedLayoutDirectionToSubviews:(hippy::Direction)confirmedLayoutDirection {
     _confirmedLayoutDirection = confirmedLayoutDirection;
-    for (HippyShadowView *subviews in self.subcomponents) {
+    for (HippyShadowView *subviews in self.hippySubviews) {
         [subviews applyConfirmedLayoutDirectionToSubviews:confirmedLayoutDirection];
     }
 }
@@ -448,7 +437,7 @@ static NSString *const HippyBackgroundColorPropKey = @"backgroundColor";
 - (void)superviewLayoutDirectionChangedTo:(hippy::Direction)direction {
     if (hippy::Direction::Inherit == self.layoutDirection) {
         self.confirmedLayoutDirection = ((HippyShadowView *)[self parent]).confirmedLayoutDirection;
-        for (HippyShadowView *subview in self.subcomponents) {
+        for (HippyShadowView *subview in self.hippySubviews) {
             [subview superviewLayoutDirectionChangedTo:self.confirmedLayoutDirection];
         }
     }

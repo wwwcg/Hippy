@@ -21,12 +21,26 @@
  */
 
 #import "HippyBridge+PerformanceAPI.h"
-#import "HippyJSExecutor.h"
+#import "HippyJSExecutor+Internal.h"
+#import "HippyLog.h"
 #import "driver/scope.h"
+#import "footstone/string_view_utils.h"
+
+
+static NSString *const kHippyPerfKeyFP = @"FP";
+static NSString *const kHippyPerfKeyFCP = @"FCP";
+static NSString *const kHippyPerfKeyInit = @"NativeInit";
+static NSString *const kHippyPerfKeyJSInit = @"JsEngineInit";
+static NSString *const kHippyPerfKeyRunApp = @"RunApplication";
+static NSString *const kHippyPerfKeyDomCreate = @"DomCreate";
+static NSString *const kHippyPerfKeyFirstFrame = @"FirstFrame";
+
+
+using namespace footstone;
 
 @implementation HippyBridge (PerformanceAPI)
 
-- (void)updatePerfRecordsOnRootContentDidAppear {
+- (void)updatePerfRecordsOnRootContentDidAppear:(NSNumber *)rootTag  {
     std::shared_ptr<hippy::Scope> scope = self.javaScriptExecutor.pScope;
     if (!scope) {
         return;
@@ -38,10 +52,21 @@
         if (!entry) {
             return;
         }
-        entry->SetHippyDomStart(domManager->GetDomStartTimePoint());
-        entry->SetHippyDomEnd(domManager->GetDomEndTimePoint());
-        entry->SetHippyFirstFrameStart(domManager->GetDomEndTimePoint());
+        uint32_t rootId = rootTag.unsignedIntValue;
+        entry->SetHippyRunApplicationEnd(domManager->GetDomStartTimePoint(rootId));
+        entry->SetHippyDomStart(domManager->GetDomStartTimePoint(rootId));
+        entry->SetHippyDomEnd(domManager->GetDomEndTimePoint(rootId));
+        entry->SetHippyFirstFrameStart(domManager->GetDomEndTimePoint(rootId));
         entry->SetHippyFirstFrameEnd(footstone::TimePoint::SystemNow());
+        
+#if HIPPY_DEBUG
+        int64_t totalFPTime = (entry->GetHippyFirstFrameEnd() - entry->GetHippyNativeInitStart()).ToMilliseconds();
+        int64_t nativeInit = (entry->GetHippyNativeInitEnd() - entry->GetHippyNativeInitStart()).ToMilliseconds();
+        int64_t runApplication = (entry->GetHippyRunApplicationEnd() - entry->GetHippyRunApplicationStart()).ToMilliseconds();
+        int64_t domCreate = (entry->GetHippyDomEnd() - entry->GetHippyDomStart()).ToMilliseconds();
+        int64_t firstFrame = (entry->GetHippyFirstFrameEnd() - entry->GetHippyFirstFrameStart()).ToMilliseconds();
+        HippyLogTrace(@"Hippy FP=%lld, detail: %lld, %lld, %lld, %lld", totalFPTime, nativeInit, runApplication, domCreate, firstFrame);
+#endif /* HIPPY_DEBUG */
     }
 }
 
@@ -59,6 +84,64 @@
         }
         entry->SetHippyFirstContentfulPaintEnd(footstone::TimePoint::SystemNow());
     }
+}
+
+- (NSDictionary *)getHippyInitPerformanceData {
+    std::shared_ptr<hippy::Scope> scope = self.javaScriptExecutor.pScope;
+    if (!scope) {
+        return @{};
+    }
+    auto domManager = scope->GetDomManager().lock();
+    auto performance = scope->GetPerformance();
+    if (domManager && performance) {
+        auto entry = performance->PerformanceNavigation(hippy::kPerfNavigationHippyInit);
+        if (!entry) {
+            return @{};
+        }
+        
+        NSMutableDictionary *dic = [NSMutableDictionary dictionary];
+        int64_t totalFPTime = (entry->GetHippyFirstFrameEnd() - entry->GetHippyNativeInitStart()).ToMilliseconds();
+        int64_t nativeInit = (entry->GetHippyNativeInitEnd() - entry->GetHippyNativeInitStart()).ToMilliseconds();
+        int64_t jsEngineInit = (entry->GetHippyJsEngineInitEnd() - entry->GetHippyJsEngineInitStart()).ToMilliseconds();
+        int64_t runApplication = (entry->GetHippyRunApplicationEnd() - entry->GetHippyRunApplicationStart()).ToMilliseconds();
+        int64_t domCreate = (entry->GetHippyDomEnd() - entry->GetHippyDomStart()).ToMilliseconds();
+        int64_t firstFrame = (entry->GetHippyFirstFrameEnd() - entry->GetHippyFirstFrameStart()).ToMilliseconds();
+        dic[kHippyPerfKeyFP] = @(totalFPTime);
+        dic[kHippyPerfKeyInit] = @(nativeInit);
+        dic[kHippyPerfKeyJSInit] = @(jsEngineInit);
+        dic[kHippyPerfKeyRunApp] = @(runApplication);
+        dic[kHippyPerfKeyDomCreate] = @(domCreate);
+        dic[kHippyPerfKeyFirstFrame] = @(firstFrame);
+        
+        auto bundle_info_array = entry->GetBundleInfoArray();
+        for (size_t i = 0; i < bundle_info_array.size(); ++i) {
+            auto& info = bundle_info_array[i];
+            auto url = StringViewUtils::ToStdString(StringViewUtils::ConvertEncoding(info.url_, string_view::Encoding::Utf8).utf8_value());
+            NSString *urlStr = [NSString stringWithCString:url.c_str() encoding:[NSString defaultCStringEncoding]];
+            int64_t exeTime = (info.execute_source_end_ - info.execute_source_start_).ToMilliseconds();
+            [dic setObject:@(exeTime) forKey:urlStr.lastPathComponent];
+        }
+        return dic;
+    }
+    return @{};
+}
+
+- (NSDictionary *)getFCPPerformanceData {
+    std::shared_ptr<hippy::Scope> scope = self.javaScriptExecutor.pScope;
+    if (!scope) {
+        return nil;
+    }
+    auto domManager = scope->GetDomManager().lock();
+    auto performance = scope->GetPerformance();
+    if (domManager && performance) {
+        auto entry = performance->PerformanceNavigation(hippy::kPerfNavigationHippyInit);
+        if (!entry) {
+            return nil;
+        }
+        int64_t fcpTime = (entry->GetHippyFirstContentfulPaintEnd() - entry->GetHippyNativeInitStart()).ToMilliseconds();
+        return @{ kHippyPerfKeyFCP : @(fcpTime) };
+    }
+    return nil;
 }
 
 @end

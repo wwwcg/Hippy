@@ -45,6 +45,19 @@
                                           @Nullable Object params);
     ```
 
+6. 自定义事件controller属性注册方式变更 <br>
+   由于3.0事件名称从2.0的驼峰写法统一转换为全小写命名，会导致之前开发者自定义事件无法接收到属性设置，需要在事件属性注解中将defaultType值改为HippyControllerProps.EVENT:
+
+    ```java
+    @HippyControllerProps(name = "onMyEvent", defaultType = HippyControllerProps.EVENT, defaultBoolean = false)
+    public void setMyEvent(HippyScrollView scrollView, boolean isEnable) {
+
+    }
+    ```
+
+7. module注解HippyNativeModule中取消了线程属性的自定义 <br>
+   3.0中非JSI module调用将统一走hippy-module-Thread线程调用module对应接口，开发者可以根据自己的需要自行切换线程。    
+    
 </br>
 
 # 组件变更
@@ -66,6 +79,7 @@
 1. ModuleListener接口定义变更 <br>
    - onLoadCompleted回调接口移除了root view参数的返回
    - 增加onFirstViewAdded接口回调，返回第一view挂载到Hippy root view的回调时机
+   - 增加onFirstContentfulPaint接口回调，返回FCP节点渲染时机(3.3.3版本新增)
 
 2. HippyEngineContext类中部分接口调整 <br>
     - 新增findViewById(int nodeId)，可以通过node id查找对应的view

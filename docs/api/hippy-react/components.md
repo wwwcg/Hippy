@@ -130,6 +130,24 @@ import icon from './qb_icon_new.png';
 | editable   | 是否可编辑，开启侧滑删除时需要设置为 `true`。`最低支持版本2.9.0` | `boolean`                                                   | `iOS`    |
 | delText   | 侧滑删除文本。`最低支持版本2.9.0` | `string`                                                   | `iOS`    |
 | onDelete   | 在列表项侧滑删除时调起。`最低支持版本2.9.0` | `(nativeEvent: { index: number}) => void`                                                   | `iOS`    |
+| nestedScrollPriority* | 嵌套滚动事件处理优先级，`default:self`。相当于同时设置 `nestedScrollLeftPriority`、 `nestedScrollTopPriority`、 `nestedScrollRightPriority`、 `nestedScrollBottomPriority`。 `Android最低支持版本 2.16.0，iOS最低支持版本3.3.3` | `enum(self,parent,none)`    | `Android、iOS` |
+| nestedScrollLeftPriority | 嵌套时**从右往左**滚动事件的处理优先级，会覆盖 `nestedScrollPriority` 对应方向的值。`最低支持版本 2.16.0，iOS最低支持版本3.3.3` | `enum(self,parent,none)` | `Android、iOS` |
+| nestedScrollTopPriority | 嵌套时**从下往上**滚动事件的处理优先级，会覆盖 `nestedScrollPriority` 对应方向的值。`最低支持版本 2.16.0，iOS最低支持版本3.3.3` | `enum(self,parent,none)` | `Android、iOS` |
+| nestedScrollRightPriority | 嵌套时**从左往右**滚动事件的处理优先级，会覆盖 `nestedScrollPriority` 对应方向的值。`最低支持版本 2.16.0，iOS最低支持版本3.3.3` | `enum(self,parent,none)` | `Android、iOS` |
+| nestedScrollBottomPriority | 嵌套时**从上往下**滚动事件的处理优先级，会覆盖 `nestedScrollPriority` 对应方向的值。`最低支持版本 2.16.0，iOS最低支持版本3.3.3` | `enum(self,parent,none)` | `Android、iOS` |
+
+* nestedScrollPriority 的参数含义：
+
+  * `self`：当前组件优先，滚动事件将先由当前组件消费，剩余部分传递给父组件消费；
+
+  * `parent`：父组件优先，滚动事件将先由父组件消费，剩余部分再由当前组件消费；
+
+  * `none`：不允许嵌套滚动，滚动事件将不会传递给父组件。
+
+* nestedScrollPriority 默认值的说明：
+  
+  如未设置任何滚动优先级时，iOS平台的默认值为`none`，即与系统默认行为保持一致。当指定任意一方向的优先级后，其他方向默认值为`self`；
+  Android平台默认值始终为`self`。
 
 ## 方法
 
@@ -156,6 +174,12 @@ import icon from './qb_icon_new.png';
 > options 参数，最低支持版本 `2.14.0`
 >
 >* time: number: 可指定延迟多久后收起 PullHeader，单位ms
+
+### expandPullHeader
+
+> 最低支持版本 `2.14.0`
+
+`() => void` 展开顶部下拉刷新条 PullHeader。当设置了`renderPullHeader`后，可以通过该方法来主动触发下拉刷新的效果。
 
 ### collapsePullFooter
 
@@ -247,6 +271,24 @@ import icon from './qb_icon_new.png';
 | showScrollIndicator            | 是否显示滚动条。 `default: false` | `boolean`  | `Android、hippy-react-web、Voltron` |
 | showsHorizontalScrollIndicator | 当此值设为 `false` 的时候，`ScrollView` 会隐藏水平的滚动条。`default: true` | `boolean`                                                    | `iOS、Voltron`    |
 | showsVerticalScrollIndicator   | 当此值设为 `false` 的时候，`ScrollView` 会隐藏垂直的滚动条。 `default: true` | `boolean`                                                    | `iOS、Voltron`    |
+| nestedScrollPriority* | 嵌套滚动事件处理优先级，`default:self`。相当于同时设置 `nestedScrollLeftPriority`、 `nestedScrollTopPriority`、 `nestedScrollRightPriority`、 `nestedScrollBottomPriority`。 `Android最低支持版本 2.16.0，iOS最低支持版本3.3.3` | `enum(self,parent,none)`    | `Android、iOS` |
+| nestedScrollLeftPriority | 嵌套时**从右往左**滚动事件的处理优先级，会覆盖 `nestedScrollPriority` 对应方向的值。`最低支持版本 2.16.0，iOS最低支持版本3.3.3` | `enum(self,parent,none)` | `Android、iOS` |
+| nestedScrollTopPriority | 嵌套时**从下往上**滚动事件的处理优先级，会覆盖 `nestedScrollPriority` 对应方向的值。`最低支持版本 2.16.0，iOS最低支持版本3.3.3` | `enum(self,parent,none)` | `Android、iOS` |
+| nestedScrollRightPriority | 嵌套时**从左往右**滚动事件的处理优先级，会覆盖 `nestedScrollPriority` 对应方向的值。`最低支持版本 2.16.0，iOS最低支持版本3.3.3` | `enum(self,parent,none)` | `Android、iOS` |
+| nestedScrollBottomPriority | 嵌套时**从上往下**滚动事件的处理优先级，会覆盖 `nestedScrollPriority` 对应方向的值。`最低支持版本 2.16.0，iOS最低支持版本3.3.3` | `enum(self,parent,none)` | `Android、iOS` |
+
+* nestedScrollPriority 的参数含义：
+
+  * `self`（默认值）：当前组件优先，滚动事件将先由当前组件消费，剩余部分传递给父组件消费；
+
+  * `parent`：父组件优先，滚动事件将先由父组件消费，剩余部分再由当前组件消费；
+
+  * `none`：不允许嵌套滚动，滚动事件将不会传递给父组件。
+
+* nestedScrollPriority 默认值的说明：
+  
+  如未设置任何滚动优先级时，iOS平台的默认值为`none`，即与系统默认行为保持一致。当指定任意一方向的优先级后，其他方向默认值为`self`；
+  Android平台默认值始终为`self`。
 
 ## 方法
 
@@ -327,6 +369,8 @@ import icon from './qb_icon_new.png';
 | keyboardType          | 决定弹出的何种软键盘的。 注意，`password`仅在属性 `multiline=false` 单行文本框时生效。 | `enum (default, numeric, password, email, phone-pad)` | `Android、iOS、hippy-react-web、Web-Renderer、Voltron` |
 | maxLength             | 限制文本框中最多的字符数。使用这个属性而不用JS 逻辑去实现，可以避免闪烁的现象。 | `number`                                                    | `Android、iOS、hippy-react-web、Web-Renderer、Voltron` |
 | multiline             | 如果为 `true` ，文本框中可以输入多行文字。 由于终端特性。    | `boolean`                                                    | `Android、iOS、hippy-react-web、Web-Renderer、Voltron` |
+| lineSpacingExtra      | 多行显示时每行文字的额外行高，如果style里设置的lineHeight属性该属性设置无效   | `number`                                                    | `Android` |
+| lineSpacingMultiplier | 多行显示时每行文字的行高乘积系数，如果style里设置的lineHeight属性该属性设置无效    | `number`                                                   | `Android` |
 | numberOfLines         | 设置 `TextInput` 最大显示行数，如果 `TextInput` 没有显式设置高度，会根据 `numberOfLines` 来计算高度撑开。在使用的时候必需同时设置 `multiline` 参数为 `true`。 | `number`                                                     | `Android、hippy-react-web、Web-Renderer、Voltron` |
 | onBlur                | 当文本框失去焦点的时候调用此回调函数。                       | `Function`                                                   | `Android、iOS、hippy-react-web、Web-Renderer、Voltron` |
 | onFocus | 当文本框获得焦点的时候调用此回调函数。 | `Function` | `Android、iOS、Voltron` |
@@ -440,7 +484,32 @@ import icon from './qb_icon_new.png';
 | onTouchMove   | 当用户在控件移动手指时，此函数会持续收到回调，并通过event参数告知控件的触屏点信息；参数为 `nativeEvent: { name, page_x, page_y, id }`，`page_x` 和 `page_y` 分别表示点击在屏幕内的绝对位置 | `Function` | `Android、iOS、hippy-react-web、Web-Renderer、Voltron` |
 | onTouchEnd    | 当触屏操作结束，用户在该控件上抬起手指时，此函数将被回调，event参数也会通知当前的触屏点信息；参数为 `nativeEvent: { name, page_x, page_y, id }`，`page_x` 和 `page_y` 分别表示点击在屏幕内的绝对位置 | `Function`                                | `Android、iOS、hippy-react-web、Web-Renderer、Voltron` |
 | onTouchCancel | 当用户触屏过程中，某个系统事件中断了触屏，例如电话呼入、组件变化（如设置为hidden）、其他组件的滑动手势，此函数会收到回调，触屏点信息也会通过event参数告知前端；参数为 `nativeEvent: { name, page_x, page_y, id }`，`page_x` 和 `page_y` 分别表示点击在屏幕内的绝对位置 | `Function`                                | `Android、iOS、hippy-react-web、Web-Renderer、Voltron` |
+| pointerEvents | 用于控制视图是否可以成为触摸事件的目标。 | `enum('box-none', 'none', 'box-only', 'auto')` | `iOS` |
 
+* pointerEvents 的参数含义：
+  * `auto`（默认值） - 视图可以是触摸事件的目标；
+  * `none` - 视图永远不是触摸事件的目标；
+  * `box-none` - 视图不是触摸事件的目标，但它的子视图可以是。其行为类似视图在CSS中有以下类:
+
+    ```css
+    .box-none {
+        pointer-events: none;
+    }
+    .box-none * {
+        pointer-events: auto;
+    }
+    ```
+
+  * `box-only` - 视图可以是触摸事件的目标，但它的子视图不能。其行为类似视图在CSS中有以下类:
+
+    ```css
+    .box-only {
+        pointer-events: auto;
+    }
+    .box-only * {
+        pointer-events: none;
+    }
+    ```
 
 ## 方法
 
@@ -476,6 +545,7 @@ import icon from './qb_icon_new.png';
 | ------------------------ | ------------------------------------------------------------ | -------------------------------------------- | -------- |
 | bounces | 是否开启回弹效果，默认 `true` | `boolean`                                                  | `iOS、Voltron`    |
 | initialPage              | 指定一个数字，用于决定初始化后默认显示的页面 index，默认不指定的时候是0 | `number`                                     | `Android、iOS、hippy-react-web、Web-Renderer、Voltron` |
+| offscreenPageLimit       | 指定一个数字，用于设置最大挂载到view tree的page item数量，默认为1，如果在间隔较大的item之间切换遇到一些刷新闪动问题，可以尝试设置该属性为最大page item count来解决 | `number`    | `Android` |
 | scrollEnabled            | 指定 ViewPager 是否可以滑动，默认为 `true`                        | `boolean`                                    | `Android、iOS、hippy-react-web、Web-Renderer、Voltron` |
 | onPageSelected           | 指定一个函数，当 page 被选中时进行回调。回调参数是一个 event 对象，回调参数： `position: number` - 表示即将滑到的目标 page 的索引 | `(obj: {position: number}) => void`      | `Android、iOS、hippy-react-web、Web-Renderer、Voltron` |
 | onPageScroll             | 指定一个函数，当 page 被滑动时进行回调。回调参数是一个 event 对象，回调参数 `position: number` - 表示即将滑到的目标 page 的索引，`offset: number` - 当前被选中的 page 的相对位移，取值范围 -1 到 1 | `(obj: {position: number, offset: number}) => void` | `Android、iOS、Web-Renderer、Voltron`    |
@@ -516,7 +586,8 @@ import icon from './qb_icon_new.png';
 | interItemSpacing  | item 间的垂直间距  | `number`   | `Android、iOS、Voltron`  |
 | contentInset      | 内容缩进 ，默认值 `{ top:0, left:0, bottom:0, right:0 }`  | `Object`   | `Android、iOS、Voltron`   |
 | renderItem             | 这里的入参是当前 item 的 index，在这里可以凭借 index 获取到瀑布流一个具体单元格的数据，从而决定如何渲染这个单元格。 | `(index: number) => React.ReactElement`                                   | `Android、iOS、Voltron`    |
-| renderBanner | 如何渲染 Banner。 | `() => React.ReactElement` |  `Android、iOS、Voltron`
+| renderBanner | 如何渲染 Banner (即Header，显示在内容顶部) | `() => React.ReactElement` |  `Android、iOS、Voltron` |
+| renderFooter | 如何渲染 Footer（与renderBanner对应，Footer显示在内容底部） | `() => React.ReactElement` |  `iOS`（3.3.2版本起支持） |
 | getItemStyle           | 设置`WaterfallItem`容器的样式。  | `(index: number) => styleObject`                                    | `Android、iOS、Voltron`    |
 | getItemType            | 指定一个函数，在其中返回对应条目的类型（返回Number类型的自然数，默认是0），List 将对同类型条目进行复用，所以合理的类型拆分，可以很好地提升list 性能。 | `(index: number) => number`                                    | `Android、iOS、Voltron`    |
 | getItemKey             | 指定一个函数，在其中返回对应条目的 Key 值，详见 [React 官文](//reactjs.org/docs/lists-and-keys.html) | `(index: number) => any`                                    | `Android、iOS、Voltron`    |
@@ -525,6 +596,7 @@ import icon from './qb_icon_new.png';
 | renderPullHeader | 如何渲染 `PullHeader`，此时 `containPullHeader` 默认设置成 `true` |  `() => React.ReactElement` | `Android、iOS、Voltron`    |
 | renderPullFooter | 如何渲染 `PullFooter`，此时 `containPullFooter` 默认设置成 `true` |  `() => React.ReactElement` | `Android、iOS、Voltron` |
 | onScroll              | 当触发 `WaterFall` 的滑动事件时回调。`startEdgePos`表示距离 List 顶部边缘滚动偏移量；`endEdgePos`表示距离 List 底部边缘滚动偏移量；`firstVisibleRowIndex`表示当前可见区域内第一个元素的索引；`lastVisibleRowIndex`表示当前可见区域内最后一个元素的索引；`visibleRowFrames`表示当前可见区域内所有 item 的信息(x，y，width，height)    | `nativeEvent: { startEdgePos: number, endEdgePos: number, firstVisibleRowIndex: number, lastVisibleRowIndex: number, visibleRowFrames: Object[] }` | `Android、iOS、Voltron`
+| showScrollIndicator   | 是否显示滚动条。(iOS 3.3.2版本起支持) `default: true` | `boolean`  | `iOS` |
 
 ## 方法
 

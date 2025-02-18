@@ -135,7 +135,7 @@ const LINEAR_GRADIENT_DIRECTION_MAP = {
 };
 
 // degree unit
-const DEGREE_UNIT = {
+export const DEGREE_UNIT = {
   TURN: 'turn',
   RAD: 'rad',
   DEG: 'deg',
@@ -189,6 +189,10 @@ function tryConvertNumber(str: string | number): string | number {
 function convertPxUnitToPt(value) {
   // If value is number just ignore
   if (Number.isInteger(value)) {
+    return value;
+  }
+  // If value unit is rpx, don't need to filter
+  if (typeof value === 'string' && value.endsWith('rpx')) {
     return value;
   }
   // If value unit is px, change to use pt as 1:1.

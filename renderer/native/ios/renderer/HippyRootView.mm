@@ -24,13 +24,19 @@
 #import "HippyAssert.h"
 #import "HippyView.h"
 #import "UIView+Hippy.h"
+#import "UIView+Render.h"
+#import "HippyComponentMap.h"
 #import "HippyInvalidating.h"
 #import "HippyBridge.h"
 #import "Hippybridge+PerformanceAPI.h"
+#import "HippyBridge+BundleLoad.h"
 #import "HippyUIManager.h"
+#import "HippyUIManager+Private.h"
+#import "HippyUtils.h"
 #import "HippyDeviceBaseInfo.h"
 #import "HippyTouchHandler.h"
 #import "HippyJSExecutor.h"
+#import "dom/dom_manager.h"
 #include <objc/runtime.h>
 
 // Sent when the first subviews are added to the root view
@@ -75,6 +81,16 @@ NSNumber *AllocRootViewTag(void) {
 - (instancetype)init NS_UNAVAILABLE;
 /// Unvaliable, use designated initializer.
 + (instancetype)new NS_UNAVAILABLE;
+
+
+#pragma mark - Snapshot
+
+/// Retrieves the current snapshot data.
+- (nullable NSData *)retrieveCurrentSnapshotData;
+
+/// Restores the snapshot data with the provided NSData object.
+/// - Parameter data: NSData object
+- (BOOL)restoreSnapshotData:(nullable NSData *)data;
 
 @end
 
@@ -158,7 +174,7 @@ HIPPY_NOT_IMPLEMENTED(-(instancetype)initWithCoder : (NSCoder *)aDecoder)
         _hasBusinessBundleToLoad = YES;
         
         // Set the default sandbox directory
-        [bridge setSandboxDirectory:[businessURL URLByDeletingLastPathComponent]];
+        [bridge setSandboxDirectory:[HippyUtils getBaseDirFromResourcePath:businessURL]];
     }
     if (self = [self initWithBridge:bridge
                          moduleName:moduleName
@@ -184,7 +200,7 @@ HIPPY_NOT_IMPLEMENTED(-(instancetype)initWithCoder : (NSCoder *)aDecoder)
                     }
                     
                     // 抛出业务包(BusinessBundle aka SecondaryBundle)加载完成通知，for hippy2兼容
-                    NSMutableDictionary *userInfo = @{ kHippyNotiBundleUrlKey: url,
+                    NSMutableDictionary *userInfo = @{ kHippyNotiBundleUrlKey: url ?: @"",
                                                        kHippyNotiBridgeKey: strongSelf.bridge }.mutableCopy;
                     if (error) { [userInfo setObject:error forKey:kHippyNotiErrorKey]; }
                     HIPPY_IGNORE_WARNING_BEGIN(-Wdeprecated)
@@ -291,12 +307,6 @@ HIPPY_NOT_IMPLEMENTED(-(instancetype)initWithCoder : (NSCoder *)aDecoder)
     return super.hippyTag;
 }
 
-- (void)bridgeDidReload {
-    HippyAssertMainQueue();
-    // Clear the hippyTag so it can be re-assigned
-    self.hippyTag = nil;
-}
-
 
 #pragma mark - Notification Handlers
 
@@ -365,6 +375,17 @@ static NSString *const HippyHostControllerSizeKeyNewSize = @"NewSize";
                                                     userInfo:@{HippyHostControllerSizeKeyNewSize : @(size)}];
 }
 
+
+#pragma mark - Snapshot
+
+- (NSData *)retrieveCurrentSnapshotData {
+    return [self.contentView retrieveCurrentSnapshotData];
+}
+
+- (BOOL)restoreSnapshotData:(NSData *)data {
+    return [self.contentView restoreSnapshotData:data];
+}
+
 @end
 
 
@@ -429,7 +450,7 @@ HIPPY_NOT_IMPLEMENTED(-(instancetype)initWithCoder : (nonnull NSCoder *)aDecoder
         if (strongSelf && !strongSelf->_contentHasAppeared) {
             strongSelf->_contentHasAppeared = YES;
             static NSString *const kHippyContentAppearCostKey = @"cost";
-            [[(HippyRootView *)strongSelf.superview bridge] updatePerfRecordsOnRootContentDidAppear];
+            [[(HippyRootView *)strongSelf.superview bridge] updatePerfRecordsOnRootContentDidAppear:self.hippyTag];
             [[NSNotificationCenter defaultCenter] postNotificationName:HippyContentDidAppearNotification
                                                                 object:self.superview userInfo:@{
                 kHippyContentAppearCostKey : @(CACurrentMediaTime() * 1000 - strongSelf.startTimpStamp)
@@ -445,5 +466,34 @@ HIPPY_NOT_IMPLEMENTED(-(instancetype)initWithCoder : (nonnull NSCoder *)aDecoder
     }
 }
 
+#pragma mark - Snapshot
+
+- (NSData *)retrieveCurrentSnapshotData {
+    auto rootNode = [self.uiManager.viewRegistry rootNodeForTag:self.hippyTag].lock();
+    if (!rootNode) {
+        return nil;
+    }
+    std::string data = hippy::DomManager::GetSnapShot(rootNode);
+    return [NSData dataWithBytes:data.c_str() length:data.length()];
+}
+
+- (BOOL)restoreSnapshotData:(NSData *)data {
+    HippyUIManager *uiManager = self.uiManager;
+    if (!uiManager || !data) {
+        return NO;
+    }
+    auto domManager = [uiManager domManager].lock();
+    if (!domManager) {
+        return NO;
+    }
+    auto rootNode = [uiManager.viewRegistry rootNodeForTag:self.hippyTag].lock();
+    if (!rootNode) {
+        return NO;
+    }
+    std::string string(reinterpret_cast<const char *>([data bytes]), [data length]);
+    bool result = domManager->SetSnapShot(rootNode, string);
+    HippyLogInfo(@"Snapshot restore result:%d for root:%@", result, self.hippyTag);
+    return result;
+}
 
 @end

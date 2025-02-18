@@ -100,8 +100,14 @@ void ContextifyModule::LoadUntrustedContent(CallbackInfo& info, void* data) {
   auto scope_wrapper = reinterpret_cast<ScopeWrapper*>(std::any_cast<void*>(info.GetSlot()));
   auto scope = scope_wrapper->scope.lock();
   FOOTSTONE_CHECK(scope);
+  if (!scope) {
+    return;
+  }
   auto context = scope->GetContext();
   FOOTSTONE_CHECK(context);
+  if (!context) {
+    return;
+  }
   string_view uri;
   if (!context->GetValueString(info[0], &uri)) {
     info.GetExceptionValue()->Set(context, "The first argument must be non-empty string.");
@@ -176,7 +182,9 @@ void ContextifyModule::LoadUntrustedContent(CallbackInfo& info, void* data) {
         try_catch->SetVerbose(true);
         string_view view_code(reinterpret_cast<const string_view::char8_t_ *>(move_code.c_str()), move_code.length());
         scope->RunJS(view_code, uri, file_name);
-        ctx->SetProperty(global_object, cur_dir_key, last_dir_str_obj, hippy::napi::PropertyAttribute::ReadOnly);
+        if (last_dir_str_obj) {
+          ctx->SetProperty(global_object, cur_dir_key, last_dir_str_obj, hippy::napi::PropertyAttribute::ReadOnly);
+        }
         if (try_catch->HasCaught()) {
           error = try_catch->Exception();
           FOOTSTONE_DLOG(ERROR) << "RequestUntrustedContent error = " << try_catch->GetExceptionMessage();
@@ -205,6 +213,9 @@ void ContextifyModule::LoadUntrustedContent(CallbackInfo& info, void* data) {
 
   auto loader = scope->GetUriLoader().lock();
   FOOTSTONE_CHECK(loader);
+  if (!loader) {
+    return;
+  }
   loader->RequestUntrustedContent(uri, {}, cb);
 
   info.GetReturnValue()->SetUndefined();
