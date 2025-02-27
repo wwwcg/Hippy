@@ -507,9 +507,13 @@ std::shared_ptr<CtxValue> HermesCtx::NewInstance(const std::shared_ptr<CtxValue>
   arguments.reserve(len);
   for (size_t i = 0; i < len; ++i) {
     auto arg = std::static_pointer_cast<HermesCtxValue>(argv[i]);
-    arguments.push_back(arg->GetValue(runtime_));
+    arguments.emplace_back(arg->GetValue(runtime_));
   }
-  const Value* val = &arguments[0];
+
+  const Value* val = nullptr;
+  if (!arguments.empty()) {
+    val = arguments.data();
+  }
   Value instance = argc == 0 ? function.callAsConstructor(*runtime_) : function.callAsConstructor(*runtime_, val, len);
 
   // Delete the external pointer after it is used in the constructor,
