@@ -45,6 +45,18 @@ static const NSUInteger kMatrixArrayLength = 4 * 4;
     return deg * M_PI / 180;
 }
 
+static inline CGFloat safeConvertToFloatValue(id rawValue) {
+    // In general, we do not need this function,
+    // just to avoid app crash caused by passing an unexpected type.
+    if (!rawValue) {
+        return 0;
+    } else if ([(NSObject *)rawValue respondsToSelector:@selector(floatValue)]) {
+        return [rawValue floatValue];
+    }
+    HippyLogError(@"Error convert (%@) to floatValue!", rawValue);
+    return 1.0; // use 1.0 as default value.
+}
+
 + (CATransform3D)CATransform3DFromMatrix:(id)json {
     CATransform3D transform = CATransform3DIdentity;
     if (!json) {
@@ -97,7 +109,7 @@ static const NSUInteger kMatrixArrayLength = 4 * 4;
 
         } else if ([property isEqualToString:@"perspective"]) {
             next = CATransform3DIdentity;
-            next.m34 = -1 / [value floatValue];
+            next.m34 = -1 / safeConvertToFloatValue(value);
             transform = CATransform3DConcat(next, transform);
 
         } else if ([property isEqualToString:@"rotateX"]) {
@@ -113,37 +125,37 @@ static const NSUInteger kMatrixArrayLength = 4 * 4;
             transform = CATransform3DRotate(transform, rotate, 0, 0, 1);
 
         } else if ([property isEqualToString:@"scale"]) {
-            CGFloat scale = [value floatValue];
+            CGFloat scale = safeConvertToFloatValue(value);
             scale = ABS(scale) < zeroScaleThreshold ? zeroScaleThreshold : scale;
             transform = CATransform3DScale(transform, scale, scale, 1);
 
         } else if ([property isEqualToString:@"scaleX"]) {
-            CGFloat scale = [value floatValue];
+            CGFloat scale = safeConvertToFloatValue(value);
             scale = ABS(scale) < zeroScaleThreshold ? zeroScaleThreshold : scale;
             transform = CATransform3DScale(transform, scale, 1, 1);
 
         } else if ([property isEqualToString:@"scaleY"]) {
-            CGFloat scale = [value floatValue];
+            CGFloat scale = safeConvertToFloatValue(value);
             scale = ABS(scale) < zeroScaleThreshold ? zeroScaleThreshold : scale;
             transform = CATransform3DScale(transform, 1, scale, 1);
 
         } else if ([property isEqualToString:@"translate"]) {
             NSArray *array = (NSArray<NSNumber *> *)value;
-            CGFloat translateX = [HippyNilIfNull(array[0]) floatValue];
-            CGFloat translateY = [HippyNilIfNull(array[1]) floatValue];
-            CGFloat translateZ = array.count > 2 ? [HippyNilIfNull(array[2]) floatValue] : 0;
+            CGFloat translateX = safeConvertToFloatValue(HippyNilIfNull(array[0]));
+            CGFloat translateY = safeConvertToFloatValue(HippyNilIfNull(array[1]));
+            CGFloat translateZ = array.count > 2 ? safeConvertToFloatValue(HippyNilIfNull(array[2])) : 0;
             transform = CATransform3DTranslate(transform, translateX, translateY, translateZ);
 
         } else if ([property isEqualToString:@"translateX"]) {
-            CGFloat translate = [value floatValue];
+            CGFloat translate = safeConvertToFloatValue(value);
             transform = CATransform3DTranslate(transform, translate, 0, 0);
 
         } else if ([property isEqualToString:@"translateY"]) {
-            CGFloat translate = [value floatValue];
+            CGFloat translate = safeConvertToFloatValue(value);
             transform = CATransform3DTranslate(transform, 0, translate, 0);
 
         } else if ([property isEqualToString:@"translateZ"]) {
-            CGFloat translate = [value floatValue];
+            CGFloat translate = safeConvertToFloatValue(value);
             transform = CATransform3DTranslate(transform, 0, 0, translate);
 
         } else if ([property isEqualToString:@"skewX"]) {
