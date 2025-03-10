@@ -12,7 +12,7 @@ Pod::Spec.new do |s|
   puts "layout engine is #{layout_engine}, js engine is #{js_engine}"
   
   s.name             = 'hippy'
-  s.version          = '3.4.0'
+  s.version          = '3.3.3-hermes-vqq-beta'
   s.summary          = 'Hippy Cross Platform Framework'
   s.description      = <<-DESC
                         Hippy is designed for developers to easily build cross-platform 
@@ -21,7 +21,7 @@ Pod::Spec.new do |s|
   s.homepage         = 'https://hippyjs.org'
   s.license          = { :type => 'Apache2', :file => 'LICENSE' }
   s.author           = 'OpenHippy Team'
-  s.source           = {:git => 'https://github.com/Tencent/Hippy.git', :tag => s.version}
+  s.source           = {:git => 'https://git.woa.com/raycgwang/Hippy.git', :tag => s.version}
   s.platform = :ios
   s.ios.deployment_target = '12.0'
 
