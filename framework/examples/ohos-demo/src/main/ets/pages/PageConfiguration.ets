@@ -24,7 +24,7 @@ import {
   EngineInitStatus, HippyEngine,
   HippyRootView,
   HippyRootViewWrapper,
-  ModuleLoadParams, ModuleLoadStatus } from 'hippy'
+  ModuleLoadParams, ModuleLoadStatus, EngineListener, ModuleListener, HippyJsException } from 'hippy'
 import { DriverSetting } from './DriverSetting'
 import { RendererSetting } from './RendererSetting'
 import { image } from '@kit.ImageKit'
@@ -32,6 +32,7 @@ import { HippyValue } from 'hippy/src/main/ets/support/common/HippyTypes'
 import { buildCustomRenderView, ExampleAPIProvider } from '../hippy_extend/ExampleAPIProvider'
 import { HippyLibrary } from 'hippy/src/main/ets/hippy_library/HippyLibrary'
 import { LogUtils } from 'hippy/src/main/ets/support/utils/LogUtils'
+import { ExampleFontAdapter } from '../hippy_extend/ExampleFontAdapter'
 
 export enum DriverMode {
   JS_REACT,
@@ -58,6 +59,70 @@ export class HippyInfo {
   snapShot:image.PixelMap | null = null
   rootViewWrapper:HippyRootViewWrapper = new HippyRootViewWrapper()
   createTime:number = 0
+}
+
+class DefaultEngineListener implements EngineListener {
+  private hippyEngine: HippyEngine
+  private info: HippyInfo
+
+  constructor(hippyEngine: HippyEngine, info: HippyInfo) {
+    this.hippyEngine = hippyEngine
+    this.info = info
+  }
+
+  onInitialized(statusCode: EngineInitStatus, msg: string): void {
+    LogUtils.i('hippy demo', 'initEngine status: ' + statusCode + ' msg:' + msg);
+    if (statusCode == EngineInitStatus.STATUS_OK) {
+      let jsAssetPath = 'react/index.ohos.js'
+      if (this.info.driver === DriverMode.JS_VUE_2) {
+        jsAssetPath = "vue2/index.ohos.js"
+      } else if (this.info.driver === DriverMode.JS_VUE_3) {
+        jsAssetPath = "vue3/index.ohos.js"
+      }
+
+      let loadParams = new ModuleLoadParams(
+        jsAssetPath,
+        '',
+        '',
+        '',
+        null,
+        null,
+        null
+      )
+      loadParams.componentName = "Demo"
+      loadParams.codeCacheTag = "Demo"
+      loadParams.jsParams = new Map<string, HippyValue>()
+      loadParams.jsParams.set(
+        "msgFromNative",
+        "Hi js developer, I come from ohos native code!"
+      )
+      loadParams.wrappedCustomRenderViewBuilder = wrapBuilder(buildCustomRenderView)
+      let moduleListener = new DefaultModuleListener();
+      let rootView = this.hippyEngine.loadModuleWithListener(loadParams, moduleListener)
+      if (rootView) {
+        this.info.rootViewWrapper?.setRootView(rootView)
+      }
+    }
+  }
+}
+
+class DefaultModuleListener implements ModuleListener {
+  onLoadCompleted(statusCode: ModuleLoadStatus, msg: string): void {
+    LogUtils.i('hippy demo', 'loadModule status: ' + statusCode + ' msg:' + msg);
+  }
+
+  onJsException(exception: HippyJsException): boolean {
+    LogUtils.e('hippy demo', 'loadModule onJsException: ' + exception);
+    return true;
+  }
+
+  onFirstViewAdded(): void {
+
+  }
+
+  onFirstContentfulPaint(): void {
+
+  }
 }
 
 @Entry
@@ -98,7 +163,7 @@ struct PageConfiguration {
     }
   }
 
-  initEngine(info:HippyInfo):HippyEngine {
+  initEngine(info:HippyInfo): HippyEngine {
     let params = new EngineInitParams(this.libHippy!, this.abilityContext!, this.getUIContext())
     params.debugServerHost = info.debugServerHost as string
     params.debugMode = info.isDebugMode as boolean
@@ -108,6 +173,8 @@ struct PageConfiguration {
 
     params.providers = new Array(new ExampleAPIProvider())
     params.enableTurbo = true
+
+    params.fontAdapter = new ExampleFontAdapter()
 
     params.coreJSAssetsPath = "react/vendor.ohos.js"
     if (info.driver === DriverMode.JS_VUE_2) {
@@ -119,42 +186,8 @@ struct PageConfiguration {
     let hippyEngine = createHippyEngine(params)
     //this.itemInfo.hippyEngine = this.hippyEngine
 
-    hippyEngine.initEngine((statusCode: EngineInitStatus, msg: string) => {
-      if (statusCode == EngineInitStatus.STATUS_OK) {
-        let jsAssetPath = 'react/index.ohos.js'
-        if (info.driver === DriverMode.JS_VUE_2) {
-          jsAssetPath = "vue2/index.ohos.js"
-        } else if (info.driver === DriverMode.JS_VUE_3) {
-          jsAssetPath = "vue3/index.ohos.js"
-        }
-
-        let loadParams = new ModuleLoadParams(
-          jsAssetPath,
-          '',
-          '',
-          '',
-          null,
-          null,
-          null
-        )
-        loadParams.componentName = "Demo"
-        loadParams.codeCacheTag = "Demo"
-        loadParams.jsParams = new Map<string, HippyValue>()
-        loadParams.jsParams.set(
-          "msgFromNative",
-          "Hi js developer, I come from ohos native code!"
-        )
-        loadParams.wrappedCustomRenderViewBuilder = wrapBuilder(buildCustomRenderView)
-        let rootView = hippyEngine?.loadModule(
-          loadParams,
-          (statusCode: ModuleLoadStatus, msg: string) => {
-              LogUtils.i('hippy demo', 'loadModule status: ' + statusCode + ' msg:' + msg);
-          })
-        if (rootView) {
-          info.rootViewWrapper?.setRootView(rootView)
-        }
-      }
-    })
+    let engineListener = new DefaultEngineListener(hippyEngine, info)
+    hippyEngine.initEngine(engineListener)
 
     return hippyEngine
   }

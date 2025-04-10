@@ -17,14 +17,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { HippyAny } from '../../../support/common/HippyTypes'
+import { HippyFontAdapter } from 'hippy'
 
-export interface FontAdapter {
-  getFontScale(): number
+export class ExampleFontAdapter implements HippyFontAdapter {
 
-  getEmoticonText(text: string, fontSize: number): string
+  // 注册字体路径至hippy测量函数
+  getCustomFontPathMap(): Map<string, string> | null {
+    let map = new Map<string, string>();
+    // 暂时hardcode路径在此，生产环境应通过Context属性获取字体文件路径
+    map.set("TTTGB", "/data/storage/el1/bundle/entry/resources/resfile/fonts/TTTGB.otf");
+    return map;
+  }
 
-  getCustomFontFilePath(fontFamily: string, style: number): string
-
-  getCustomTypeface(fontFamily: string, style: number): HippyAny
 }

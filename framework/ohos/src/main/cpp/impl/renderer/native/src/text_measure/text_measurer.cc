@@ -25,6 +25,7 @@
 #include "footstone/string_view_utils.h"
 #include "oh_napi/ark_ts.h"
 #include "renderer/dom_node/hr_node_props.h"
+#include <native_drawing/drawing_brush.h>
 
 namespace hippy {
 inline namespace render {
@@ -101,10 +102,8 @@ void TextMeasurer::StartMeasure(HippyValueObjectType &propMap, const std::set<st
     auto strValue = HippyValue2String(propValue);
     if (strValue == "center") {
       text_align_ = TEXT_ALIGN_CENTER;
-    } else if (strValue == "end") {
+    } else if (strValue == "right") {
       text_align_ = TEXT_ALIGN_END;
-    } else if (strValue == "justify") {
-      text_align_ = TEXT_ALIGN_JUSTIFY;
     }
   }
   OH_Drawing_SetTypographyTextAlign(typographyStyle_, text_align_);
@@ -128,15 +127,18 @@ void TextMeasurer::StartMeasure(HippyValueObjectType &propMap, const std::set<st
   }
 
   OH_Drawing_EllipsisModal em = ELLIPSIS_MODAL_TAIL;
+  std::string ellipsis = "...";
   if (GetPropValue(propMap, HRNodeProps::ELLIPSIZE_MODE, propValue)) {
     auto strValue = HippyValue2String(propValue);
     if (strValue == "head") {
       em = ELLIPSIS_MODAL_HEAD;
     } else if (strValue == "middle") {
       em = ELLIPSIS_MODAL_MIDDLE;
+    } else if (strValue == "clip") {
+      ellipsis = "";
     }
   }
-  OH_Drawing_SetTypographyTextEllipsis(typographyStyle_, "...");
+  OH_Drawing_SetTypographyTextEllipsis(typographyStyle_, ellipsis.c_str());
   OH_Drawing_SetTypographyTextEllipsisModal(typographyStyle_, em);
 
   if (fontCache) {
@@ -154,9 +156,22 @@ void TextMeasurer::StartMeasure(HippyValueObjectType &propMap, const std::set<st
     }
   }
 
-  OH_Drawing_FontCollection *fontCollection = fontCache ? fontCache->fontCollection_ : nullptr;
+// 因为使用了API14才有的接口，App也需要升级最低支持版本为API14，否则会加载so crash。
+// 这里临时定义宏，如果有业务暂时不方便升级到API14，可以临时define为0。
+#define OHOS_HAS_API14 1
+#if OHOS_HAS_API14
+  OH_Drawing_FontCollection *fontCollection = nullptr;
+  bool hasCustomFont = (fontFamilyNames.size() > 0) ? true : false;
+  if (hasCustomFont) {
+    fontCollection = fontCache ? fontCache->fontCollection_ : nullptr;
+  } else {
+    fontCollection = OH_Drawing_GetFontCollectionGlobalInstance();
+  }
   styled_string_ = OH_ArkUI_StyledString_Create(typographyStyle_, fontCollection);
-  
+#else
+  OH_Drawing_FontCollection *fontCollection = fontCache ? fontCache->fontCollection_ : nullptr;
+#endif
+
   if (GetPropValue(propMap, HRNodeProps::LINE_HEIGHT, propValue)) {
     auto doubleValue = HippyValue2Double(propValue);
     lineHeight_ = doubleValue;
@@ -170,6 +185,22 @@ void TextMeasurer::StartMeasure(HippyValueObjectType &propMap, const std::set<st
     auto doubleValue = HippyValue2Double(propValue);
     paddingLeft_ = doubleValue;
     paddingRight_ = doubleValue;
+  }
+  if (GetPropValue(propMap, HRNodeProps::PADDING_LEFT, propValue)) {
+    auto doubleValue = HippyValue2Double(propValue);
+    paddingLeft_ = doubleValue;
+  }
+  if (GetPropValue(propMap, HRNodeProps::PADDING_RIGHT, propValue)) {
+    auto doubleValue = HippyValue2Double(propValue);
+    paddingRight_ = doubleValue;
+  }
+  if (GetPropValue(propMap, HRNodeProps::PADDING_TOP, propValue)) {
+    auto doubleValue = HippyValue2Double(propValue);
+    paddingTop_ = doubleValue;
+  }
+  if (GetPropValue(propMap, HRNodeProps::PADDING_BOTTOM, propValue)) {
+    auto doubleValue = HippyValue2Double(propValue);
+    paddingBottom_ = doubleValue;
   }
 
 #ifdef MEASURE_TEXT_CHECK_PROP
@@ -204,6 +235,16 @@ void TextMeasurer::AddText(HippyValueObjectType &propMap, float density, bool is
     color = uintValue > 0 ? uintValue : color;
   }
   OH_Drawing_SetTextStyleColor(txtStyle, color);
+
+  OH_Drawing_Brush *brush = nullptr;
+  if (GetPropValue(propMap, HRNodeProps::BACKGROUND_COLOR, propValue)) {
+    auto uintValue = HippyValue2Uint(propValue);
+    brush = OH_Drawing_BrushCreate();
+    if (brush) {
+      OH_Drawing_BrushSetColor(brush, uintValue);
+      OH_Drawing_SetTextStyleBackgroundBrush(txtStyle, brush);
+    }
+  }
 
   double fontSize = 14; // 默认的fontSize是14
   if (GetPropValue(propMap, HRNodeProps::FONT_SIZE, propValue)) {
@@ -340,6 +381,9 @@ void TextMeasurer::AddText(HippyValueObjectType &propMap, float density, bool is
 
   OH_ArkUI_StyledString_PopTextStyle(styled_string_);
   OH_Drawing_DestroyTextStyle(txtStyle);
+  if (brush) {
+    OH_Drawing_BrushDestroy(brush);
+  }
 
 #ifdef MEASURE_TEXT_CHECK_PROP
   const static std::vector<std::string> dropProp = {
@@ -507,7 +551,9 @@ OhMeasureResult TextMeasurer::EndMeasure(int width, int widthMode, int height, i
     // fix text measure width wrong when maxWidth is nan or 0
     maxWidth = std::numeric_limits<double>::max();
   }
-  
+
+  maxWidth -= ((paddingLeft_ + paddingRight_) * density);
+
   OH_Drawing_TypographyLayout(typography_, maxWidth);
     
   // MATE 60, beta5, "新品" "商店" text cannot be fully displayed. So add 0.5.
@@ -612,7 +658,7 @@ int32_t TextMeasurer::HippyValue2Int(HippyValue &value) {
 }
 
 uint32_t TextMeasurer::HippyValue2Uint(HippyValue &value) {
-  return (uint32_t)HippyValue2Double(value);
+  return (uint32_t)(int32_t)HippyValue2Double(value);
 }
 
 } // namespace native

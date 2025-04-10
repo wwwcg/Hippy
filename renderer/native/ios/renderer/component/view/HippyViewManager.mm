@@ -164,10 +164,16 @@ HIPPY_EXPORT_METHOD(getScreenShot:(nonnull NSNumber *)componentTag
             CGFloat scaleY = maxHeight / viewHeight;
             scale = MIN(scaleX, scaleY);
         }
-        UIGraphicsBeginImageContextWithOptions(view.frame.size, YES, scale);
-        [view drawViewHierarchyInRect:view.bounds afterScreenUpdates:YES];
-        UIImage *resultImage = UIGraphicsGetImageFromCurrentImageContext();
-        UIGraphicsEndImageContext();
+        
+        // Render view hierarchy into image context
+        UIGraphicsImageRendererFormat *format = [UIGraphicsImageRendererFormat preferredFormat];
+        format.opaque = YES;
+        format.scale = scale;
+        UIGraphicsImageRenderer *renderer = [[UIGraphicsImageRenderer alloc] initWithSize:view.frame.size format:format];
+        UIImage *resultImage = [renderer imageWithActions:^(UIGraphicsImageRendererContext * _Nonnull context) {
+            [view drawViewHierarchyInRect:view.bounds afterScreenUpdates:YES];
+        }];
+        
         if (resultImage) {
             int quality = [params[@"quality"] intValue];
             NSData *imageData = UIImageJPEGRepresentation(resultImage, (quality > 0 ? quality : 80) / 100.f);
@@ -281,6 +287,9 @@ HIPPY_CUSTOM_VIEW_PROPERTY(visibility, NSString, HippyView) {
 }
 
 HIPPY_CUSTOM_VIEW_PROPERTY(backgroundImage, NSString, HippyView) {
+    if (![view isKindOfClass:HippyView.class]) {
+        return;
+    }
     if (json) {
         NSString *imagePath = [HippyConvert NSString:json];
         // Old background image need to be cleaned up in time due to view's reuse

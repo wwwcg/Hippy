@@ -17,18 +17,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { HRRenderViewCreator } from '../../renderer_native/components/HippyRenderRegisterMap';
-import { HippyJSModuleCreator, HippyNativeModuleCreator } from '../modules/HippyModuleManagerImpl';
 
-export interface HippyAPIProvider {
-  getCustomNativeModuleCreatorMap(): Map<string, HippyNativeModuleCreator> | null
-
-  getCustomJavaScriptModuleCreatorMap(): Map<string, HippyJSModuleCreator> | null
-
-  getCustomRenderViewCreatorMap(): Map<string, HRRenderViewCreator> | null
-
-  getCustomMeasureRenderViews(): Array<string> | null
-
-  getCustomMappingRenderViewMap(): Map<string, string> | null
-
+export interface HippyEngineLifecycleEventListener {
+  onEngineResume(): void
+  onEnginePause(): void
 }

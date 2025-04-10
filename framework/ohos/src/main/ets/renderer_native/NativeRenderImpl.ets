@@ -33,6 +33,7 @@ import {
   buildHippyRenderViewForCApi,
   CallRenderViewMethodParamsForCApi,
   CreateRenderViewParamsForCApi,
+  CreateRenderViewResultForCApi,
   OnChildInsertedParamsForCApi,
   OnChildRemovedParamsForCApi,
   RemoveRenderViewParamsForCApi,
@@ -43,7 +44,6 @@ import { HRRenderViewCreator } from './components/HippyRenderRegisterMap'
 import { ImageDecoderAdapter } from './components/image/ImageDecoderAdapter'
 import { ImageLoader } from './components/image/ImageLoader'
 import { ImageLoaderAdapter } from './components/image/ImageLoaderAdapter'
-import { FontAdapter } from './components/richtext/FontAdapter'
 import { FrameworkProxy } from './FrameworkProxy'
 import { NativeRender } from './NativeRender'
 import { NativeRenderContext } from './NativeRenderContext'
@@ -65,7 +65,7 @@ import { HRDisplaySyncUtils } from './utils/HRDisplaySyncUtils'
 import { HRMeasureResult } from './utils/HRMeasure'
 import { HRPosition, HRRect, HRSize } from './utils/HRTypes'
 import { HRValueUtils } from './utils/HRValueUtils'
-import { BuilderNode, FrameNode } from '@kit.ArkUI'
+import { BuilderNode, FrameNode, NodeContent } from '@kit.ArkUI'
 import HippyRenderBaseView from './components/base/HippyRenderBaseView'
 import { HippyRootView } from '.'
 import {
@@ -196,11 +196,6 @@ export class NativeRenderImpl implements NativeRender {
   }
 
   // TODO(eksea)
-  // getFontAdapter(): FontAdapter | null {
-  //   return this.frameworkProxy ? this.frameworkProxy.getFontAdapter() : null
-  // }
-
-  // TODO(eksea)
   // getBackgroundExecutor(): HippyExecutor | null {
   //   return this.frameworkProxy ? this.frameworkProxy.getBackgroundExecutor() : null
   // }
@@ -224,9 +219,9 @@ export class NativeRenderImpl implements NativeRender {
     this.libHippy?.NativeRenderProvider_UpdateNodeSize(this.instanceId, rootId, nodeId, w, h, isSync)
   }
 
-  updateDimension(width: number, height: number, shouldUseScreenDisplay: boolean, systemUiVisibilityChanged: boolean) {
+  async updateDimension(width: number, height: number): Promise<void> {
     if (this.frameworkProxy != null) {
-      this.frameworkProxy.updateDimension(width, height, shouldUseScreenDisplay, systemUiVisibilityChanged)
+      await this.frameworkProxy.updateDimension(width, height)
     }
   }
 
@@ -642,7 +637,7 @@ key1               value1
   }
 
   // for c-api
-  createRenderViewForCApi(params: CreateRenderViewParamsForCApi): FrameNode | null {
+  createRenderViewForCApi(params: CreateRenderViewParamsForCApi): CreateRenderViewResultForCApi | null {
     let viewManager = this.renderManager.getViewManager(params.rootTag)
     if (!viewManager) {
       return null
@@ -655,7 +650,8 @@ key1               value1
 
     let context = AppStorage.get<UIContext>('UIContextForHippy');
 
-    let view = viewManager.createRenderViewForCApi(params.tag, params.viewName)
+    let childSlot: NodeContent = new NodeContent()
+    let view = viewManager.createRenderViewForCApi(params.tag, params.viewName, childSlot)
     if (!view) {
       return null
     }
@@ -666,7 +662,7 @@ key1               value1
     let builderNodeManger = this.renderManager.getBuilerNodeManager(params.rootTag)
     builderNodeManger?.addCustomViewBuilderNode(params.tag, builderNode)
 
-    return builderNode.getFrameNode()!;
+    return { frameNode: builderNode.getFrameNode()!, childSlot: childSlot }
   }
 
   // for c-api

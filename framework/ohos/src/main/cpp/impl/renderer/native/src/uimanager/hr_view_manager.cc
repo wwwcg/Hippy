@@ -35,6 +35,7 @@
 #include "renderer/components/rich_text_view.h"
 #include "renderer/dom_node/hr_node_props.h"
 #include "renderer/native_render_context.h"
+#include "renderer/utils/hr_perf_utils.h"
 #include "footstone/logging.h"
 
 namespace hippy {
@@ -147,6 +148,7 @@ void HRViewManager::reportFirstViewAdd() {
   std::vector<napi_value> args = {};
   auto delegateObject = arkTs.GetObject(ts_render_provider_ref_);
   delegateObject.Call("onFirstPaint", args);
+  HRPerfUtils::OnFirstPaint(ctx_);
 }
 
 void HRViewManager::reportFirstContentViewAdd() {
@@ -155,6 +157,7 @@ void HRViewManager::reportFirstContentViewAdd() {
   std::vector<napi_value> args = {};
   auto delegateObject = arkTs.GetObject(ts_render_provider_ref_);
   delegateObject.Call("onFirstContentfulPaint", args);
+  HRPerfUtils::OnFirstContentfulPaint(ctx_);
 }
 
 void HRViewManager::prepareReportFirstContentViewAdd(std::shared_ptr<HRMutation> &m) {
@@ -167,6 +170,7 @@ void HRViewManager::prepareReportFirstContentViewAdd(std::shared_ptr<HRMutation>
           if (key.length() > 0 && key == "paintType") {
             FOOTSTONE_DLOG(ERROR) << "TimeMonitor, fcp start";
             isFirstContentViewAdd = FCPType::WAIT;
+            break;
           }
         }
       }
@@ -545,7 +549,7 @@ HRRect HRViewManager::GetViewFrameInRoot(uint32_t node_id) {
 }
 
 void HRViewManager::AddBizViewInRoot(uint32_t biz_view_id, ArkUI_NodeHandle node_handle, const HRPosition &position) {
-  auto view = std::make_shared<CustomTsView>(ctx_, node_handle);
+  auto view = std::make_shared<CustomTsView>(ctx_, node_handle, nullptr);
   view->Init();
   view->SetTag(biz_view_id);
   view->SetViewType("BizView");
@@ -589,24 +593,33 @@ std::shared_ptr<BaseView> HRViewManager::CreateCustomTsRenderView(uint32_t tag, 
   };
   
   auto delegateObject = arkTs.GetObject(ts_render_provider_ref_);
-  napi_value tsNode = delegateObject.Call("createRenderViewForCApi", args);
+  napi_value nodeResult = delegateObject.Call("createRenderViewForCApi", args);
   
-  napi_valuetype type = arkTs.GetType(tsNode);
-  if (type == napi_null) {
-    FOOTSTONE_LOG(ERROR) << "create ts view error, tsNode null";
+  napi_valuetype type = arkTs.GetType(nodeResult);
+  if (type != napi_object) {
+    FOOTSTONE_LOG(ERROR) << "create ts view error, nodeResult not object";
     return nullptr;
   }
-  
+
+  napi_value frameNode = arkTs.GetObjectProperty(nodeResult, "frameNode");
   ArkUI_NodeHandle nodeHandle = nullptr;
-  auto status = OH_ArkUI_GetNodeHandleFromNapiValue(ts_env_, tsNode, &nodeHandle);
+  auto status = OH_ArkUI_GetNodeHandleFromNapiValue(ts_env_, frameNode, &nodeHandle);
   if (status != ARKUI_ERROR_CODE_NO_ERROR) {
     FOOTSTONE_LOG(ERROR) << "create ts view error, nodeHandle fail, status: " << status << ", nodeHandle: " << nodeHandle;
     return nullptr;
   }
   
+  napi_value childSlot = arkTs.GetObjectProperty(nodeResult, "childSlot");
+  ArkUI_NodeContentHandle contentHandle = nullptr;
+  status = OH_ArkUI_GetNodeContentFromNapiValue(ts_env_, childSlot, &contentHandle);
+  if (status != ARKUI_ERROR_CODE_NO_ERROR) {
+    FOOTSTONE_LOG(ERROR) << "create ts view error, contentHandle fail, status: " << status << ", contentHandle: " << contentHandle;
+    return nullptr;
+  }
+  
   napi_close_handle_scope(ts_env_, scope);
   
-  auto view = std::make_shared<CustomTsView>(ctx_, nodeHandle);
+  auto view = std::make_shared<CustomTsView>(ctx_, nodeHandle, contentHandle);
   view->Init();
   view->SetTag(tag);
   view->SetViewType(view_name);

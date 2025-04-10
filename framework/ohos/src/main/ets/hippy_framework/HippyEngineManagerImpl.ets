@@ -22,10 +22,10 @@ import {
   BackPressHandler,
   EngineInitParams,
   EngineInitStatus,
+  EngineListener,
   HippyEngine,
-  HippyEngineInitCallback,
   HippyModuleDestroyCallback,
-  HippyModuleLoadCallback,
+  ModuleListener,
   ModuleLoadParams,
   ModuleLoadStatus,
   V8InitParams
@@ -49,7 +49,7 @@ import { HippyThirdPartyAdapter } from './adapter/thirdparty/HippyThirdPartyAdap
 import { HippyEngineContext } from './HippyEngineContext'
 import { HippyEngineContextImpl } from './HippyEngineContextImpl';
 import { LogUtils } from '../support/utils/LogUtils';
-import { HippyAny, HippyMap } from '../support/common/HippyTypes';
+import { HippyAny, HippyMap, HippyValue } from '../support/common/HippyTypes';
 import { DeviceEventModule } from './modules/native';
 import { HippyRemoteBundleLoader } from './bridge/bundleloader/HippyRemoteBundleLoader';
 import { EventDispatcher } from './modules/javascript/EventDispatcher';
@@ -60,6 +60,9 @@ import { DevServerCallBack } from './devsupport/DevServerCallBack';
 import { HippyJsException } from './common/HippyJsException';
 import { DimensionsUtil } from '../support/utils/DimensionsUtil';
 import { PixelUtil } from "../support/utils/PixelUtil";
+import systemDateTime from '@ohos.systemDateTime';
+import { HippyEngineLifecycleEventListener } from "./HippyEngineLifecycleEventListener";
+import { Dimensions } from "./modules/javascript/Dimensions";
 
 export class HippyEngineManagerImpl implements HippyEngine, FrameworkProxy, DevServerCallBack {
   private libHippy: HippyLibrary
@@ -75,6 +78,7 @@ export class HippyEngineManagerImpl implements HippyEngine, FrameworkProxy, DevS
   public enableV8Serialization: boolean;
   public mRemoteServerUrl: string;
   public mGroupId: number;
+  public mInitStartTime: number = 0;
   public mMonitor: TimeMonitor;
   public mServerHost: string;
   public mThirdPartyAdapter: HippyThirdPartyAdapter | null;
@@ -88,8 +92,8 @@ export class HippyEngineManagerImpl implements HippyEngine, FrameworkProxy, DevS
   private rootView: HippyRootView | null = null;
   private moduleLoadParams: ModuleLoadParams | null = null;
 
-  private initEngineCallback: HippyEngineInitCallback | null = null;
-  private loadModuleCallback: HippyModuleLoadCallback | null = null;
+  private mEventListeners = new Array<EngineListener>();
+  private mModuleListener: ModuleListener | null = null;
 
   constructor(params: EngineInitParams) {
     this.params = params;
@@ -188,6 +192,7 @@ export class HippyEngineManagerImpl implements HippyEngine, FrameworkProxy, DevS
       this.params,
       domMgr,
       this.mGlobalConfigs,
+      this.mInitStartTime,
       this.mMonitor,
       this.mCoreBundleLoader,
       this.mDevSupportManager,
@@ -215,9 +220,7 @@ export class HippyEngineManagerImpl implements HippyEngine, FrameworkProxy, DevS
     }
 
     if (!this.params.integrateJSEngine) {
-      if (this.initEngineCallback) {
-        this.initEngineCallback(EngineInitStatus.STATUS_OK, "")
-      }
+      this.notifyEngineInitialized(EngineInitStatus.STATUS_OK, "")
       return
     }
 
@@ -227,11 +230,11 @@ export class HippyEngineManagerImpl implements HippyEngine, FrameworkProxy, DevS
       let nativeRenderer = (this.getHippyEngineContext() as HippyEngineContextImpl).nativeRenderer
       nativeRenderer?.initRendererParams(px2vp(DimensionsUtil.STATUS_BAR_HEIGHT))
 
-      this.initBridgeCallback(result, reason, this.initEngineCallback, onReLoad)
+      this.initBridgeCallback(result, reason, onReLoad)
     }, onReLoad);
   }
 
-  initBridgeCallback = (result: number, reason: string, initEngineCallback: HippyEngineInitCallback | null, isReload = false) => {
+  initBridgeCallback = (result: number, reason: string, isReload = false) => {
     const jsDriver = this.mEngineContext?.getJsDriver();
     if (!jsDriver) {
       return
@@ -242,13 +245,11 @@ export class HippyEngineManagerImpl implements HippyEngine, FrameworkProxy, DevS
     }
 
     if (isReload) {
-      this.loadJsModule(this.loadModuleCallback);
+      this.loadJsModule();
       return;
     }
 
-    if (initEngineCallback) {
-      initEngineCallback(EngineInitStatus.STATUS_OK, "")
-    }
+    this.notifyEngineInitialized(EngineInitStatus.STATUS_OK, "")
   }
 
   public sendEvent(event: string, params: HippyAny): void {
@@ -260,14 +261,29 @@ export class HippyEngineManagerImpl implements HippyEngine, FrameworkProxy, DevS
     }
   }
 
-  public initEngine(initEngineCallback: HippyEngineInitCallback): void {
+  public initEngine(listener: EngineListener): void {
+    this.mInitStartTime = systemDateTime.getTime();
+    this.mEventListeners.push(listener);
     this.initDevModule();
-    this.initEngineCallback = initEngineCallback;
     this.startEngine();
   }
 
-  loadModule(loadParams: ModuleLoadParams, loadModuleCallback: HippyModuleLoadCallback): HippyRootView | null {
-    this.loadModuleCallback = this.loadModuleCallback;
+  notifyEngineInitialized(statusCode: EngineInitStatus, msg: string) {
+    // TODO: preload
+
+    this.mGlobalConfigs.getEngineMonitorAdapter()?.onEngineInitialized(statusCode);
+    for (let listener of this.mEventListeners) {
+      listener.onInitialized(statusCode, msg);
+    }
+    this.mEventListeners.splice(0, this.mEventListeners.length);
+  }
+
+  loadModule(loadParams: ModuleLoadParams): HippyRootView | null {
+    return this.loadModuleWithListener(loadParams, null);
+  }
+
+  loadModuleWithListener(loadParams: ModuleLoadParams, listener: ModuleListener | null): HippyRootView | null {
+    this.mModuleListener = listener;
     const jsDriver = this.mEngineContext?.getJsDriver();
     if (!jsDriver || !this.getVfsManager() || !this.resourceManager) {
       return null;
@@ -284,10 +300,14 @@ export class HippyEngineManagerImpl implements HippyEngine, FrameworkProxy, DevS
     this.rootView = this.mEngineContext!.createRootView(loadParams);
     this.moduleLoadParams = loadParams;
     this.mEngineContext?.setRootView(this.rootView);
-    this.mEngineContext?.setLoadModuleCallback(loadModuleCallback);
+    this.mEngineContext?.setLoadModuleListener(this.mModuleListener);
     this.mEngineContext?.setComponentName(loadParams.componentName);
-    this.loadJsModule(loadModuleCallback);
+    this.loadJsModule();
     return this.rootView;
+  }
+
+  notifyModuleLoaded(statusCode: ModuleLoadStatus, msg: string): void {
+    this.mModuleListener?.onLoadCompleted(statusCode, msg);
   }
 
   destroyModule(rootId: number, destroyModuleCallback: HippyModuleDestroyCallback): void {
@@ -313,6 +333,7 @@ export class HippyEngineManagerImpl implements HippyEngine, FrameworkProxy, DevS
     if (this.mEngineContext != null) {
       this.mEngineContext.destroy(false);
     }
+    this.mModuleListener = null;
   }
 
   destroyRoot(rootId: number): void {
@@ -337,11 +358,13 @@ export class HippyEngineManagerImpl implements HippyEngine, FrameworkProxy, DevS
   onFirstPaint() {
     this.mEngineContext?.getMonitor().addPoint(TimeMonitor.MONITOR_GROUP_PAINT, TimeMonitor.MONITOR_POINT_FIRST_CONTENTFUL_PAINT);
     this.mGlobalConfigs?.getEngineMonitorAdapter()?.onFirstPaintCompleted(this.mEngineContext?.getComponentName() ?? '');
+    this.mModuleListener?.onFirstViewAdded();
   };
 
   onFirstContentfulPaint() {
     this.mEngineContext?.getMonitor().endGroup(TimeMonitor.MONITOR_GROUP_PAINT);
     this.mGlobalConfigs.getEngineMonitorAdapter()?.onFirstContentfulPaintCompleted(this.mEngineContext?.getComponentName() ?? '');
+    this.mModuleListener?.onFirstContentfulPaint();
   }
 
 
@@ -349,7 +372,37 @@ export class HippyEngineManagerImpl implements HippyEngine, FrameworkProxy, DevS
     this.mGlobalConfigs.getExceptionHandler()?.handleNativeException(exception, true);
   }
 
-  updateDimension(width: number, height: number, shouldUseScreenDisplay: boolean, systemUiVisibilityChanged: boolean): void {
+  async updateDimension(width: number, height: number): Promise<void> {
+    if (!this.mEngineContext) {
+      return;
+    }
+    let context = this.mEngineContext.getGlobalConfigs().getContext();
+    if (!context) {
+      return;
+    }
+    let dimensionMap = await DimensionsUtil.getDimensions(-1, -1, context);
+    let dimensionW: number = 0;
+    let dimensionH: number = 0;
+    if (dimensionMap) {
+      let windowMap = dimensionMap.get("windowPhysicalPixels") as Map<string, HippyValue>;
+      if (windowMap) {
+        dimensionW = windowMap.get("width") as number;
+        dimensionH = windowMap.get("height") as number;
+      }
+      LogUtils.i('hippy', "updateDimension: " + dimensionMap);
+    }
+    if (height < 0 || dimensionW == dimensionH) {
+      let deviceAdapter = this.mEngineContext.getGlobalConfigs().getDeviceAdapter();
+      deviceAdapter?.reviseDimensionIfNeed(context, dimensionMap);
+    }
+    DimensionsUtil.convertDimensionsToDp(dimensionMap);
+    let manager = this.mEngineContext.getModuleManager();
+    if (manager) {
+      let eventModule = manager.getJavaScriptModule(Dimensions.MODULE_NAME);
+      if (eventModule) {
+        (eventModule as Dimensions).set(dimensionMap);
+      }
+    }
   }
 
   onSizeChanged(rootId: number, w: number, h: number, ow: number, oh: number): void {
@@ -369,12 +422,10 @@ export class HippyEngineManagerImpl implements HippyEngine, FrameworkProxy, DevS
     }
   }
 
-  loadJsModule(loadJsModuleCallback: HippyModuleLoadCallback | null) {
+  loadJsModule() {
     if (!this.mEngineContext) {
       LogUtils.e('hippy', 'load module error. mEngineContext=null');
-      if (loadJsModuleCallback) {
-        loadJsModuleCallback(ModuleLoadStatus.STATUS_VARIABLE_NULL, 'load module error. mEngineContext=null');
-      }
+      this.notifyModuleLoaded(ModuleLoadStatus.STATUS_VARIABLE_NULL, 'load module error. mEngineContext=null');
       return;
     }
 
@@ -390,10 +441,7 @@ export class HippyEngineManagerImpl implements HippyEngine, FrameworkProxy, DevS
         this.mEngineContext?.getBridgeManager()?.runBundle(0, this.mCoreBundleLoader);
       } else {
         LogUtils.e('hippy', 'load module error. jsBundleLoader==null');
-        if (loadJsModuleCallback) {
-          loadJsModuleCallback(ModuleLoadStatus.STATUS_VARIABLE_NULL,
-            "load module error. jsBundleLoader==null");
-        }
+        this.notifyModuleLoaded(ModuleLoadStatus.STATUS_VARIABLE_NULL, "load module error. jsBundleLoader==null");
         return;
       }
     }
@@ -401,8 +449,8 @@ export class HippyEngineManagerImpl implements HippyEngine, FrameworkProxy, DevS
       this.mEngineContext.getBridgeManager()?.loadInstance(this.moduleLoadParams.componentName || '', this.rootView?.getRootId() || 0, this.moduleLoadParams.jsParams);
     }
 
-    if (this.params.debugMode && loadJsModuleCallback) {
-      loadJsModuleCallback(ModuleLoadStatus.STATUS_OK, 'load module in debugMode');
+    if (this.params.debugMode) {
+      this.notifyModuleLoaded(ModuleLoadStatus.STATUS_OK, 'load module in debugMode');
     }
   }
 
@@ -412,9 +460,16 @@ export class HippyEngineManagerImpl implements HippyEngine, FrameworkProxy, DevS
 
   onEngineResume(): void {
     PixelUtil.updateDensity(this.libHippy)
+    this.mEngineContext?.mEngineLifecycleEventListeners?.forEach((value: HippyEngineLifecycleEventListener) => {
+      value.onEngineResume();
+    });
+    this.mEngineContext?.onInstanceResume();
   }
 
   onEnginePause(): void {
-
+    this.mEngineContext?.mEngineLifecycleEventListeners?.forEach((value: HippyEngineLifecycleEventListener) => {
+      value.onEnginePause();
+    });
+    this.mEngineContext?.onInstancePause();
   }
 }

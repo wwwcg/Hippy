@@ -84,6 +84,15 @@ void BaseView::SetParent(std::shared_ptr<BaseView> parent) {
 
 void BaseView::CreateArkUINode(bool isFromLazy, int index) {
   if (GetLocalRootArkUINode()) {
+    // For move view
+    auto parent = parent_.lock();
+    if (parent) {
+      if (!parent->GetLocalRootArkUINode()) {
+        return;
+      }
+      auto child_index = index < 0 ? parent->IndexOfChild(shared_from_this()) : index;
+      parent->OnChildInsertedImpl(shared_from_this(), child_index);
+    }
     return;
   }
   
@@ -971,12 +980,23 @@ void BaseView::UpdateRenderViewFrameImpl(const HRRect &frame, const HRPadding &p
 }
 
 void BaseView::UpdateEventListener(HippyValueObjectType &newEvents) {
-  events_ = newEvents;
+  for (auto it = newEvents.begin(); it != newEvents.end(); it++) {
+    if (it->second.IsBoolean()) {
+      bool add = it->second.ToBooleanChecked();
+      if (add) {
+        events_[it->first] = it->second;
+      } else {
+        events_.erase(it->first);
+      }
+    }
+  }
 }
 
 bool BaseView::CheckRegisteredEvent(std::string &eventName) {
-  if (events_.size() > 0 && events_.find(eventName) != events_.end()) {
-    auto value = events_[eventName];
+  std::string name = eventName;
+  std::transform(name.begin(), name.end(), name.begin(), ::tolower);
+  if (events_.size() > 0 && events_.find(name) != events_.end()) {
+    auto value = events_[name];
     bool boolValue = false;
     bool isBool = value.ToBoolean(boolValue);
     if (isBool) {

@@ -21,7 +21,6 @@ import { HippyException } from '../support/common/HippyException';
 import { HippyExecutor } from '../support/common/HippyExecutor';
 import { VfsManager } from '../vfs/VfsManager';
 import { ImageDecoderAdapter } from './components/image/ImageDecoderAdapter';
-import { FontAdapter } from './components/richtext/FontAdapter';
 
 export interface FrameworkProxy {
 
@@ -29,9 +28,6 @@ export interface FrameworkProxy {
 
   // TODO(eksea)
   // getImageDecoderAdapter(): ImageDecoderAdapter
-
-  // TODO(eksea)
-  // getFontAdapter(): FontAdapter
 
   getVfsManager(): VfsManager
 
@@ -48,7 +44,7 @@ export interface FrameworkProxy {
 
   handleNativeException(exception: HippyException): void
 
-  updateDimension(width: number, height: number, shouldUseScreenDisplay: boolean, systemUiVisibilityChanged: boolean): void
+  updateDimension(width: number, height: number): Promise<void>
 
   onSizeChanged(rootId: number, w: number, h: number, ow: number, oh: number): void
 }

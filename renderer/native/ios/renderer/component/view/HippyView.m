@@ -432,7 +432,8 @@ void NativeRenderBoarderColorsRelease(HippyBorderColors c) {
         });
         return NO;
     } else if (self.gradientObject) {
-        CGSize size = theFrame.size;
+        CGSize size = CGSizeMake(HippyRoundPixelValue(theFrame.size.width),
+                                 HippyRoundPixelValue(theFrame.size.height));
         if (0 >= size.width || 0 >= size.height) {
             contentBlock(nil);
             return YES;
@@ -442,11 +443,16 @@ void NativeRenderBoarderColorsRelease(HippyBorderColors c) {
             CanvasInfo info = {size, {0,0,0,0}, {{0,0},{0,0},{0,0},{0,0}}};
             info.size = size;
             info.cornerRadii = cornerRadii;
-            UIGraphicsBeginImageContextWithOptions(size, NO, 0);
-            [gradientObject drawInContext:UIGraphicsGetCurrentContext() canvasInfo:info];
-            [borderImage drawInRect:(CGRect) { CGPointZero, size }];
-            UIImage *resultingImage = UIGraphicsGetImageFromCurrentImageContext();
-            UIGraphicsEndImageContext();
+            
+            UIGraphicsImageRendererFormat *rendererFormat = [UIGraphicsImageRendererFormat preferredFormat];
+            UIGraphicsImageRenderer *renderer = [[UIGraphicsImageRenderer alloc] initWithSize:size format:rendererFormat];
+            UIImage *resultingImage = [renderer imageWithActions:^(UIGraphicsImageRendererContext * _Nonnull rendererContext) {
+                CGContextRef context = rendererContext.CGContext;
+                // Draw gradient
+                [gradientObject drawInContext:context canvasInfo:info];
+                // Draw border image
+                [borderImage drawInRect:CGRectMake(0, 0, size.width, size.height)];
+            }];
             contentBlock(resultingImage);
         });
         return NO;

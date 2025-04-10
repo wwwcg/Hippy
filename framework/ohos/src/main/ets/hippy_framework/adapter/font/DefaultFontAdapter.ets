@@ -17,22 +17,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { HippyFontScaleAdapter } from './HippyFontScaleAdapter';
+import { HippyFontAdapter } from './HippyFontAdapter';
 
-export class DefaultFontScaleAdapter implements HippyFontScaleAdapter {
-  public getFontScale(): number {
-    return 1;
+export class DefaultFontAdapter implements HippyFontAdapter {
+
+  getCustomFontPathMap(): Map<string, string> | null {
+    return null;
   }
 
-  public getEmoticonText(text: string, fontSize: number): string {
-    return text;
-  }
-
-  public getCustomFontFilePath(fontFamilyName: string, style: number): string {
-    return "";
-  }
-
-  public getCustomTypeface(fontFamily: string, style: number): FontStyle {
-    return FontStyle.Normal;
-  }
 }
