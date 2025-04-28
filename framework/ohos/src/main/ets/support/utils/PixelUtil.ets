@@ -38,12 +38,22 @@ export class PixelUtil {
     libHippy?.Setting_SetFontSizeScale(scale)
   }
 
+  public static setFontWeightScale(scale: number, libHippy: HippyLibrary): void {
+    LogUtils.i('PixelUtil', 'set font weight scale: ' + scale)
+    PixelUtil.fontWeightScale = scale
+    libHippy?.Setting_SetFontWeightScale(scale)
+  }
+
   public static getDensityScale(): number {
     return PixelUtil.densityScale
   }
 
   public static getFontSizeScale(): number {
     return PixelUtil.fontSizeScale
+  }
+
+  public static getFontWeightScale(): number {
+    return PixelUtil.fontWeightScale
   }
 
   public static px2dp(value: number): number {
@@ -71,4 +81,5 @@ export class PixelUtil {
   private static density: number = vp2px(1.0) / 1.0
   private static vp2pxValue: number = vp2px(1.0)
   private static fontSizeScale: number = 1.0
+  private static fontWeightScale: number = 1.0
 }

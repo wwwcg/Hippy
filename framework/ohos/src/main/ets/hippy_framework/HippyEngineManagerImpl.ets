@@ -63,8 +63,15 @@ import { PixelUtil } from "../support/utils/PixelUtil";
 import systemDateTime from '@ohos.systemDateTime';
 import { HippyEngineLifecycleEventListener } from "./HippyEngineLifecycleEventListener";
 import { Dimensions } from "./modules/javascript/Dimensions";
+import { EnvironmentCallback } from "@kit.AbilityKit";
+import { BusinessError } from '@kit.BasicServicesKit';
 
 export class HippyEngineManagerImpl implements HippyEngine, FrameworkProxy, DevServerCallBack {
+  private static sEngineIdCounter = 0
+
+  private mGroupId: number = -1;
+  private mEngineId: number = 0;
+
   private libHippy: HippyLibrary
   private resourceManager: resmgr.ResourceManager | null = null
   private providers: Array<HippyAPIProvider> | null = null
@@ -77,7 +84,6 @@ export class HippyEngineManagerImpl implements HippyEngine, FrameworkProxy, DevS
   public mServerBundleName: string;
   public enableV8Serialization: boolean;
   public mRemoteServerUrl: string;
-  public mGroupId: number;
   public mInitStartTime: number = 0;
   public mMonitor: TimeMonitor;
   public mServerHost: string;
@@ -95,7 +101,11 @@ export class HippyEngineManagerImpl implements HippyEngine, FrameworkProxy, DevS
   private mEventListeners = new Array<EngineListener>();
   private mModuleListener: ModuleListener | null = null;
 
+  private mEnvCallbackId: number = -1
+
   constructor(params: EngineInitParams) {
+    HippyEngineManagerImpl.sEngineIdCounter += 1;
+    this.mEngineId = HippyEngineManagerImpl.sEngineIdCounter;
     this.params = params;
     this.libHippy = params.libHippy
     this.providers = params.providers
@@ -109,8 +119,6 @@ export class HippyEngineManagerImpl implements HippyEngine, FrameworkProxy, DevS
     this.mThirdPartyAdapter = params.thirdPartyAdapter;
     this.v8InitParams = params.v8InitParams;
     this.mMonitor = new TimeMonitor();
-
-
     if (!params.context) {
       return
     }
@@ -125,6 +133,49 @@ export class HippyEngineManagerImpl implements HippyEngine, FrameworkProxy, DevS
         !TextUtils.isEmpty(params.codeCacheTag), params.codeCacheTag);
     }
     this.mCoreBundleLoader = coreBundleLoader;
+
+    this.checkFontWeightScale();
+  }
+
+  setUIContext(uiContext: UIContext | null): void {
+    this.params.setUIContext(uiContext)
+    this.checkFontWeightScale();
+  }
+
+  checkFontWeightScale(): void {
+    if (!this.params.uiContext) {
+      return;
+    }
+    // 获取系统设置“字体大小和界面缩放”里的字体粗细值
+    this.params.uiContext?.runScopedTask(() => {
+      Environment.envProp('fontWeightScale', '1.0');
+    })
+    const weightScale: SubscribedAbstractProperty<string> = AppStorage.prop('fontWeightScale');
+    if (!weightScale) {
+      return;
+    }
+    let weightScaleValue = Number(weightScale.get());
+    PixelUtil.setFontWeightScale(weightScaleValue, this.params.libHippy);
+    // 关闭监听系统参数变化，这个监听最好App层面做。
+    /*
+    let environmentCallback: EnvironmentCallback = {
+      onConfigurationUpdated(newConfig) {
+        if (newConfig.fontWeightScale && newConfig.fontWeightScale != PixelUtil.getFontWeightScale()) {
+          PixelUtil.setFontWeightScale(newConfig.fontWeightScale, this.params.libHippy);
+        }
+      },
+      onMemoryLevel(level) {
+        LogUtils.e('hippy', `onMemoryLevel level: ${level}`)
+      }
+    }
+    try {
+      this.mEnvCallbackId = this.params.context.getApplicationContext().on('environment', environmentCallback);
+    } catch (err) {
+      let code = (err as BusinessError).code;
+      let message = (err as BusinessError).message;
+      LogUtils.e('hippy', `failed to register applicationContext. Code is ${code}, message is ${message}`);
+    }
+    //*/
   }
 
   onInitDevError(e: HippyJsException): void {
@@ -261,6 +312,18 @@ export class HippyEngineManagerImpl implements HippyEngine, FrameworkProxy, DevS
     }
   }
 
+  getGroupId(): number {
+    return this.mGroupId;
+  }
+
+  getEngineId(): number {
+    return this.mEngineId;
+  }
+
+  getEngineInitParams(): EngineInitParams {
+    return this.params;
+  }
+
   public initEngine(listener: EngineListener): void {
     this.mInitStartTime = systemDateTime.getTime();
     this.mEventListeners.push(listener);
@@ -327,6 +390,16 @@ export class HippyEngineManagerImpl implements HippyEngine, FrameworkProxy, DevS
     if (this.mEngineContext != null) {
       this.mEngineContext.destroyBridge(false);
     }
+    /*
+    let applicationContext = this.params.context.getApplicationContext();
+    applicationContext.off('environment', this.mEnvCallbackId);
+    */
+  }
+
+  preloadModule(loader: HippyBundleLoader): void {
+    if (this.mEngineContext != null && this.mEngineContext.getBridgeManager() != null) {
+      this.mEngineContext.getBridgeManager()?.runBundle(-1, loader);
+    }
   }
 
   onDestroyEngine(): void {
@@ -349,10 +422,6 @@ export class HippyEngineManagerImpl implements HippyEngine, FrameworkProxy, DevS
       return this.mCoreBundleLoader.getPath()
     }
     return ""
-  }
-
-  getEngineId(): number {
-    return 0;
   }
 
   onFirstPaint() {

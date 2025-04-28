@@ -62,6 +62,9 @@ constexpr char kTextAlign[] = "textAlign";
 constexpr char kText[] = "text";
 constexpr char kEnableScale[] = "enableScale";
 constexpr char kNumberOfLines[] = "numberOfLines";
+#ifdef OHOS_DRAW_TEXT
+constexpr char kBackgroundColor[] = "backgroundColor";
+#endif
 
 namespace hippy {
 inline namespace render {
@@ -206,9 +209,10 @@ void NativeRenderManager::SetBundlePath(const std::string &bundle_path) {
   }
 }
 
-void NativeRenderManager::InitDensity(double density, double density_scale, double font_size_scale) {
+void NativeRenderManager::InitDensity(double density, double density_scale, double font_size_scale, double font_weight_scale) {
   density_ = static_cast<float>(density);
-  HRPixelUtils::InitDensity(density, density_scale, font_size_scale);
+  font_weight_scale_ = static_cast<float>(font_weight_scale);
+  HRPixelUtils::InitDensity(density, density_scale, font_size_scale, font_weight_scale);
 }
 
 void NativeRenderManager::AddCustomFontPath(const std::string &fontFamilyName, const std::string &fontPath) {
@@ -914,6 +918,21 @@ bool NativeRenderManager::GetTextNodeSizeProp(const std::shared_ptr<DomNode> &no
 }
 
 void NativeRenderManager::BeforeLayout(std::weak_ptr<RootNode> root_node) {
+  if (HRPixelUtils::GetFontWeightScale() != font_weight_scale_) {
+    auto root = root_node.lock();
+    if (root) {
+      auto textNodes = root->GetAllTextNodes();
+      for (auto it = textNodes.begin(); it != textNodes.end(); it++) {
+        auto node = it->lock();
+        if (node) {
+          if (node->GetViewName() == "Text") {
+            node->GetLayoutNode()->MarkDirty();
+          }
+        }
+      }
+    }
+    font_weight_scale_ = HRPixelUtils::GetFontWeightScale();
+  }
 #ifdef OHOS_DRAW_TEXT
   if (HRPixelUtils::GetDensity() != density_) {
     auto root = root_node.lock();
@@ -1134,8 +1153,8 @@ void NativeRenderManager::DoMeasureText(const std::weak_ptr<RootNode> root_node,
   std::set<std::string> fontFamilyNames;
   auto text_prop_it = textPropMap.find("fontFamily");
   if (text_prop_it != textPropMap.end()) {
-    std::string fontName;
-    if (text_prop_it->second.ToString(fontName) && fontName.size() > 0) {
+    auto& fontName = text_prop_it->second.ToStringSafe();
+    if (fontName.size() > 0) {
       fontFamilyNames.insert(fontName);
     }
   }
@@ -1342,6 +1361,9 @@ void NativeRenderManager::MarkTextDirty(std::weak_ptr<RootNode> weak_root_node, 
         if (diff_style->find(kFontStyle) != diff_style->end()
           || diff_style->find(kLetterSpacing) != diff_style->end()
           || diff_style->find(kColor) != diff_style->end()
+#ifdef OHOS_DRAW_TEXT
+          || diff_style->find(kBackgroundColor) != diff_style->end()
+#endif
           || diff_style->find(kFontSize) != diff_style->end()
           || diff_style->find(kFontFamily) != diff_style->end()
           || diff_style->find(kFontWeight) != diff_style->end()
@@ -1361,6 +1383,7 @@ void NativeRenderManager::MarkTextDirty(std::weak_ptr<RootNode> weak_root_node, 
         if (diff_style->find(kFontStyle) != diff_style->end()
           || diff_style->find(kLetterSpacing) != diff_style->end()
           || diff_style->find(kColor) != diff_style->end()
+          || diff_style->find(kBackgroundColor) != diff_style->end()
           || diff_style->find(kFontSize) != diff_style->end()
           || diff_style->find(kFontFamily) != diff_style->end()
           || diff_style->find(kFontWeight) != diff_style->end()

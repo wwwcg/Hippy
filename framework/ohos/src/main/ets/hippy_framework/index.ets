@@ -39,8 +39,12 @@ export * from "./adapter/storage/HippyStorageAdapter"
 export * from "./adapter/thirdparty/HippyThirdPartyAdapter"
 
 export * from "./bridge/HippyAPIProvider"
+export * from "./bridge/bundleloader/HippyAssetBundleLoader"
+export * from "./bridge/bundleloader/HippyBundleLoader"
+export * from "./bridge/bundleloader/HippyFileBundleLoader"
+export * from "./bridge/bundleloader/HippyRemoteBundleLoader"
 
 export * from "./common/HippyJsException"
 
-export * from "./modules/native"
+export * from "./modules/native/index"
 export * from "./modules/HippyModuleManagerImpl"

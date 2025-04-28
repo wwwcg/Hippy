@@ -53,6 +53,14 @@ import { HippyFontAdapter } from './adapter/font/HippyFontAdapter';
 import { HippyJsException } from './common/HippyJsException';
 
 export interface HippyEngine {
+  getGroupId(): number
+  getEngineId(): number
+  getEngineInitParams(): EngineInitParams
+
+  // 对于使用了预加载preloadModule的情况：
+  // 如果createHippyEngine时EngineInitParams无法获取到uiContext，需要在loadModule前调用setUIContext补设。
+  setUIContext(uiContext: UIContext | null): void;
+
   initEngine(listener: EngineListener): void
 
   loadModule(loadParams: ModuleLoadParams): HippyRootView | null
@@ -61,6 +69,8 @@ export interface HippyEngine {
   destroyModule(rootId: number, destroyCallback: HippyModuleDestroyCallback): void
 
   destroyEngine(): void
+
+  preloadModule(loader: HippyBundleLoader): void
 
   getNativeRenderProvider(): NativeRenderProvider | null
 
@@ -178,7 +188,20 @@ export class EngineInitParams {
     uiContext: UIContext | null
   ) {
     this.libHippy = libHippy
+    if (!libHippy) {
+      LogUtils.e('hippy', 'engine init param error, need libHippy')
+    }
     this.context = context
+    if (!context) {
+      LogUtils.e('hippy', 'engine init param error, need context')
+    }
+    this.uiContext = uiContext
+    if (uiContext) {
+      AppStorage.setOrCreate<UIContext>('UIContextForHippy', uiContext)
+    }
+  }
+
+  setUIContext(uiContext: UIContext | null): void {
     this.uiContext = uiContext
     if (uiContext) {
       AppStorage.setOrCreate<UIContext>('UIContextForHippy', uiContext)
