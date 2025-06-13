@@ -79,7 +79,7 @@ function Style1({ index }) {
             return false;
           }}
     >
-      <Text numberOfLines={1}>{ `${index}: Style 1 UI` }</Text>
+      <Text numberOfLines={1}>{ `${index}: Style 1 UI sdfkjkasdjfkdjsfksajdflkasksdfjsldjfsdfjldf` }</Text>
     </View>
   );
 }
@@ -87,7 +87,7 @@ function Style1({ index }) {
 function Style2({ index }) {
   return (
     <View style={styles.container}>
-      <Text numberOfLines={1}>{ `${index}: Style 2 UI` }</Text>
+      <Text numberOfLines={1}>{ `${index}: Style 2 UI sdfkjkasdjfkdjsfkdfasldkfldkssajdflkaskldf` }</Text>
     </View>
   );
 }
@@ -95,7 +95,7 @@ function Style2({ index }) {
 function Style5({ index }) {
   return (
     <View style={styles.container}>
-      <Text numberOfLines={1}>{ `${index}: Style 5 UI` }</Text>
+      <Text numberOfLines={1}>{ `${index}: Style 5 UI sdfkjkasdjfrjksjerweroweiroierkdjsfksajdflkaskldf` }</Text>
     </View>
   );
 }
@@ -289,25 +289,51 @@ export default class ListExample extends React.Component {
             position: 'absolute',
             right: 20,
             bottom: 20,
-            width: 67,
+            width: 67 * 3,
             height: 67,
-            borderRadius: 30,
-            boxShadowOpacity: 0.6,
-            boxShadowRadius: 5,
-            boxShadowOffsetX: 3,
-            boxShadowOffsetY: 3,
-            boxShadowColor: '#4c9afa' }}>
+            // backgroundColor: 'blue',
+            flexDirection: 'row',
+
+            glassEffectContainerSpacing: 40,
+
+            // borderRadius: 30,
+            // boxShadowOpacity: 0.6,
+            // boxShadowRadius: 5,
+            // boxShadowOffsetX: 3,
+            // boxShadowOffsetY: 3,
+            // boxShadowColor: '#4c9afa'
+          }}>
           <View style={{
             width: 60,
             height: 60,
             borderRadius: 30,
-            backgroundColor: '#4c9afa',
+            // backgroundColor: '#4c9afa',
             display: 'flex',
             justifyContent: 'center',
             alignItems: 'center',
+            glassEffect: true,
+            // glassEffectColor: '#4c9afa',
           }}>
-            <Text style={{ color: 'white' }}>切换方向</Text>
+            <Text 
+            pointerEvents={'none'}
+            style={{ color: 'green', fontSize: 12 }}>切换方向</Text>
           </View>
+          <View style={{
+            width: 60,
+            height: 60,
+            borderRadius: 30,
+            // backgroundColor: '#4c9afa',
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            glassEffect: true,
+            // glassEffectColor: '#4c9afa',
+          }}>
+            <Text 
+            pointerEvents={'none'}
+            style={{ color: 'black', fontSize: 12 }}>切换方向</Text>
+          </View>
+
         </View>
       </View>
     );

@@ -43,6 +43,10 @@ NS_ASSUME_NONNULL_BEGIN
 @property (nonatomic, assign) BOOL isUseNewShadow;
 @property (nonatomic, strong) HippyViewInnerLayer *innerShadowLayer;
 
+@property (nonatomic, assign) BOOL glassEffect;
+@property (nonatomic, strong) UIColor *glassEffectColor;
+@property (nonatomic, strong) NSNumber *glassEffectContainerSpacing;
+
 /**
  * get content for layer
  * return YES if getting content synchronized,else return NO

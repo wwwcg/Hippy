@@ -22,7 +22,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     width: 100,
     height: 100,
-    backgroundColor: '#4c9afa',
+    // backgroundColor: '#4c9afa',
     justifyContent: 'center',
     alignItem: 'center',
     borderRadius: 5,
@@ -148,7 +148,7 @@ const UIManagerModuleDemo = function UIManagerModuleDemo() {
   return (
     <View style={styles.full}>
       <View style={styles.demoContent}>
-        <View ref={box} style={boxStyle}>
+        <View ref={box} style={boxStyle} glassEffect={true} >
           <Text style={styles.text} numberOfLines={2}>I am the box</Text>
         </View>
       </View>

@@ -71,6 +71,8 @@ static NSString *NativeRenderRecursiveAccessibilityLabel(UIView *view) {
 
 @implementation HippyView {
     UIColor *_backgroundColor;
+    
+    UIVisualEffectView *_effectView;
 }
 
 @synthesize hippyZIndex = _hippyZIndex;
@@ -90,6 +92,7 @@ static NSString *NativeRenderRecursiveAccessibilityLabel(UIView *view) {
         _backgroundColor = super.backgroundColor;
         self.layer.shadowOffset = CGSizeZero;
         self.layer.shadowRadius = 0.f;
+        
     }
     return self;
 }
@@ -178,6 +181,40 @@ static NSString *NativeRenderRecursiveAccessibilityLabel(UIView *view) {
 
 - (void)setFrame:(CGRect)frame {
     [super setFrame:frame];
+    
+    if (@available(iOS 26.0, *)) {
+        if (self.glassEffect) {
+            if (!_effectView) {
+                UIGlassEffect *glassEffect = [[UIGlassEffect alloc] init];
+                glassEffect.tintColor = self.glassEffectColor;
+                glassEffect.interactive = YES;
+                _effectView = [UIVisualEffectView.alloc initWithEffect:glassEffect];
+                [_effectView setFrame:CGRectMake(0, 0, frame.size.width, frame.size.height)];
+                _effectView.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
+                [self addSubview:_effectView];
+            }
+        } else if (self.glassEffectContainerSpacing) {
+            if (!_effectView) {
+                UIGlassContainerEffect *glassContainerEffect = [[UIGlassContainerEffect alloc] init];
+                glassContainerEffect.spacing = self.glassEffectContainerSpacing.doubleValue;
+                _effectView = [UIVisualEffectView.alloc initWithEffect:glassContainerEffect];
+                [_effectView setFrame:CGRectMake(0, 0, frame.size.width, frame.size.height)];
+                _effectView.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
+                [self addSubview:_effectView];
+            }
+        }
+    }
+}
+
+- (void)layoutSubviews {
+    [super layoutSubviews];
+    
+    if (self.glassEffectContainerSpacing && self.hippySubviews.count > 0) {
+        for (UIView *subview in self.hippySubviews) {
+            [_effectView.contentView addSubview:subview];
+        }
+    }
+    
 }
 
 - (HippyBorderColors)borderColors {
@@ -306,6 +343,14 @@ static NSString *NativeRenderRecursiveAccessibilityLabel(UIView *view) {
         layer.contents = nil;
         layer.needsDisplayOnBoundsChange = NO;
         layer.mask = nil;
+        
+        if (_effectView) {
+            _effectView.layer.cornerRadius = cornerRadii.topLeft;
+//            _effectView.layer.borderColor = borderColors.left.CGColor;
+//            _effectView.layer.borderWidth = borderInsets.left;
+//            _effectView.layer.backgroundColor = backgroundColor.CGColor;
+        }
+        
         return;
     }
 
