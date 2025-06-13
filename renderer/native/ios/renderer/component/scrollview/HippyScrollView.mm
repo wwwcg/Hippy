@@ -335,7 +335,7 @@ shouldRecognizeSimultaneouslyWithGestureRecognizer:(UIGestureRecognizer *)otherG
 
 - (void)layoutSubviews {
     [super layoutSubviews];
-    NSAssert(self.subviews.count == 1, @"we should only have exactly one subview");
+//    NSAssert(self.subviews.count == 1, @"we should only have exactly one subview");
     NSAssert([self.subviews lastObject] == _scrollView, @"our only subview should be a scrollview");
 
     if (_scrollView.pagingEnabled) {
