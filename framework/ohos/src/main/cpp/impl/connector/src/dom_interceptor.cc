@@ -491,10 +491,10 @@ uint32_t HippyCreateDomInterceptor(HippyDomInterceptor handler) {
 static std::shared_ptr<hippy::DomManager> GetDomManager(uint32_t dom_interceptor_id) {
   uint32_t dom_manager_num = 0;
   auto flag = hippy::global_dom_manager_num_holder.Find(dom_interceptor_id, dom_manager_num);
-  FOOTSTONE_CHECK(dom_manager_num == 1);
+  FOOTSTONE_DCHECK(dom_manager_num == 1);
   std::any dom_manager;
   flag = hippy::global_data_holder.Find(dom_interceptor_id, dom_manager);
-  FOOTSTONE_CHECK(flag);
+  FOOTSTONE_DCHECK(flag);
   return std::any_cast<std::shared_ptr<hippy::DomManager>>(dom_manager);
 }
 
