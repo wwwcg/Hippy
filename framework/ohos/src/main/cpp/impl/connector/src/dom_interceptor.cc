@@ -42,6 +42,7 @@
 #pragma clang diagnostic ignored "-Wdeprecated"
 #include "nlohmann/json.hpp"
 #include <cstdint>
+#include <mutex>
 
 
 namespace hippy {
@@ -67,7 +68,10 @@ class DomInterceptor : public DomManager {
   DomInterceptor(HippyDomInterceptor handler) : DomManager(DomManagerType::kJson), handler_(handler) {}
   ~DomInterceptor() override {
     event_callback_map_.clear();
-    function_callback_map_.clear();
+    {
+      std::lock_guard<std::mutex> lock(function_callback_map_mutex_);
+      function_callback_map_.clear();
+    }
     animation_map_.clear();
   }
 
@@ -259,7 +263,10 @@ class DomInterceptor : public DomManager {
     };
     if (cb) {
       params["callback"] = cb_id;
-      function_callback_map_[cb_id] = cb;
+      {
+        std::lock_guard<std::mutex> lock(function_callback_map_mutex_);
+        function_callback_map_[cb_id] = cb;
+      }
     }
     handler_.CallFunction(handler_.context, id_, params.dump().c_str());
   }
@@ -268,10 +275,16 @@ class DomInterceptor : public DomManager {
     auto callback_json = json::parse(param);
     uint32_t cb_id = callback_json["callback"];
     std::string buffer = callback_json["buffer"];
-    auto it = function_callback_map_.find(cb_id);
-    if (it != function_callback_map_.end()) {
-      auto cb = it->second;
-      function_callback_map_.erase(cb_id);
+    CallFunctionCallback cb;
+    {
+      std::lock_guard<std::mutex> lock(function_callback_map_mutex_);
+      auto it = function_callback_map_.find(cb_id);
+      if (it != function_callback_map_.end()) {
+        cb = it->second;
+        function_callback_map_.erase(cb_id);
+      }
+    }
+    if (cb) {
       auto args = std::make_shared<hippy::DomArgument>(buffer);
       cb(args);
     }
@@ -353,6 +366,7 @@ class DomInterceptor : public DomManager {
   }
 
   HippyDomInterceptor handler_;
+  std::mutex function_callback_map_mutex_;
   std::unordered_map<uint64_t, EventCallback> event_callback_map_;
   std::unordered_map<uint32_t, CallFunctionCallback> function_callback_map_;
   std::unordered_map<uint32_t, std::shared_ptr<Animation>> animation_map_;
@@ -541,7 +555,7 @@ void HippyBridgeCallFunction(uint32_t scope_id, const char *action_name, const c
 void HippyDomInterceptorSendAnimationEvent(uint32_t dom_interceptor_id, const char *buffer) {
   auto dom_manager_object = GetDomManager(dom_interceptor_id);
   auto dom_interceptor = std::dynamic_pointer_cast<hippy::DomInterceptor>(dom_manager_object);
-  if (dom_interceptor) {
+  if (dom_interceptor && buffer) {
     auto event_json = nlohmann::json::parse(buffer);
     uint32_t animation_id = event_json["id"];
     std::string event_name = event_json["event"];
