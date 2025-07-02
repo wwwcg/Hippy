@@ -187,8 +187,6 @@ class DomInterceptor : public DomManager {
   void HandleEventListener(const char* param) {
     auto event_json = json::parse(param);
     std::vector<std::function<void()>> ops = {[this, event_json = std::move(event_json)] {
-      std::lock_guard<std::mutex> lock(event_callback_map_mutex_);
-      auto self = this;
       double id = event_json["id"];
       std::string event_name = event_json["eventName"];
       std::string event_params = event_json["eventParams"];
@@ -198,6 +196,16 @@ class DomInterceptor : public DomManager {
       json current_bubble = event_json["currentBubble"];
       bool use_capture = event_json["capture"];
       bool use_bubble = event_json["bubble"];
+                
+      // 仅在实际访问callback map时加锁
+      auto findCallback = [this](uint32_t listenerId) -> EventCallback {
+        std::lock_guard<std::mutex> lock(event_callback_map_mutex_);
+        auto it = event_callback_map_.find(listenerId);
+        return (it != event_callback_map_.end()) ? it->second : nullptr;
+      };
+      
+      // 使用局部变量存储回调，避免在锁内执行
+      EventCallback current_cb = nullptr;
 
       auto event = std::make_shared<DomEvent>(event_name, static_cast<uint32_t>(id), use_capture, use_bubble, std::make_shared<std::string>(std::move(event_params)));
       // 执行捕获流程
@@ -206,11 +214,12 @@ class DomInterceptor : public DomManager {
         event->SetCurrentTargetId(static_cast<uint32_t>(targetId));  // 设置当前节点，cb里会用到
         json listeners = target["listeners"];
         for (double listenerId : listeners) {
-          auto it = self->event_callback_map_.find(static_cast<uint32_t>(listenerId));
-          if (it != self->event_callback_map_.end()) {
-            event->SetEventPhase(EventPhase::kCapturePhase);
-            it->second(event);  // StopPropagation并不会影响同级的回调调用
-          }
+          // 获取回调
+          if (!(current_cb = findCallback(static_cast<uint32_t>(listenerId)))) 
+            continue;
+          // 在锁外执行回调
+          event->SetEventPhase(EventPhase::kCapturePhase);
+          current_cb(event); // StopPropagation并不会影响同级的回调调用
         }
         if (event->IsPreventCapture()) {  // cb 内部调用了 event.StopPropagation 会阻止捕获
           return;  // 捕获流中StopPropagation不仅会导致捕获流程结束，后面的目标事件和冒泡都会终止
@@ -218,40 +227,31 @@ class DomInterceptor : public DomManager {
       }
       // 执行本身节点回调
       event->SetCurrentTargetId(event->GetTargetId());
-      for (double listenerId : current_capture) {
-        auto it = self->event_callback_map_.find(static_cast<uint32_t>(listenerId));
-        if (it != self->event_callback_map_.end()) {
+      auto executeCallbacks = [&](const json& list) {
+        for (double listenerId : list) {
+          if (!(current_cb = findCallback(static_cast<uint32_t>(listenerId)))) 
+            continue;
           event->SetEventPhase(EventPhase::kAtTarget);
-          it->second(event);
+          current_cb(event);
         }
-      }
-      if (event->IsPreventCapture()) {
-        return;
-      }
-      for (double listenerId : current_bubble) {
-        auto it = self->event_callback_map_.find(static_cast<uint32_t>(listenerId));
-        if (it != self->event_callback_map_.end()) {
-          event->SetEventPhase(EventPhase::kAtTarget);
-          it->second(event);
-        }
-      }
-      if (event->IsPreventBubble()) {
-        return;
-      }
+      };
+      executeCallbacks(current_capture);
+      if (event->IsPreventCapture()) return;
+      executeCallbacks(current_bubble);
+      if (event->IsPreventBubble()) return;
+      
       // 执行冒泡流程
       for (const auto& target : bubble_list) {
         double targetId = target["id"];
         event->SetCurrentTargetId(static_cast<uint32_t>(targetId));
         json listeners = target["listeners"];
         for (double listenerId : listeners) {
-          auto it = self->event_callback_map_.find(static_cast<uint32_t>(listenerId));
-          if (it != self->event_callback_map_.end()) {
-            event->SetEventPhase(EventPhase::kBubblePhase);
-            it->second(event);
+          if (!(current_cb = findCallback(static_cast<uint32_t>(listenerId)))) {
+            continue;
           }
-          if (event->IsPreventBubble()) {
-            break;
-          }
+          event->SetEventPhase(EventPhase::kBubblePhase);
+          current_cb(event);
+          if (event->IsPreventBubble()) break;
         }
       }
     }};
