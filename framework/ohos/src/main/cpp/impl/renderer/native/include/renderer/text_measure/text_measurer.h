@@ -85,7 +85,7 @@ public:
   void StartMeasure(HippyValueObjectType &propMap, const std::set<std::string> &fontFamilyNames, const std::shared_ptr<FontCollectionCache> fontCache);
   void AddText(HippyValueObjectType &propMap, float density, bool isTextInput = false);
   void AddImage(HippyValueObjectType &propMap, float density);
-  OhMeasureResult EndMeasure(int width, int widthMode, int height, int heightMode, float density);
+  OhMeasureResult EndMeasure(int width, int widthMode, int height, int heightMode, bool isSizeIncludePadding, float density);
   
   void Destroy();
   
@@ -98,10 +98,15 @@ public:
   }
   
   bool IsRedraw(float maxWidth) {
-    return text_align_ != TEXT_ALIGN_START && fabs(measureWidth_ - maxWidth) >= HRPixelUtils::DpToPx(1.0);
+    return (text_align_ != TEXT_ALIGN_START && fabs(measureWidth_ - maxWidth) >= HRPixelUtils::DpToPx(1.0))
+      || (text_align_ == TEXT_ALIGN_START && resultWidth_ > maxWidth);
   }
 
   void DoRedraw(float maxWidth);
+  
+  float GetCorrectPxOffsetY() {
+    return correctPxOffsetY_;
+  }
 
   int SpanIndexAt(float spanX, float spanY, float density);
   
@@ -123,10 +128,11 @@ private:
   OH_Drawing_FontWeight FontWeightToDrawing(const std::string &str, float weightScale = 1.f);
   OH_Drawing_FontWeight FontWeightValueToDrawing(int w);
   bool GetPropValue(HippyValueObjectType &propMap, const char *prop, HippyValue &propValue);
-  double CalcSpanPostion(OH_Drawing_Typography *typography, OhMeasureResult &ret);
+  double CalcSpanPostion(OH_Drawing_Typography *typography, OhMeasureResult &ret, float density);
   
   const std::string& HippyValue2String(HippyValue &value);
   double HippyValue2Double(HippyValue &value);
+  float HippyValue2Float(HippyValue &value);
   int32_t HippyValue2Int(HippyValue &value);
   uint32_t HippyValue2Uint(HippyValue &value);
   
@@ -137,6 +143,8 @@ private:
   ArkUI_StyledString *styled_string_ = nullptr;
   int text_align_ = TEXT_ALIGN_START;
   double measureWidth_ = 0;
+  double resultWidth_ = 0;
+  float correctPxOffsetY_ = 0;
   
   std::vector<OhImageSpanHolder> imageSpans_;
   std::vector<std::tuple<int, int>> spanOffsets_; // begin, end
@@ -149,6 +157,10 @@ private:
   double paddingBottom_ = 0;
   double paddingLeft_ = 0;
   double paddingRight_ = 0;
+  float borderTopWidth_ = 0;
+  float borderRightWidth_ = 0;
+  float borderBottomWidth_ = 0;
+  float borderLeftWidth_ = 0;
 };
 
 } // namespace native

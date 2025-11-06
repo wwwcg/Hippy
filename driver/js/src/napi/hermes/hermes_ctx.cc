@@ -88,12 +88,14 @@ HippyJsiBuffer::~HippyJsiBuffer() { if (data_) free(data_); }
 static void HandleJsException(std::shared_ptr<Scope> scope, std::shared_ptr<HermesExceptionCtxValue> exception) {
   VM::HandleException(scope->GetContext(), "uncaughtException", exception);
   auto engine = scope->GetEngine().lock();
-  FOOTSTONE_CHECK(engine);
-  auto callback = engine->GetVM()->GetUncaughtExceptionCallback();
-  auto context = scope->GetContext();
-  footstone::string_view description("Hermes Engine JS Exception");
-  footstone::string_view stack(exception->GetMessage());
-  callback(scope->GetBridge(), description, stack);
+  FOOTSTONE_DCHECK(engine);
+  if (engine) {
+      auto callback = engine->GetVM()->GetUncaughtExceptionCallback();
+      auto context = scope->GetContext();
+      footstone::string_view description("Hermes Engine JS Exception");
+      footstone::string_view stack(exception->GetMessage());
+      callback(scope->GetBridge(), description, stack);
+  }
 }
 
 static Value InvokePropertyCallback(Runtime& runtime,
@@ -334,6 +336,11 @@ void fatalHandler(const std::string &message) {
 
 constexpr char kHippyHermes[] = "HippyHermesBridge";
 HermesCtx::HermesCtx() {
+  bool shouldEnableSampleProfiling = false;
+#ifdef ENABLE_INSPECTOR
+  shouldEnableSampleProfiling = true;
+#endif
+  
   auto runtimeConfigBuilder = ::hermes::vm::RuntimeConfig::Builder()
     .withGCConfig(::hermes::vm::GCConfig::Builder()
                   // Default to 3GB
@@ -346,8 +353,8 @@ HermesCtx::HermesCtx() {
                   //.withAllocInYoung(false)
                   //.withRevertToYGAtTTI(true)
                   .build())
-    .withEnableSampleProfiling(true)
-    //.withES6Class(true)
+    .withEnableSampleProfiling(shouldEnableSampleProfiling)
+    .withES6Class(true)
     .withES6Proxy(true)
     .withES6Promise(false)
     .withMicrotaskQueue(true);
@@ -1044,7 +1051,7 @@ bool HermesCtx::GetByteBuffer(const std::shared_ptr<CtxValue>& value,
   // Assume that type has already been checked using IsByteBuffer for performance.
   auto ctx_value = std::static_pointer_cast<HermesCtxValue>(value);
   const auto &jsi_value = ctx_value->GetValue(runtime_);
-  auto arrayBuffer = jsi_value.getObject(*runtime_).getArrayBuffer(*runtime_);;
+  auto arrayBuffer = jsi_value.getObject(*runtime_).getArrayBuffer(*runtime_);
 
   // Extract data and length
   *out_data = arrayBuffer.data(*runtime_);
@@ -1081,21 +1088,21 @@ std::shared_ptr<CtxValue> HermesCtx::CopyArrayElement(const std::shared_ptr<CtxV
 }
 
 bool HermesCtx::HasNamedProperty(const std::shared_ptr<CtxValue>& value, const string_view& name) {
-  // TODO: add has named property, currently unused
-  FOOTSTONE_UNIMPLEMENTED();
+  // has named property, currently unused
+  FOOTSTONE_DCHECK(false);
   return false;
 }
 
 std::shared_ptr<CtxValue> HermesCtx::CopyNamedProperty(const std::shared_ptr<CtxValue>& value,
                                                        const string_view& name) {
-  // TODO: add copy named property, currently unused
-  FOOTSTONE_UNIMPLEMENTED();
+  // copy named property, currently unused
+  FOOTSTONE_DCHECK(false);
   return nullptr;
 }
 
 string_view HermesCtx::CopyFunctionName(const std::shared_ptr<CtxValue>& function) {
-  // TODO: add copy function name, currently unused
-  FOOTSTONE_UNIMPLEMENTED();
+  // copy function name, currently unused
+  FOOTSTONE_DCHECK(false);
   return "";
 }
 

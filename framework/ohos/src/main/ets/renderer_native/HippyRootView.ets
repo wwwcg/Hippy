@@ -18,7 +18,7 @@
  * limitations under the License.
  */
 import window from '@ohos.window';
-import { HippyEngine, HippyLayoutEngineType } from '../hippy_framework';
+import { HippyEngine, HippyLayoutEngineType } from '../hippy_framework/HippyEngine';
 import { HippyException } from '../support/common/HippyException';
 import { HippyRecord } from '../support/common/HippyTypes';
 import { LogUtils } from '../support/utils/LogUtils';
@@ -64,6 +64,8 @@ export class HippyRootView {
 
   private initRenderView() {
     this.renderView = new HippyRenderView(this.ctx, this.pagerName, this.pagerData, this.renderViewSize)
+    let renderManger = this.ctx.getNativeRender().getRenderManager()
+    renderManger.initViewManager(this.renderView)
     this.performAllRenderViewTasks()
   }
 
@@ -126,8 +128,12 @@ export class HippyRootView {
 export class HippyRootViewWrapper {
   private rootView: HippyRootView | null = null
   private rootViewDidCreateCallback: ((rootView: HippyRootView) => void) | null = null
+  private rootViewWillDestroyCallback: ((rootView: HippyRootView) => void) | null = null
 
   setRootView(rootView: HippyRootView): void {
+    if (this.rootView) {
+      return;
+    }
     this.rootView = rootView
     if (this.rootViewDidCreateCallback) {
       this.rootViewDidCreateCallback(this.rootView)
@@ -138,12 +144,23 @@ export class HippyRootViewWrapper {
     return this.rootView
   }
 
+  resetRootView(): void {
+    if (this.rootView && this.rootViewWillDestroyCallback) {
+      this.rootViewWillDestroyCallback(this.rootView)
+    }
+    this.rootView = null
+  }
+
   setRootViewDidCreateCallback(callback: (rootView: HippyRootView) => void) {
     if (this.rootView) {
       callback(this.rootView)
     } else {
       this.rootViewDidCreateCallback = callback
     }
+  }
+
+  setRootViewWillDestroyCallback(callback: (rootView: HippyRootView) => void) {
+    this.rootViewWillDestroyCallback = callback
   }
 }
 

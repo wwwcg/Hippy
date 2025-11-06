@@ -70,7 +70,7 @@ void AnimationManager::EmplaceNodeProp(const std::shared_ptr<DomNode>& node, con
   }
   auto animation = GetAnimation(animation_id);
   if (animation) {
-    node->EmplaceStyleMap(prop, HippyValue(animation->GetStartValue()));
+    node->EmplaceStyleMap(prop, HippyValue(animation->GetCurrentValue()));
   }
 }
 
@@ -236,6 +236,7 @@ void AnimationManager::AddActiveAnimation(const std::shared_ptr<Animation>& anim
     if (!dom_manager) {
       return;
     }
+    root_node->SetVSyncEventNeedSource(VSyncEventNeedByAnimation);
     listener_id_ = hippy::dom::FetchListenerId();
     auto weak_animation_manager = weak_from_this();
     dom_manager->AddEventListener(root_node,
@@ -380,6 +381,7 @@ void AnimationManager::RemoveVSyncEventListener() {
     return;
   }
   if (dom_manager) {
+    root_node->UnsetVSyncEventNeedSource(VSyncEventNeedByAnimation);
     dom_manager->RemoveEventListener(root_node, root_node->GetId(), kVSyncKey, listener_id_);
     dom_manager->EndBatch(root_node_);
   }

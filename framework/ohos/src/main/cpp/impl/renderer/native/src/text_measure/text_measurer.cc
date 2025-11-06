@@ -169,16 +169,18 @@ void TextMeasurer::StartMeasure(HippyValueObjectType &propMap, const std::set<st
   OH_Drawing_SetTypographyTextEllipsis(typographyStyle_, ellipsis.c_str());
   OH_Drawing_SetTypographyTextEllipsisModal(typographyStyle_, em);
 
+  bool hasCustomFont = false;
   if (fontCache) {
     for (auto itName = fontFamilyNames.begin(); itName != fontFamilyNames.end(); itName++) {
       auto &fontName = *itName;
-      if (!fontCache->HasFont(fontName)) {
+      if (fontCache->HasFont(fontName)) {
+        hasCustomFont = true;
+      } else {
         auto itFont = fontFamilyList_.find(fontName);
         if (itFont != fontFamilyList_.end()) {
           auto fontPath = itFont->second;
           fontCache->RegisterFont(fontName, fontPath);
-        } else {
-          FOOTSTONE_LOG(ERROR) << "Measure Text OH_Drawing_RegisterFont not found font:" << fontName;
+          hasCustomFont = true;
         }
       }
     }
@@ -189,13 +191,13 @@ void TextMeasurer::StartMeasure(HippyValueObjectType &propMap, const std::set<st
 #define OHOS_HAS_API14 1
 #if OHOS_HAS_API14
   OH_Drawing_FontCollection *fontCollection = nullptr;
-  bool hasCustomFont = (fontFamilyNames.size() > 0) ? true : false;
   if (hasCustomFont) {
-    fontCollection = fontCache ? fontCache->fontCollection_ : nullptr;
+    fontCollection = fontCache->fontCollection_;
   } else {
     fontCollection = OH_Drawing_GetFontCollectionGlobalInstance();
   }
 #else
+  (void)hasCustomFont;
   OH_Drawing_FontCollection *fontCollection = fontCache ? fontCache->fontCollection_ : nullptr;
 #endif
   styled_string_ = OH_ArkUI_StyledString_Create(typographyStyle_, fontCollection);
@@ -229,6 +231,29 @@ void TextMeasurer::StartMeasure(HippyValueObjectType &propMap, const std::set<st
   if (GetPropValue(propMap, HRNodeProps::PADDING_BOTTOM, propValue)) {
     auto doubleValue = HippyValue2Double(propValue);
     paddingBottom_ = doubleValue;
+  }
+  if (GetPropValue(propMap, HRNodeProps::BORDER_WIDTH, propValue)) {
+    auto floatValue = HippyValue2Float(propValue);
+    borderTopWidth_ = floatValue;
+    borderRightWidth_ = floatValue;
+    borderBottomWidth_ = floatValue;
+    borderLeftWidth_ = floatValue;
+  }
+  if (GetPropValue(propMap, HRNodeProps::BORDER_TOP_WIDTH, propValue)) {
+    auto floatValue = HippyValue2Float(propValue);
+    borderTopWidth_ = floatValue;
+  }
+  if (GetPropValue(propMap, HRNodeProps::BORDER_RIGHT_WIDTH, propValue)) {
+    auto floatValue = HippyValue2Float(propValue);
+    borderRightWidth_ = floatValue;
+  }
+  if (GetPropValue(propMap, HRNodeProps::BORDER_BOTTOM_WIDTH, propValue)) {
+    auto floatValue = HippyValue2Float(propValue);
+    borderBottomWidth_ = floatValue;
+  }
+  if (GetPropValue(propMap, HRNodeProps::BORDER_LEFT_WIDTH, propValue)) {
+    auto floatValue = HippyValue2Float(propValue);
+    borderLeftWidth_ = floatValue;
   }
 
 #ifdef MEASURE_TEXT_CHECK_PROP
@@ -495,13 +520,15 @@ void TextMeasurer::AddImage(HippyValueObjectType &propMap, float density) {
 #endif
 }
 
-double TextMeasurer::CalcSpanPostion(OH_Drawing_Typography *typography, OhMeasureResult &ret) {
-  double baseLine = 0;
+double TextMeasurer::CalcSpanPostion(OH_Drawing_Typography *typography, OhMeasureResult &ret, float density) {
   size_t lineCount = 0;
   std::vector<double> lineHeights;    // 真实每行高度
   std::vector<double> measureHeights; // 测得每行高度
 
   lineCount = OH_Drawing_TypographyGetLineCount(typography); // 总行数
+  if (lineCount == 0) {
+    return lineHeight_;
+  }
   for (uint32_t i = 0; i < lineCount; i++) {                 // 获取每行行高
     // 当前行没有文本时，或者指定了lineHeight，baseLine获取的就不对
     // baseLine = OH_Drawing_TypographyGetAlphabeticBaseline(typography); //=h*11/16
@@ -520,59 +547,21 @@ double TextMeasurer::CalcSpanPostion(OH_Drawing_Typography *typography, OhMeasur
   double bottom = lineHeights[0];
   for (uint32_t i = 0; i < textBoxCount; i++) { // i 对应到 imageSpans_ 下标
     float boxTop = OH_Drawing_GetTopFromTextBox(tb, (int)i);
-    float boxBottom = OH_Drawing_GetBottomFromTextBox(tb, (int)i);
     float boxLeft = OH_Drawing_GetLeftFromTextBox(tb, (int)i);
-    // float boxRight = OH_Drawing_GetRightFromTextBox(tb, (int)i);
-    double top = 0;
-    double measureTop = 0;
+
     OhImageSpanPos pos;
     pos.x = boxLeft;
     pos.y = boxTop;
-    for (uint32_t j = 0; j < lineCount; j++) {
-      bottom = top + lineHeights[j];
-      double measureBottom = measureTop + measureHeights[j];
-      if (measureTop <= boxTop && boxBottom <= measureBottom) { // 根据测得的top和bottom定位到span所在行
-        baseLine = lineHeights[j] * 0.6;                      // todo 猜的比例
-        switch (imageSpans_[i].alignment) {
-        case OH_Drawing_PlaceholderVerticalAlignment::ALIGNMENT_TOP_OF_ROW_BOX:
-          pos.y = top + imageSpans_[i].marginTop;
-          break;
-        case OH_Drawing_PlaceholderVerticalAlignment::ALIGNMENT_CENTER_OF_ROW_BOX:
-          pos.y = top + lineHeights[j] / 2 - imageSpans_[i].height / 2;
-          break;
-        case OH_Drawing_PlaceholderVerticalAlignment::ALIGNMENT_BOTTOM_OF_ROW_BOX:
-          pos.y = bottom - imageSpans_[i].height - imageSpans_[i].marginBottom;
-          break;
-        case OH_Drawing_PlaceholderVerticalAlignment::ALIGNMENT_OFFSET_AT_BASELINE:
-          // todo         这里和安卓不同，安卓没有 / 2
-          pos.y = top + baseLine - imageSpans_[i].height / 2 - imageSpans_[i].marginBottom;
-          break;
-        case OH_Drawing_PlaceholderVerticalAlignment::ALIGNMENT_ABOVE_BASELINE:
-          // todo 有verticalAlignment属性时，不知如何处理
-          pos.y = top + lineHeights[j] * 0.7 - imageSpans_[i].height;
-          break;
-        case OH_Drawing_PlaceholderVerticalAlignment::ALIGNMENT_BELOW_BASELINE:
-          pos.y = top + baseLine;
-          break;
-        }
-        pos.y += imageSpans_[i].top;
-        if (pos.y < top) {
-          pos.y = top;
-        }
-        if (pos.y + imageSpans_[i].height > bottom) {
-          pos.y = bottom - imageSpans_[i].height;
-        }
-        break;
-      }
-      top = bottom;
-      measureTop = measureBottom;
-    }
+    
+    pos.x += (paddingLeft_ + borderLeftWidth_) * density;
+    pos.y += (paddingTop_ + borderTopWidth_) * density;
+    
     ret.spanPos.push_back(pos);
   }
   return bottom;
 }
 
-OhMeasureResult TextMeasurer::EndMeasure(int width, int widthMode, int height, int heightMode, float density) {
+OhMeasureResult TextMeasurer::EndMeasure(int width, int widthMode, int height, int heightMode, bool isSizeIncludePadding, float density) {
   OhMeasureResult ret;
   size_t lineCount = 0;
   
@@ -582,16 +571,25 @@ OhMeasureResult TextMeasurer::EndMeasure(int width, int widthMode, int height, i
     // fix text measure width wrong when maxWidth is nan or 0
     maxWidth = std::numeric_limits<double>::max();
   }
+  
+  double paddingWidthReduce = 0;
+  double paddingHeightReduce = 0;
+  if (isSizeIncludePadding) {
+    paddingWidthReduce = (paddingLeft_ + paddingRight_ + borderLeftWidth_ + borderRightWidth_) * density;
+    paddingHeightReduce = (paddingTop_ + paddingBottom_ + borderTopWidth_ + borderBottomWidth_) * density;
+  }
+  maxWidth -= paddingWidthReduce;
 
   OH_Drawing_TypographyLayout(typography_, maxWidth);
-    
+
   // MATE 60, beta5, "新品" "商店" text cannot be fully displayed. So add 0.5.
-  ret.width = ceil(OH_Drawing_TypographyGetLongestLine(typography_) + ((paddingLeft_ + paddingRight_) * density) + 0.5 * density);
-  ret.height = OH_Drawing_TypographyGetHeight(typography_) + ((paddingTop_ + paddingBottom_) * density);
+  ret.width = ceil(OH_Drawing_TypographyGetLongestLine(typography_) + paddingWidthReduce + 0.5 * density);
+  double drawResultHeight = OH_Drawing_TypographyGetHeight(typography_);
+  ret.height = drawResultHeight;
   ret.isEllipsized = OH_Drawing_TypographyDidExceedMaxLines(typography_);
   lineCount = OH_Drawing_TypographyGetLineCount(typography_);
   
-  double realHeight = CalcSpanPostion(typography_, ret);
+  double realHeight = CalcSpanPostion(typography_, ret, density);
   ret.height = fmax(ret.height, realHeight);
   
   if (ret.height < minLineHeight_) {
@@ -611,7 +609,14 @@ OhMeasureResult TextMeasurer::EndMeasure(int width, int widthMode, int height, i
 #endif
   }
   
+  if (ret.height > drawResultHeight) {
+    correctPxOffsetY_ = (float)(ret.height - drawResultHeight) / 2.f;
+  }
+  
+  ret.height += paddingHeightReduce;
+  
   measureWidth_ = maxWidth;
+  resultWidth_ = ret.width;
   
   return ret;
 }
@@ -673,7 +678,28 @@ double TextMeasurer::HippyValue2Double(HippyValue &value) {
   }
   auto& str = value.ToStringSafe();
   if (str.size() > 0) {
-    return std::stod(str);
+    // try catch std::invalid_argument exception
+    try {
+      return std::stod(str);
+    } catch (...) {
+      return 0;
+    }
+  }
+  return 0;
+}
+
+float TextMeasurer::HippyValue2Float(HippyValue &value) {
+  double f = 0;
+  if (value.ToDouble(f)) {
+    return (float)f;
+  }
+  auto& str = value.ToStringSafe();
+  if (str.size() > 0) {
+    try {
+      return std::stof(str);
+    } catch (...) {
+      return 0;
+    }
   }
   return 0;
 }

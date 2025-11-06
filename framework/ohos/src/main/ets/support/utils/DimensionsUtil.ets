@@ -20,7 +20,7 @@
 import { HippyMap, HippyValue } from '../common/HippyTypes';
 import deviceinfo from '@ohos.deviceInfo';
 import { TextUtils } from './TextUtils';
-import { display } from '@kit.ArkUI';
+import { display, window } from '@kit.ArkUI';
 import { LogUtils } from './LogUtils';
 import { PixelUtil } from './PixelUtil';
 
@@ -33,14 +33,33 @@ export class DimensionsUtil {
   private static SHOW_NAV_BAR_RES_NAME = "config_showNavigationBar";
   private static NAVIGATE_BAR_HEIGHT = 0;
 
+  static async getLastWindowRect(context: Context): Promise<window.Rect> {
+    const windowObj = await window.getLastWindow(context);
+    return windowObj.getWindowProperties().windowRect;
+  }
+
   static async getDimensions(ww: number, wh: number, context: Context): Promise<HippyMap> {
     let displayClass: display.Display = display.getDefaultDisplaySync();
     await DimensionsUtil.getStatusBarHeight(displayClass);
     let dimensionMap = new Map<string, HippyValue | Map<string, HippyValue>>()
 
+    let wwPixels = ww * displayClass.densityPixels;
+    let whPixels = wh * displayClass.densityPixels;
+
+    if (wwPixels < 0 || whPixels < 0) {
+      let windowRect = await DimensionsUtil.getLastWindowRect(context);
+      if (windowRect.width > 0 && windowRect.height > 0) {
+        wwPixels = windowRect.width;
+        whPixels = windowRect.height;
+      } else {
+        wwPixels = displayClass.width;
+        whPixels = displayClass.height;
+      }
+    }
+
     let windowDisplayMetricsMap = new Map<string, HippyValue>()
-    windowDisplayMetricsMap.set("width", ww >= 0 ? ww : displayClass.width);
-    windowDisplayMetricsMap.set("height", wh >= 0 ? wh : displayClass.height);
+    windowDisplayMetricsMap.set("width", wwPixels);
+    windowDisplayMetricsMap.set("height", whPixels);
     windowDisplayMetricsMap.set("scale", displayClass.densityPixels / PixelUtil.getDensityScale());
     windowDisplayMetricsMap.set("fontScale", displayClass.scaledDensity / PixelUtil.getDensityScale());
     windowDisplayMetricsMap.set("densityDpi", displayClass.densityDPI / PixelUtil.getDensityScale());

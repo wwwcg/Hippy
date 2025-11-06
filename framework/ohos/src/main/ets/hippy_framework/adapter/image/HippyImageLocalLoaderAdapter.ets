@@ -17,15 +17,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-export * from "./HippyNativeModuleBase";
-export * from "./console/ConsoleModule";
-export * from "./storage/StorageModule";
-export * from "./audio/AudioPlayerModule";
-export * from "./debug/DevMenuModule"
-export * from "./deviceevent/DeviceEventModule"
-export * from "./exception/ExceptionModule"
-export * from "./image/ImageLoaderModule"
-export * from "./netinfo/NetInfoModule"
-export * from "./network/NetworkModule"
-export * from "./network/WebSocketModule"
-export * from "./utils/UtilsModule"
+
+/**
+ * 对于已经预下载的图片，可实现该adapter直接返回本地路径
+ */
+export interface HippyImageLocalLoaderAdapter {
+  /**
+   * 根据图片url同步返回本地路径
+   *
+   * @param url 图片url
+   * @return 本地路径。如果找不到本地路径请返回空字符串，hippy内部进一步下载url。
+   *         本地路径举例："file:///data/storage/el1/bundle/entry/resources/resfile/demo.png"
+   */
+  fetchLocalPath(url: string): string;
+}

@@ -15,7 +15,7 @@ import { HRRenderViewCreator } from 'hippy/src/main/ets/renderer_native/componen
 import { HippyValue } from 'hippy/src/main/ets/support/common/HippyTypes';
 import { LogUtils } from 'hippy/src/main/ets/support/utils/LogUtils'
 
-export class ExampleAPIProvider implements HippyAPIProvider {
+export class ExampleAPIProvider extends HippyAPIProvider {
   getCustomNativeModuleCreatorMap(): Map<string, HippyNativeModuleCreator> | null {
     return null
   }
@@ -60,7 +60,7 @@ class DefaultEngineListener implements EngineListener {
         null,
       )
       loadParams.componentName = "Demo"
-      loadParams.codeCacheTag = "Demo"
+      loadParams.codeCacheTag = "Demo_1.0" // 建议tag拼接js version，tag会用来拼接v8 code cache文件的路径，不同js不同cache文件
       loadParams.jsParams = new Map<string, HippyValue>()
       loadParams.jsParams.set(
         "msgFromNative",

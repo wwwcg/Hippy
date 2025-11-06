@@ -29,7 +29,13 @@ import { FrameNode } from '@kit.ArkUI';
 import { TurboModuleManager } from '../hippy_framework/modules/turbo/TurboModuleManager';
 import { NodeContent } from '@ohos.arkui.node';
 import { HRPosition, HRRect } from '../renderer_native/utils/HRTypes';
-import { HippyLayoutEngineType } from "../hippy_framework";
+import { HippyLayoutEngineType } from "../hippy_framework/HippyEngine";
+import {
+  HippyImageLocalLoaderAdapter
+} from "../hippy_framework/adapter/image/HippyImageLocalLoaderAdapter";
+import {
+  ImageRemoteLoaderInnerAdapter
+} from "../hippy_framework/adapter/image/inner/ImageRemoteLoaderInnerAdapter";
 
 export interface HippyRenderViewInfo {
   tag: number
@@ -95,11 +101,12 @@ export interface HippyLibrary {
   NativeRenderer_CreateNativeRenderManager(enableArkCApi: boolean, renderProvider: NativeRenderProvider,
     customRenderViews: Array<string> | null, customMeasureRenderViews: Array<string> | null, mappingRenderViews: Array<string> | null,
     bundlePath: string, density: number, densityScale: number, fontSizeScale: number, fontWeightScale: number,
-    isRawfile: boolean, resModuleName: string): number;
+    isRawfile: boolean, resModuleName: string, vfsId: number): number;
   NativeRenderer_DestroyNativeRenderManager(instanceId: number): void;
   NativeRenderer_SetBundlePath(instanceId: number, bundlePath: string): void;
   NativeRenderer_InitRendererParams(statusBarHeight: number): void;
   NativeRenderer_RegisterFontPaths(instanceId: number, fontFamilyAndPaths: Array<string>): void;
+  NativeRenderer_KeyboardHeightChange(height: number): void;
 
   NativeRenderProvider_UpdateRootSize(instanceId: number, rootId: number, width: number, height: number): void;
   NativeRenderProvider_UpdateNodeSize(instanceId: number, rootId: number, nodeId: number, width: number, height: number, isSync: boolean): void;
@@ -119,6 +126,9 @@ export interface HippyLibrary {
   NativeRenderProvider_AddBizViewInRoot(instanceId: number, rootId: number, biz_view_id: number, frameNode: FrameNode, x: number, y: number): void
   NativeRenderProvider_RemoveBizViewInRoot(instanceId: number, rootId: number, biz_view_id: number): void
 
+  NativeRenderProvider_SetImageLoaderAdapter(instanceId: number, localLoader: HippyImageLocalLoaderAdapter | null, remoteLoader: ImageRemoteLoaderInnerAdapter | null): void;
+  NativeRenderProvider_DoCallbackForFetchLocalPathAsync(instanceId: number, rootId: number, nodeId: number, success: boolean, path: string): void;
+
   VfsManager_CreateVfs(vfsDelegate: VfsManager): number;
   VfsManager_DestroyVfs(instanceId: number): void;
   VfsManager_OnJniDelegateCallback(holder: ResourceDataHolder): void;
@@ -133,4 +143,19 @@ export interface HippyLibrary {
   Setting_SetDensityScale(densityScale: number): void;
   Setting_SetFontSizeScale(fontSizeScale: number): void;
   Setting_SetFontWeightScale(fontWeightScale: number): void;
+
+  // main线程使用
+  WorkerManager_InitWModuleManager(notifyMainThreadFunction: (
+    workerName: string) => void): void;
+
+  // worker线程使用
+  Worker_RegisterWModules(workerName: string, callNativesFunction: (
+    scopeId: number,
+    moduleName: string,
+    moduleFunc: string,
+    callId: string,
+    buffer: ArrayBuffer) => void, moduleNames: HippyArray): void;
+  Worker_UnregisterWModules(moduleNames: HippyArray): void;
+  Worker_CallJsFunction(instanceId: number, action: string, buffer: ArrayBuffer): void;
+
 }

@@ -24,12 +24,13 @@
 
 #include "renderer/components/base_view.h"
 #include "renderer/arkui/image_node.h"
+#include "renderer/components/image_base_view.h"
 
 namespace hippy {
 inline namespace render {
 inline namespace native {
 
-class ImageView : public BaseView, public ImageNodeDelegate {
+class ImageView : public ImageBaseView, public ImageNodeDelegate {
 public:
   ImageView(std::shared_ptr<NativeRenderContext> &ctx);
   ~ImageView();
@@ -47,8 +48,7 @@ public:
   std::string GetSrc();
 
 protected:
-  virtual void FetchAltImage(const std::string &imageUrl);
-  virtual void FetchImage(const std::string &imageUrl);
+  void SetSourcesOrAlt(const std::string &imageUrl, bool isSources) override;
   
   void ClearProps();
 

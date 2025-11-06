@@ -17,8 +17,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+import { HippyArray } from '../../support/common/HippyTypes';
+import { HippyCallNativeParams } from '../bridge/HippyCallNativeParams';
+import { HippyWModuleBase } from './native/HippyWModuleBase';
 
-export * from "./annotation/HippyNativeModule"
-export * from "./common/HippyException"
-export * from "./common/HippyException"
-export * from "./common/HippyTypes"
+export interface HippyWModuleManager {
+
+  callNatives(params: HippyCallNativeParams): void;
+
+  destroy(): void;
+
+  getNativeModule(name: string, isTurbo: boolean): HippyWModuleBase | null;
+
+  getModuleNames(): HippyArray;
+}

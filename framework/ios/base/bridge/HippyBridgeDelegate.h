@@ -97,6 +97,20 @@
 /// return values less than 0 will be treated as 0.
 - (CGFloat)defaultStatusBarHeightNoMatterHiddenOrNot;
 
+/// Whether hippy use rootView's size as "window" size in Dimensions info.
+///
+/// Default value is YES.
+/// In historical versions, the window recorded in the hippy dimensions information
+/// refers to the key window on the native side,
+/// and returning NO will maintain consistency with the behavior of historical versions.
+- (BOOL)shouldUseRootViewSizeAsWindowSizeInDimensions;
+
+/// Set default window size in Dimensions API before RootView is mounted.
+///
+/// Note: This API is valid only when `shouldUseRootViewSizeAsWindowSizeInDimensions` is YES.
+/// This might be useful in some special scenarios, such as starting in split-screen mode on an iPad.
+- (CGSize)defaultWindowSizeInDimensionsBeforeRootViewMount;
+
 /// Font size multiplier for hippy
 /// 
 /// This value is used to calculate the font size of the text in the hippy page.

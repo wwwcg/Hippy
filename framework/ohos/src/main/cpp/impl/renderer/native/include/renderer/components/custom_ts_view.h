@@ -35,9 +35,10 @@ public:
   CustomTsView(std::shared_ptr<NativeRenderContext> &ctx, ArkUI_NodeHandle nodeHandle, ArkUI_NodeContentHandle contentHandle);
   ~CustomTsView();
 
-  CustomTsNode *GetLocalRootArkUINode() override;
+  StackNode *GetLocalRootArkUINode() override;
   void CreateArkUINodeImpl() override;
   void DestroyArkUINodeImpl() override;
+  bool SetViewProp(const std::string &propKey, const HippyValue &propValue) override;
   bool SetPropImpl(const std::string &propKey, const HippyValue &propValue) override;
   void UpdateRenderViewFrameImpl(const HRRect &frame, const HRPadding &padding) override;
 
@@ -50,8 +51,13 @@ private:
   void OnCustomTsViewChildInserted(uint32_t tag, std::shared_ptr<BaseView> const &childView, int32_t index);
   void OnCustomTsViewChildRemoved(uint32_t tag, std::shared_ptr<BaseView> const &childView, int32_t index);
 
+  // 给TsNode加一个包装节点，这样BuilderProxyNode才会被限制在正确的位置，而不会位于上层节点的左上角从而阻挡事件。
+  std::shared_ptr<StackNode> packageNode_;
+
   std::shared_ptr<CustomTsNode> tsNode_;
-  std::shared_ptr<StackNode> contentNode_;
+  std::shared_ptr<ArkUINode> contentNode_;
+  
+  bool isContentNativeScroll_ = false;
 
   ArkUI_NodeHandle customNodeHandle_ = nullptr;
   ArkUI_NodeContentHandle contentHandle_ = nullptr;

@@ -301,7 +301,7 @@ ENV['layout_engine'] = 'Yoga'
 
  ```json
   "dependencies": {
-    "hippy": "3.3.0"
+    "hippy": "3.3.2"
   }
  ```
 
@@ -352,6 +352,17 @@ ENV['layout_engine'] = 'Yoga'
         this.exception = `${exception.message}\n${exception.stack}`
       },
   })
+  ```
+
+### 4. 销毁代码
+
+Hippy页面退出时，需要释放资源。 destroyModule 用来释放对应 loadModule 的页面资源，destroyEngine 用来释放对应 initEngine 的引擎环境资源。
+一定要先 destroyModule，返回后再 destroyEngine。
+
+ ```TypeScript
+  hippyEngine?.destroyModule(rootId, () => {
+    hippyEngine?.destroyEngine();
+  });
   ```
 
 > 注：确保这里 this.hippyEngine 和 this.rootViewWrapper 是有效值
@@ -443,6 +454,17 @@ target_sources(${PROJECT_NAME} PRIVATE ${SOURCE_SET} PUBLIC ${PUBLIC_SOURCE_SET}
         this.exception = `${exception.message}\n${exception.stack}`
       },
   })
+  ```
+
+### 5. 销毁代码
+
+Hippy页面退出时，需要释放资源。 destroyModule 用来释放对应 loadModule 的页面资源，destroyEngine 用来释放对应 initEngine 的引擎环境资源。
+一定要先 destroyModule，返回后再 destroyEngine。
+
+ ```TypeScript
+  hippyEngine?.destroyModule(rootId, () => {
+    hippyEngine?.destroyEngine();
+  });
   ```
 
 具体可以参考 [Demo](https://github.com/Tencent/Hippy/tree/main/framework/examples/ohos-demo) 工程中 `EntryAbility.ets` 等实现

@@ -42,6 +42,7 @@ public:
   uint32_t GetInstanceId() { return instance_id_; }
   
   void SetBundlePath(const std::string &bundle_path);
+  void SetUriLoader(std::weak_ptr<UriLoader> loader) { loader_ = loader; }
 
   void BindNativeRoot(ArkUI_NodeContentHandle contentHandle, uint32_t root_id, uint32_t node_id);
   void UnbindNativeRoot(uint32_t root_id, uint32_t node_id);
@@ -51,7 +52,7 @@ public:
 
   void RegisterCustomTsRenderViews(napi_env ts_env, napi_ref ts_render_provider_ref, std::set<std::string> &custom_views, std::map<std::string, std::string> &mapping_views);
 
-  void DestroyRoot(uint32_t root_id);
+  void DestroyRoot(uint32_t root_id, bool is_c_inteface);
 
   void DoCallbackForCallCustomTsView(uint32_t root_id, uint32_t node_id, uint32_t callback_id, const HippyValue &result);
 
@@ -95,7 +96,16 @@ public:
   HRRect GetViewFrameInRoot(uint32_t root_id, uint32_t node_id);
   void AddBizViewInRoot(uint32_t root_id, uint32_t biz_view_id, ArkUI_NodeHandle node_handle, const HRPosition &position);
   void RemoveBizViewInRoot(uint32_t root_id, uint32_t biz_view_id);
+  
+  void SetImageLoaderAdapter(napi_ref local_loader, napi_ref remote_loader);
+  void DoCallbackForFetchLocalPathAsync(uint32_t root_id, uint32_t node_id, bool success, const std::string &path);
+  
   std::shared_ptr<HRManager> &GetHRManager() { return hr_manager_; }
+  
+  napi_ref GetTsImageLocalLoaderRef() override { return ts_local_loader_ref_; }
+  napi_ref GetTsImageRemoteLoaderRef() override { return ts_remote_loader_ref_; }
+  
+  std::weak_ptr<UriLoader> GetUriLoader() override { return loader_; }
 
 private:
   uint32_t instance_id_;
@@ -103,6 +113,11 @@ private:
   bool is_rawfile_ = false;
   std::string res_module_name_;
   std::shared_ptr<HRManager> hr_manager_;
+  
+  napi_ref ts_local_loader_ref_ = 0;
+  napi_ref ts_remote_loader_ref_ = 0;
+  
+  std::weak_ptr<UriLoader> loader_;
 };
 
 } // namespace native

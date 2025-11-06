@@ -80,6 +80,8 @@ public:
   void OnSubmit() override;
   void OnPaste() override;
   void OnTextSelectionChange(int32_t location, int32_t length) override;
+  void OnWillInsert(int32_t location, char *string) override;
+  void OnWillDelete(int32_t location, char *string) override;
 
 public:
   void InitNode();
@@ -94,6 +96,7 @@ public:
   void BlurTextInput(const HippyValueArrayType &param);
   void HideInputMethod(const HippyValueArrayType &param);
   void OnEventEndEditing(ArkUI_EnterKeyType enterKeyType);
+  void OnKeyPress(const std::string &keyString);
 
 private:
   void SetPropFlag(TextInputPropFlag flag) { propFlags_ |= flag; }
@@ -101,6 +104,9 @@ private:
   bool IsPropFlag(TextInputPropFlag flag) { return (propFlags_ & flag) ? true : false; }
   
   void ClearProps();
+  
+  void CheckAndAddKeyboardListener();
+  void RemoveKeyboardListener();
 
   uint32_t propFlags_ = 0;
 
@@ -121,7 +127,6 @@ private:
   std::optional<uint32_t> textAlign_;
   std::optional<uint32_t> textAlignVertical_;
 
-private:
   std::shared_ptr<StackNode> stackNode_;
   std::shared_ptr<TextInputBaseNode> inputBaseNodePtr_ = nullptr;
 
@@ -130,13 +135,16 @@ private:
   bool isListenEndEditing_ = false;
   bool isListenFocus_ = false;
   bool isListenBlur_ = false;
-  bool isListenKeyboardWillShow_ = false; // TODO: 如果有业务需求，再评估鸿蒙上实现方案。
+  bool isListenKeyboardWillShow_ = false;
   bool isListenKeyboardWillHide_ = false;
   bool isListenContentSizeChange_ = false;
+  bool isListenKeyPress_ = false;
 
   bool focus_ = false;
   float_t previousContentWidth_ = 0;
   float_t previousContentHeight_ = 0;
+  
+  std::string keyboardListenerKey_;
 };
 
 } // namespace native

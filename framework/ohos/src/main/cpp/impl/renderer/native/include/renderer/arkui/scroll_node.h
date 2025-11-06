@@ -34,6 +34,8 @@ public:
   virtual void OnScroll(float xOffset, float yOffset) {}
   virtual void OnScrollStart() {}
   virtual void OnScrollStop() {}
+  virtual void OnReachStart() {}
+  virtual void OnReachEnd() {}
 };
 
 class ScrollNode : public ArkUINode {
@@ -68,7 +70,7 @@ public:
   ScrollNode &SetInitialContentOffset(float initialContentOffset);
   ScrollNode &SetScrollEventThrottle(float scrollEventThrottle);
   ScrollNode &SetScrollMinOffset(float scrollMinOffset);
-  ScrollNode &SetNestedScroll(ArkUI_ScrollNestedMode forward, ArkUI_ScrollNestedMode backward);
+  ScrollNode &SetScrollNestedScroll(ArkUI_ScrollNestedMode forward, ArkUI_ScrollNestedMode backward);
   ScrollNode &SetScrollEdgeEffect(ArkUI_EdgeEffect effect);
   void ScrollTo(float x, float y, bool animated, int32_t duration = 0);
   void OnNodeEvent(ArkUI_NodeEvent *event) override;

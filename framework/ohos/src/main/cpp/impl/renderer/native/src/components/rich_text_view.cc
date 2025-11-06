@@ -54,6 +54,9 @@ RichTextView::~RichTextView() {
     textNode_->ResetTextContentWithStyledStringAttribute();
   }
 # endif
+  if (textNode_) {
+    textNode_->SetArkUINodeDelegate(nullptr);
+  }
   auto textMeasureMgr = ctx_->GetTextMeasureManager();
   textMeasureMgr->EraseTextMeasurer(tag_);
   oldUsedTextMeasurerHolder_ = nullptr;
@@ -76,6 +79,11 @@ void RichTextView::CreateArkUINodeImpl() {
 # else
   textNode_ = std::make_shared<TextNode>();
 # endif
+  if (toLazyRegisterClick_) {
+    textNode_->SetArkUINodeDelegate(this);
+    textNode_->RegisterClickEvent();
+    toLazyRegisterClick_ = false;
+  }
 #else
   textNode_ = std::make_shared<TextNode>();
 #endif
@@ -84,6 +92,11 @@ void RichTextView::CreateArkUINodeImpl() {
 void RichTextView::DestroyArkUINodeImpl() {
 #ifdef OHOS_DRAW_TEXT
   containerNode_ = nullptr;
+# ifndef OHOS_DRAW_CUSTOM_TEXT
+  if (textNode_) {
+    textNode_->ResetTextContentWithStyledStringAttribute();
+  }
+# endif
 #endif
   textNode_ = nullptr;
   ClearProps();
@@ -92,9 +105,14 @@ void RichTextView::DestroyArkUINodeImpl() {
 bool RichTextView::RecycleArkUINodeImpl(std::shared_ptr<RecycleView> &recycleView) {
 #ifdef OHOS_DRAW_TEXT
   textNode_->ResetAllAttributes();
-  textNode_->RemoveSelfFromParent();
-  textNode_ = nullptr;
-  containerNode_ = nullptr;
+  if (containerNode_) {
+    containerNode_->RemoveSelfFromParent();
+    textNode_ = nullptr;
+    containerNode_ = nullptr;
+  } else {
+    textNode_->RemoveSelfFromParent();
+    textNode_ = nullptr;
+  }
   ClearProps();
   return false;
 #else
@@ -122,6 +140,9 @@ bool RichTextView::ReuseArkUINodeImpl(std::shared_ptr<RecycleView> &recycleView)
 
 bool RichTextView::SetPropImpl(const std::string &propKey, const HippyValue &propValue) {
 #ifdef OHOS_DRAW_TEXT
+# ifdef OHOS_DRAW_CUSTOM_TEXT
+  toMarkDirty_ = true;
+# endif
 #else
   if (propKey == "text") {
     auto& value = HRValueUtils::GetString(propValue);
@@ -262,13 +283,35 @@ bool RichTextView::SetPropImpl(const std::string &propKey, const HippyValue &pro
     }
     return true;
   }
+#ifndef OHOS_DRAW_CUSTOM_TEXT
+  if (propKey == "copy-options-ohos") {
+    ArkUI_CopyOptions options = ARKUI_COPY_OPTIONS_NONE;
+    auto& str = HRValueUtils::GetString(propValue);
+    if (str == "none") {
+      options = ARKUI_COPY_OPTIONS_NONE;
+    } else if (str == "in_app") {
+      options = ARKUI_COPY_OPTIONS_IN_APP;
+    } else if (str == "local_device") {
+      options = ARKUI_COPY_OPTIONS_LOCAL_DEVICE;
+    } else if (str == "cross_device") {
+      options = ARKUI_COPY_OPTIONS_CROSS_DEVICE;
+    }
+    textNode_->SetCopyOptions(options);
+    return true;
+  }
+#endif
 
   return BaseView::SetPropImpl(propKey, propValue);
 }
 
 void RichTextView::OnSetPropsEndImpl() {
 #ifdef OHOS_DRAW_TEXT
-# ifndef OHOS_DRAW_CUSTOM_TEXT
+# ifdef OHOS_DRAW_CUSTOM_TEXT
+  if (toMarkDirty_) {
+    textNode_->MarkDirty(NODE_NEED_RENDER);
+    toMarkDirty_ = false;
+  }
+# else
   UpdateDrawTextContent();
 # endif
 #else
@@ -310,6 +353,8 @@ void RichTextView::UpdateRenderViewFrameImpl(const HRRect &frame, const HRPaddin
     textNode_->SetPadding(padding.paddingTop, padding.paddingRight, padding.paddingBottom, padding.paddingLeft);
   }
   drawTextWidth_ = frame.width - padding.paddingLeft - padding.paddingRight;
+  drawTextPaddingLeft_ = padding.paddingLeft;
+  drawTextPaddingTop_ = padding.paddingTop;
 # ifndef OHOS_DRAW_CUSTOM_TEXT
   UpdateDrawTextContent();
 # endif
@@ -323,18 +368,16 @@ void RichTextView::UpdateRenderViewFrameImpl(const HRRect &frame, const HRPaddin
 void RichTextView::OnChildInsertedImpl(std::shared_ptr<BaseView> const &childView, int32_t index) {
   BaseView::OnChildInsertedImpl(childView, index);
   
-  int32_t realIndex = index;
-  
 #ifdef OHOS_DRAW_TEXT
   if (containerNode_ == nullptr) {
     containerNode_ = std::make_shared<StackNode>();
     textNode_->ReplaceSelfFromParent(containerNode_.get());
     containerNode_->AddChild(textNode_.get());
   }
-  realIndex = index + 1;
+  GetLocalRootArkUINode()->AddChild(childView->GetLocalRootArkUINode());
+#else
+  GetLocalRootArkUINode()->InsertChild(childView->GetLocalRootArkUINode(), index);
 #endif
-  
-  GetLocalRootArkUINode()->InsertChild(childView->GetLocalRootArkUINode(), realIndex);
 }
 
 void RichTextView::OnChildRemovedImpl(std::shared_ptr<BaseView> const &childView, int32_t index) {
@@ -457,7 +500,12 @@ void RichTextView::OnClick(const HRPosition &position) {
 
 void RichTextView::RegisterSpanClickEvent(const std::shared_ptr<BaseView> spanView) {
   clickableSpanViews_.insert(spanView);
-  GetLocalRootArkUINode()->RegisterClickEvent();
+  auto node = GetLocalRootArkUINode();
+  if (node) {
+    node->RegisterClickEvent();
+  } else {
+    toLazyRegisterClick_ = true;
+  }
 }
 
 void RichTextView::UnregisterSpanClickEvent(const std::shared_ptr<BaseView> spanView) {
@@ -515,7 +563,9 @@ void RichTextView::OnForegroundDraw(ArkUI_NodeCustomEvent *event) {
   if (drawingHandle == nullptr) {
     return;
   }
-  OH_Drawing_TypographyPaint(textTypo, drawingHandle, 0, 0);
+  float pxLeft = HRPixelUtils::VpToPx(drawTextPaddingLeft_);
+  float pxTop = HRPixelUtils::VpToPx(drawTextPaddingTop_) + textMeasurer->GetCorrectPxOffsetY();
+  OH_Drawing_TypographyPaint(textTypo, drawingHandle, pxLeft, pxTop);
 }
 #endif
 

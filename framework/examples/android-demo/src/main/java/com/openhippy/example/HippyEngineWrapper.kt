@@ -40,7 +40,8 @@ class HippyEngineWrapper//TODO: Coming soon
     rm: PageConfiguration.RenderMode,
     isDebug: Boolean,
     useNodeSnapshot: Boolean,
-    debugServerHost: String
+    debugServerHost: String,
+    context: Context
 ) {
 
     var hippyEngine: HippyEngine
@@ -61,7 +62,7 @@ class HippyEngineWrapper//TODO: Coming soon
 
     init {
         val initParams = EngineInitParams()
-        initParams.context = applicationContext
+        initParams.context = context
         initParams.debugServerHost = debugServerHost
         initParams.debugMode = isDebug
         initParams.enableLog = true
@@ -81,7 +82,7 @@ class HippyEngineWrapper//TODO: Coming soon
                 //TODO: Coming soon
             }
         }
-        initParams.codeCacheTag = "common"
+        initParams.codeCacheTag = "common_1.0" // 建议tag拼接js version，tag会用来拼接v8 code cache文件的路径，不同js不同cache文件
         initParams.exceptionHandler = object : HippyExceptionHandlerAdapter {
             override fun handleJsException(e: HippyJsException) {
                 LogUtils.e("hippy", e.message)
@@ -155,7 +156,7 @@ class HippyEngineWrapper//TODO: Coming soon
                     val loadParams = ModuleLoadParams()
                     loadParams.context = context
                     loadParams.componentName = "Demo"
-                    loadParams.codeCacheTag = "Demo"
+                    loadParams.codeCacheTag = "Demo_1.0" // 建议tag拼接js version，tag会用来拼接v8 code cache文件的路径，不同js不同cache文件
                     when(driverMode) {
                         PageConfiguration.DriverMode.JS_REACT -> {
                             loadParams.jsAssetsPath = "react/index.android.js"

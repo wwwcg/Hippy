@@ -37,10 +37,10 @@ target_compile_options(${PROJECT_NAME} PRIVATE ${COMPILE_OPTIONS})
 # endregion
 
 # 鸿蒙上文本组件绘制方案：
-# OHOS_DRAW_TEXT - 使用绘制好的文本赋给Text组件，默认关闭
+# OHOS_DRAW_TEXT - 使用绘制好的文本赋给Text组件，默认打开
 # OHOS_DRAW_CUSTOM_TEXT - 使用绘制好的文本赋给Custom组件，不使用Text组件，AI选词、长按、手势、无障碍等不能利用OH底座，默认关闭
 target_compile_definitions(${PROJECT_NAME} PUBLIC "OHOS_DRAW_TEXT")
-#target_compile_definitions(${PROJECT_NAME} PUBLIC "OHOS_DRAW_CUSTOM_TEXT")
+# target_compile_definitions(${PROJECT_NAME} PUBLIC "OHOS_DRAW_CUSTOM_TEXT")
 
 # region dom
 GlobalPackages_Add_dom()
@@ -58,6 +58,11 @@ GlobalPackages_Add_oh_napi()
 target_link_libraries(${PROJECT_NAME} PRIVATE oh_napi)
 # endregion
 
+# region vfs
+GlobalPackages_Add_vfs()
+target_link_libraries(${PROJECT_NAME} PRIVATE vfs)
+# endregion
+
 # region source set
 set(SOURCE_SET
   src/native_render_manager.cc
@@ -70,6 +75,7 @@ set(SOURCE_SET
   src/uimanager/hr_manager.cc
   src/uimanager/hr_view_manager.cc
   src/uimanager/hr_gesture_dispatcher.cc
+  src/uimanager/hr_keyboard_manager.cc
   src/utils/hr_event_utils.cc
   src/utils/hr_convert_utils.cc
   src/utils/hr_pixel_utils.cc
@@ -109,6 +115,8 @@ set(SOURCE_SET
   src/components/custom_ts_view.cc
   src/components/custom_view.cc
   src/components/div_view.cc
+  src/components/image_base_view.cc
+  src/components/image_nine_view.cc
   src/components/image_view.cc
   src/components/list_item_adapter.cc
   src/components/list_item_view.cc
@@ -129,6 +137,9 @@ set(SOURCE_SET
   src/components/text_input_view.cc
   src/components/waterfall_item_view.cc
   src/components/waterfall_view.cc
+  src/components/waterfall_pull_footer_view.cc
+  src/components/waterfall_pull_header_view.cc
+  src/image_loader/image_loader.cc
   src/recycle/recycle_view.cc
   src/text_measure/font_collection_manager.cc
   src/text_measure/text_measurer.cc

@@ -20,15 +20,25 @@
 import { HRRenderViewCreator } from '../../renderer_native/components/HippyRenderRegisterMap';
 import { HippyJSModuleCreator, HippyNativeModuleCreator } from '../modules/HippyModuleManagerImpl';
 
-export interface HippyAPIProvider {
-  getCustomNativeModuleCreatorMap(): Map<string, HippyNativeModuleCreator> | null
+export class HippyAPIProvider {
+  getCustomNativeModuleCreatorMap(): Map<string, HippyNativeModuleCreator> | null {
+    return null;
+  }
 
-  getCustomJavaScriptModuleCreatorMap(): Map<string, HippyJSModuleCreator> | null
+  getCustomJavaScriptModuleCreatorMap(): Map<string, HippyJSModuleCreator> | null {
+    return null;
+  }
 
-  getCustomRenderViewCreatorMap(): Map<string, HRRenderViewCreator> | null
+  getCustomRenderViewCreatorMap(): Map<string, HRRenderViewCreator> | null {
+    return null;
+  }
 
-  getCustomMeasureRenderViews(): Array<string> | null
+  getCustomMeasureRenderViews(): Array<string> | null {
+    return null;
+  }
 
-  getCustomMappingRenderViewMap(): Map<string, string> | null
+  getCustomMappingRenderViewMap(): Map<string, string> | null {
+    return null;
+  }
 
 }

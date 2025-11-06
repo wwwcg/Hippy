@@ -2,7 +2,7 @@
  * Tencent is pleased to support the open source community by making
  * Hippy available.
  *
- * Copyright (C) 2022 THL A29 Limited, a Tencent company.
+ * Copyright (C) 2017-2019 THL A29 Limited, a Tencent company.
  * All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -18,14 +18,17 @@
  * limitations under the License.
  */
 
-export * from "./HippyBizViewBuilder"
-export * from "./HippyRootView"
-export * from "./HippyViewEvent"
-export * from "./NativeRender"
-export * from "./NativeRenderContext"
+#pragma once
+#include <string>
 
-export * from "./components/base/HippyRenderBaseView"
-export * from "./components/custom/HippyCustomComponentView"
-export * from "./components/HippyRenderRegisterMap"
+namespace hippy::devtools {
 
-export * from "./dom_node/HRNodeProps"
+class JSHGetUrlConnection : public std::enable_shared_from_this<JSHGetUrlConnection> {
+ public:
+  JSHGetUrlConnection() {}
+
+  bool DoRequestJsonBody(std::string &body);
+  bool ParseWsUrlFromBody(std::string &body, std::string &retWsUrl);
+};
+
+}  // namespace hippy::devtools

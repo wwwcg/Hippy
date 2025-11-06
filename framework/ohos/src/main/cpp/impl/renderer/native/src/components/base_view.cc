@@ -57,6 +57,11 @@ BaseView::~BaseView() {
   ++sCount;
   FOOTSTONE_DLOG(INFO) << "Hippy ohos mem check, view, del: " << this << ", type: " << view_type_ << ", count: " << sCount;
 #endif
+  
+  auto node = GetLocalRootArkUINode();
+  if (node) {
+    node->SetArkUINodeDelegate(nullptr);
+  }
 }
 
 void BaseView::Init() {
@@ -103,7 +108,8 @@ void BaseView::CreateArkUINode(bool isFromLazy, int index) {
   
   CreateArkUINodeImpl();
   if (!GetLocalRootArkUINode()) {
-    UpdateLazyProps();
+    // 对于文本绘制时，RichTextSpanView无实际ArkUINode；
+    // 其它类型View，必然有实际ArkUINode，不会走进这里。
     return;
   }
   isLazyCreate_ = false;
@@ -131,19 +137,27 @@ void BaseView::DestroyArkUINode() {
     return;
   }
   
-  GetLocalRootArkUINode()->RemoveSelfFromParent();
-  DestroyArkUINodeImpl();
-  isLazyCreate_ = true;
+  node->SetArkUINodeDelegate(nullptr);
+
   for (int32_t i = 0; i < (int32_t)children_.size(); i++) {
     auto subView = children_[(uint32_t)i];
     subView->DestroyArkUINode();
   }
+
+  node->RemoveSelfFromParent();
+  DestroyArkUINodeImpl();
+  isLazyCreate_ = true;
 }
 
 std::shared_ptr<RecycleView> BaseView::RecycleArkUINode() {
   if (!HippyIsRecycledView(GetViewType())) {
     DestroyArkUINode();
     return nullptr;
+  }
+  
+  auto node = GetLocalRootArkUINode();
+  if (node) {
+    node->SetArkUINodeDelegate(nullptr);
   }
   
   auto recycleView = std::make_shared<RecycleView>();
@@ -311,6 +325,20 @@ bool BaseView::SetPropImpl(const std::string &propKey, const HippyValue &propVal
     return true;
   } else if (propKey == HRNodeProps::LINEAR_GRADIENT) {
     SetLinearGradientProp(propKey, propValue);
+    return true;
+  } else if (propKey == "hit-test-ohos") {
+    ArkUI_HitTestMode mode = ARKUI_HIT_TEST_MODE_TRANSPARENT;
+    auto& value = HRValueUtils::GetString(propValue);
+    if (value == "default") {
+      mode = ARKUI_HIT_TEST_MODE_DEFAULT;
+    } else if (value == "block") {
+      mode = ARKUI_HIT_TEST_MODE_BLOCK;
+    } else if (value == "transparent") {
+      mode = ARKUI_HIT_TEST_MODE_TRANSPARENT;
+    } else if (value == "none") {
+      mode = ARKUI_HIT_TEST_MODE_NONE;
+    }
+    GetLocalRootArkUINode()->SetHitTestMode(mode);
     return true;
   } else {
     bool handled = SetBackgroundImageProp(propKey, propValue);
@@ -646,6 +674,7 @@ void BaseView::SetPressIn(bool flag) {
     return;
   }
   if (flag) {
+    GetLocalRootArkUINode()->RegisterTouchEvent();
     auto weak_view = weak_from_this();
     eventPressIn_ = [weak_view]() {
       auto view = weak_view.lock();
@@ -663,6 +692,7 @@ void BaseView::SetPressOut(bool flag) {
     return;
   }
   if (flag) {
+    GetLocalRootArkUINode()->RegisterTouchEvent();
     auto weak_view = weak_from_this();
     eventPressOut_ = [weak_view]() {
       auto view = weak_view.lock();
@@ -775,6 +805,7 @@ void BaseView::HandleInterceptPullUp() {
 
 void BaseView::SetAttachedToWindowHandle(bool flag) {
   if (flag) {
+    GetLocalRootArkUINode()->RegisterAttachEvent();
     auto weak_view = weak_from_this();
     eventAttachedToWindow_ = [weak_view]() {
       auto view = weak_view.lock();
@@ -782,6 +813,10 @@ void BaseView::SetAttachedToWindowHandle(bool flag) {
         HRGestureDispatcher::HandleAttachedToWindow(view->ctx_, view->tag_);
       }
     };
+    // NODE_EVENT_ON_ATTACH 事件是 insertChild 的时候触发的，所以如果已经 insert 过，需要补发事件
+    if (GetLocalRootArkUINode()->HasParent()) {
+      eventAttachedToWindow_();
+    }
   } else {
     eventAttachedToWindow_ = nullptr;
   }
@@ -789,6 +824,7 @@ void BaseView::SetAttachedToWindowHandle(bool flag) {
 
 void BaseView::SetDetachedFromWindowHandle(bool flag) {
   if (flag) {
+    GetLocalRootArkUINode()->RegisterDetachEvent();
     auto weak_view = weak_from_this();
     eventDetachedFromWindow_ = [weak_view]() {
       auto view = weak_view.lock();
@@ -995,7 +1031,7 @@ void BaseView::UpdateEventListener(HippyValueObjectType &newEvents) {
   }
 }
 
-bool BaseView::CheckRegisteredEvent(std::string &eventName) {
+bool BaseView::CheckRegisteredEvent(const std::string &eventName) {
   std::string name = eventName;
   std::transform(name.begin(), name.end(), name.begin(), ::tolower);
   if (events_.size() > 0 && events_.find(name) != events_.end()) {
@@ -1042,6 +1078,9 @@ void BaseView::OnTouch(int32_t actionType, const HRPosition &screenPosition) {
     if (eventTouchDown_) {
       eventTouchDown_(screenPosition);
     }
+    if (eventPressIn_) {
+      eventPressIn_();
+    }
   } else if(actionType == UI_TOUCH_EVENT_ACTION_MOVE) {
     if (eventTouchMove_) {
       eventTouchMove_(screenPosition);
@@ -1050,27 +1089,41 @@ void BaseView::OnTouch(int32_t actionType, const HRPosition &screenPosition) {
     if (eventTouchUp_) {
       eventTouchUp_(screenPosition);
     }
+    if (eventPressOut_) {
+      eventPressOut_();
+    }
   } else if (actionType == UI_TOUCH_EVENT_ACTION_CANCEL) {
     if (eventTouchCancel_) {
       eventTouchCancel_(screenPosition);
+    }
+    if (eventPressOut_) {
+      eventPressOut_();
     }
   }
 }
 
 void BaseView::OnAppear() {
+
+}
+
+void BaseView::OnDisappear() {
+
+}
+
+void BaseView::OnAreaChange(ArkUI_NumberValue* data) {
+
+}
+
+void BaseView::OnAttach() {
   if (eventAttachedToWindow_) {
     eventAttachedToWindow_();
   }
 }
 
-void BaseView::OnDisappear() {
+void BaseView::OnDetach() {
   if (eventDetachedFromWindow_) {
     eventDetachedFromWindow_();
   }
-}
-
-void BaseView::OnAreaChange(ArkUI_NumberValue* data) {
-
 }
 
 int64_t BaseView::GetTimeMilliSeconds() {

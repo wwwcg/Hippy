@@ -94,44 +94,44 @@ import icon from './qb_icon_new.png';
 
 ## 参数
 
-| 参数                  | 描述                                                         | 类型                                                        | 支持平台 |
-| --------------------- | ------------------------------------------------------------ | ----------------------------------------------------------- | -------- |
-| bounces | 是否开启回弹效果，默认 `true`， Android `2.14.1` 版本后支持该属性，老版本使用 `overScrollEnabled` | `boolean`                                                  | `Android`、`iOS`、`Voltron`    |
+| 参数                  | 描述                                                         | 类型                                                        | 支持平台                                               |
+| --------------------- | ------------------------------------------------------------ | ----------------------------------------------------------- |----------------------------------------------------|
+| bounces | 是否开启回弹效果，默认 `true`， Android `2.14.1` 版本后支持该属性，老版本使用 `overScrollEnabled` | `boolean`                                                  | `Android`、`iOS`、`Voltron`                          |
 | getRowKey             | 指定一个函数，在其中返回对应条目的 Key 值，详见 [React 官文](//reactjs.org/docs/lists-and-keys.html) | `(index: number) => any`                                    | `Android、iOS、hippy-react-web、Web-Renderer、Voltron` |
 | getRowStyle           | 设置 `ListViewItem` 容器的样式。当设置了 `horizontal=true` 启用横向 `ListView` 时，需显式设置 `ListViewItem` 宽度              | `(index: number) => styleObject`                                    | `Android、iOS、hippy-react-web、Web-Renderer、Voltron` |
-| getHeaderStyle           | 设置 `PullHeader` 容器的样式。当设置了 `horizontal=true` 启用横向 `ListView` 时，需显式设置 `PullHeader` 宽度。`最低支持版本2.14.1`              | `() => styleObject`                                    | `Android、iOS、Voltron` |
-| getFooterStyle           | 设置 `PullFooter` 容器的样式。当设置了 `horizontal=true` 启用横向 `ListView` 时，需显式设置 `PullFooter` 宽度。`最低支持版本2.14.1`              | `() => styleObject`                                    | `Android、iOS、Voltron` |
+| getHeaderStyle           | 设置 `PullHeader` 容器的样式。当设置了 `horizontal=true` 启用横向 `ListView` 时，需显式设置 `PullHeader` 宽度。`最低支持版本2.14.1`              | `() => styleObject`                                    | `Android、iOS、Voltron`                              |
+| getFooterStyle           | 设置 `PullFooter` 容器的样式。当设置了 `horizontal=true` 启用横向 `ListView` 时，需显式设置 `PullFooter` 宽度。`最低支持版本2.14.1`              | `() => styleObject`                                    | `Android、iOS、Voltron`                              |
 | getRowType            | 指定一个函数，在其中返回对应条目的类型（返回Number类型的自然数，默认是0），List 将对同类型条目进行复用，所以合理的类型拆分，可以很好地提升 List 性能。`注意：同一 type 的 item 组件由于复用可能不会走完整组件创建生命周期` | `(index: number) => number`                                    | `Android、iOS、hippy-react-web、Web-Renderer、Voltron` |
-| horizontal       | 指定 `ListView` 是否采用横向布局。`default: undefined` 纵向布局，Android `2.14.1` 版本后可设置 `false` 显式固定纵向布局；iOS 从 `3.0` 开始支持横向 `ListView`| `boolean \| undefined`   | `Android、iOS、hippy-react-web、Voltron` |
-| initialListSize       | 指定在组件刚挂载的时候渲染多少行数据。用这个属性来确保首屏显示合适数量的数据，而不是花费太多帧时间逐步显示出来。 | `number`                                                    | `Android、iOS、Web-Renderer、Voltron` |
-| initialContentOffset  | 初始位移值。在列表初始化时即可指定滚动距离，避免初始化后再通过 scrollTo 系列方法产生的闪动。Android 在 `2.8.0` 版本后支持        | `number`                                             | `Android、iOS、Web-Renderer、Voltron`    |
+| horizontal       | 指定 `ListView` 是否采用横向布局。`default: undefined` 纵向布局，Android `2.14.1` 版本后可设置 `false` 显式固定纵向布局；iOS 从 `3.0` 开始支持横向 `ListView`| `boolean \| undefined`   | `Android、iOS、hippy-react-web、Voltron`              |
+| initialListSize       | 指定在组件刚挂载的时候渲染多少行数据。用这个属性来确保首屏显示合适数量的数据，而不是花费太多帧时间逐步显示出来。 | `number`                                                    | `Android、iOS、Web-Renderer、Voltron`                 |
+| initialContentOffset  | 初始位移值。在列表初始化时即可指定滚动距离，避免初始化后再通过 scrollTo 系列方法产生的闪动。Android 在 `2.8.0` 版本后支持        | `number`                                             | `Android、iOS、Web-Renderer、Voltron`                 |
 | onAppear     | 当有`ListViewItem`滑动进入屏幕时（曝光）触发，入参返回曝光的`ListViewItem`对应索引值。 | `(index) => void` | `Android、iOS、hippy-react-web、Web-Renderer、Voltron` |
 | onDisappear     | 当有`ListViewItem`滑动离开屏幕时触发，入参返回离开的`ListViewItem`对应索引值。 | `(index) => void` | `Android、iOS、hippy-react-web、Web-Renderer、Voltron` |
-| onWillAppear     | 当有`ListViewItem`至少一个像素进入屏幕时（曝光）触发，入参返回曝光的`ListViewItem`对应索引值。 `最低支持版本2.3.0` | `(index) => void` | `Android、iOS、Voltron` |
-| onWillDisappear     | 当有`ListViewItem`至少一个像素滑动离开屏幕时触发，入参返回离开的`ListViewItem`对应索引值。 `最低支持版本2.3.0`| `(index) => void` | `Android、iOS、Voltron` |
+| onWillAppear     | 当有`ListViewItem`至少一个像素进入屏幕时（曝光）触发，入参返回曝光的`ListViewItem`对应索引值。 `最低支持版本2.3.0` | `(index) => void` | `Android、iOS、Voltron`                              |
+| onWillDisappear     | 当有`ListViewItem`至少一个像素滑动离开屏幕时触发，入参返回离开的`ListViewItem`对应索引值。 `最低支持版本2.3.0`| `(index) => void` | `Android、iOS、Voltron`                              |
 | onEndReached          | 当所有的数据都已经渲染过，并且列表被滚动到最后一条时，将触发 `onEndReached` 回调。 | `Function`                                                  | `Android、iOS、hippy-react-web、Web-Renderer、Voltron` |
-| onMomentumScrollBegin | 在 `ListView` 开始滑动的时候触发。                          | `(obj: { contentOffset: { x: number, y: number } }) => any`   | `Android、iOS、Web-Renderer、Voltron`    |
-| onMomentumScrollEnd   | 在 `ListView` 结束滑动的时候触发。                          | `(obj: { contentOffset: { x: number, y: number } }) => any`   | `Android、iOS、Web-Renderer、Voltron`    |
+| onMomentumScrollBegin | 在 `ListView` 开始滑动的时候触发。                          | `(obj: { contentOffset: { x: number, y: number } }) => any`   | `Android、iOS、Web-Renderer、Voltron`                 |
+| onMomentumScrollEnd   | 在 `ListView` 结束滑动的时候触发。                          | `(obj: { contentOffset: { x: number, y: number } }) => any`   | `Android、iOS、Web-Renderer、Voltron`                 |
 | onScroll              | 在 `ListView` 滑动时回调。调用频率可能较高，可使用 `scrollEventThrottle` 进行频率控制。 注意：ListView 在滚动时会进行组件回收，不要在滚动时对 renderRow() 生成的 ListItemView 做任何 ref 节点级的操作（例如：所有 callUIFunction 和 measureInAppWindow 方法），回收后的节点将无法再进行操作而报错。横向 ListView Android 在 `2.8.0` 版本后支持 | `(obj: { contentOffset: { x: number, y: number } }) => any` | `Android、iOS、hippy-react-web、Web-Renderer、Voltron` |
-| onScrollBeginDrag     | 当用户开始拖拽 `ListView` 时调用。                         | `(obj: { contentOffset: { x: number, y: number } }) => any`     | `Android、iOS、Web-Renderer、Voltron`    |
-| onScrollEndDrag       | 当用户停止拖拽 `ListView` 或者放手让 `ListView` 开始滑动时调用 | `(obj: { contentOffset: { x: number, y: number } }) => any`    | `Android、iOS、Web-Renderer、Voltron`    |
-| preloadItemNumber     | 指定当列表滚动至倒数第几行时触发 `onEndReached` 回调。 | `number` | `Android、iOS、Web-Renderer、Voltron` |
+| onScrollBeginDrag     | 当用户开始拖拽 `ListView` 时调用。                         | `(obj: { contentOffset: { x: number, y: number } }) => any`     | `Android、iOS、Web-Renderer、Voltron`                 |
+| onScrollEndDrag       | 当用户停止拖拽 `ListView` 或者放手让 `ListView` 开始滑动时调用 | `(obj: { contentOffset: { x: number, y: number } }) => any`    | `Android、iOS、Web-Renderer、Voltron`                 |
+| preloadItemNumber     | 指定当列表滚动至倒数第几行时触发 `onEndReached` 回调。 | `number` | `Android、iOS、Web-Renderer、Voltron`                 |
 | renderRow             | 这里的入参是当前行的索引 index，需返回一个用于构造 `ListViewItem` 内容的 Node 节点。在这里可以凭借 index 获取到具体这一行单元格的数据，从而决定如何渲染这个单元格。 | `(index: number) => Node`                                   | `Android、iOS、hippy-react-web、Web-Renderer、Voltron` |
 | rowShouldSticky       | 在回调函数，根据传入参数index（ListView单元格的index）返回 true 或 false 指定对应的 item 是否需要使用悬停效果（滚动到顶部时，会悬停在List顶部，不会滚出屏幕）。 | `(index: number) => boolean`                                | `Android、iOS、hippy-react-web、Web-Renderer、Voltron` |
 | scrollEventThrottle   | 指定滑动事件的回调频率，传入数值指定了多少毫秒(ms)组件会调用一次 `onScroll` 事件 | `number`                                                    | `Android、iOS、hippy-react-web、Web-Renderer、Voltron` |
 | scrollEnabled    | 滑动是否开启。`default: true` | `boolean` | `Android、iOS、hippy-react-web、Web-Renderer、Voltron` |
-| showScrollIndicator   | 是否显示滚动条。`default: true` | `boolean`  | `iOS、hippy-react-web、Voltron` |
-| renderPullHeader   | 设置列表下拉头部（刷新条），配合`onHeaderReleased`、`onHeaderPulling` 和 `collapsePullHeader`使用, 参考 [DEMO](//github.com/Tencent/Hippy/tree/master/examples/hippy-react-demo/src/components/PullHeaderFooter/index.jsx)。 | `() => View`                                                   | `Android、iOS、hippy-react-web、Voltron` |
-| onHeaderPulling   | 下拉过程中触发, 事件会通过 contentOffset 参数返回拖拽高度，可以根据下拉偏移量做相应的逻辑。 | `(obj: { contentOffset: number }) => any`                                                   | `Android、iOS、hippy-react-web、Voltron` |
-| onHeaderReleased   | 下拉超过内容高度，松手后触发。 | `() => any`                                                   | `Android、iOS、hippy-react-web、Voltron` |
-| renderPullFooter   | 最低支持版本`2.14.0`， 设置列表底部上拉刷新条，配合 `onFooterReleased`、`onFooterPulling` 和 `collapsePullFooter` 使用, 参考 [DEMO](//github.com/Tencent/Hippy/tree/master/examples/hippy-react-demo/src/components/PullHeaderFooter/index.jsx)。 | `() => View`                                                   | `Android、iOS、hippy-react-web、Voltron` |
-| onFooterPulling   | 最低支持版本`2.14.0`，上拉过程中触发, 事件会通过 contentOffset 参数返回拖拽高度，可以根据上拉偏移量做相应的逻辑。 | `(obj: { contentOffset: number }) => any`                                                   | `Android、iOS、hippy-react-web、Voltron` |
-| onFooterReleased   |  最低支持版本`2.14.0`，上拉超出一定距离，松手后触发。 | `() => any`                                                   | `Android、iOS、hippy-react-web、Voltron` |
-| nestedScrollPriority* | 嵌套滚动事件处理优先级，`default:self`。相当于同时设置 `nestedScrollLeftPriority`、 `nestedScrollTopPriority`、 `nestedScrollRightPriority`、 `nestedScrollBottomPriority`。 `Android最低支持版本 2.16.0，iOS最低支持版本3.3.3` | `enum(self,parent,none)`    | `Android、iOS` |
-| nestedScrollLeftPriority | 嵌套时**从右往左**滚动事件的处理优先级，会覆盖 `nestedScrollPriority` 对应方向的值。`最低支持版本 2.16.0，iOS最低支持版本3.3.3` | `enum(self,parent,none)` | `Android、iOS` |
-| nestedScrollTopPriority | 嵌套时**从下往上**滚动事件的处理优先级，会覆盖 `nestedScrollPriority` 对应方向的值。`最低支持版本 2.16.0，iOS最低支持版本3.3.3` | `enum(self,parent,none)` | `Android、iOS` |
-| nestedScrollRightPriority | 嵌套时**从左往右**滚动事件的处理优先级，会覆盖 `nestedScrollPriority` 对应方向的值。`最低支持版本 2.16.0，iOS最低支持版本3.3.3` | `enum(self,parent,none)` | `Android、iOS` |
-| nestedScrollBottomPriority | 嵌套时**从上往下**滚动事件的处理优先级，会覆盖 `nestedScrollPriority` 对应方向的值。`最低支持版本 2.16.0，iOS最低支持版本3.3.3` | `enum(self,parent,none)` | `Android、iOS` |
+| showScrollIndicator   | 是否显示滚动条。`default: true` | `boolean`  | `iOS、hippy-react-web、Voltron`                      |
+| renderPullHeader   | 设置列表下拉头部（刷新条），配合`onHeaderReleased`、`onHeaderPulling` 和 `collapsePullHeader`使用, 参考 [DEMO](//github.com/Tencent/Hippy/tree/master/examples/hippy-react-demo/src/components/PullHeaderFooter/index.jsx)。 | `() => View`                                                   | `Android、iOS、hippy-react-web、Voltron`              |
+| onHeaderPulling   | 下拉过程中触发, 事件会通过 contentOffset 参数返回拖拽高度，可以根据下拉偏移量做相应的逻辑。 | `(obj: { contentOffset: number }) => any`                                                   | `Android、iOS、hippy-react-web、Voltron`              |
+| onHeaderReleased   | 下拉超过内容高度，松手后触发。 | `() => any`                                                   | `Android、iOS、hippy-react-web、Voltron`              |
+| renderPullFooter   | 最低支持版本`2.14.0`， 设置列表底部上拉刷新条，配合 `onFooterReleased`、`onFooterPulling` 和 `collapsePullFooter` 使用, 参考 [DEMO](//github.com/Tencent/Hippy/tree/master/examples/hippy-react-demo/src/components/PullHeaderFooter/index.jsx)。 | `() => View`                                                   | `Android、iOS、hippy-react-web、Voltron`              |
+| onFooterPulling   | 最低支持版本`2.14.0`，上拉过程中触发, 事件会通过 contentOffset 参数返回拖拽高度，可以根据上拉偏移量做相应的逻辑。 | `(obj: { contentOffset: number }) => any`                                                   | `Android、iOS、hippy-react-web、Voltron`              |
+| onFooterReleased   |  最低支持版本`2.14.0`，上拉超出一定距离，松手后触发。 | `() => any`                                                   | `Android、iOS、hippy-react-web、Voltron`              |
+| nestedScrollPriority* | 嵌套滚动事件处理优先级，`default:self`。相当于同时设置 `nestedScrollLeftPriority`、 `nestedScrollTopPriority`、 `nestedScrollRightPriority`、 `nestedScrollBottomPriority`。 `Android最低支持版本 2.16.0，iOS最低支持版本3.3.3` | `enum(self,parent,none)`    | `Android、iOS、Ohos`                                 |
+| nestedScrollLeftPriority | 嵌套时**从右往左**滚动事件的处理优先级，会覆盖 `nestedScrollPriority` 对应方向的值。`最低支持版本 2.16.0，iOS最低支持版本3.3.3` | `enum(self,parent,none)` | `Android、iOS、Ohos`                                      |
+| nestedScrollTopPriority | 嵌套时**从下往上**滚动事件的处理优先级，会覆盖 `nestedScrollPriority` 对应方向的值。`最低支持版本 2.16.0，iOS最低支持版本3.3.3` | `enum(self,parent,none)` | `Android、iOS、Ohos`                                      |
+| nestedScrollRightPriority | 嵌套时**从左往右**滚动事件的处理优先级，会覆盖 `nestedScrollPriority` 对应方向的值。`最低支持版本 2.16.0，iOS最低支持版本3.3.3` | `enum(self,parent,none)` | `Android、iOS、Ohos`                                      |
+| nestedScrollBottomPriority | 嵌套时**从上往下**滚动事件的处理优先级，会覆盖 `nestedScrollPriority` 对应方向的值。`最低支持版本 2.16.0，iOS最低支持版本3.3.3` | `enum(self,parent,none)` | `Android、iOS、Ohos`                                      |
 
 * nestedScrollPriority 的参数含义：
 
@@ -271,11 +271,11 @@ import icon from './qb_icon_new.png';
 | showScrollIndicator            | 是否显示滚动条。 `default: false` | `boolean`  | `Android、hippy-react-web、Voltron` |
 | showsHorizontalScrollIndicator | 当此值设为 `false` 的时候，`ScrollView` 会隐藏水平的滚动条。`default: true` | `boolean`                                                    | `iOS、Voltron`    |
 | showsVerticalScrollIndicator   | 当此值设为 `false` 的时候，`ScrollView` 会隐藏垂直的滚动条。 `default: true` | `boolean`                                                    | `iOS、Voltron`    |
-| nestedScrollPriority* | 嵌套滚动事件处理优先级，`default:self`。相当于同时设置 `nestedScrollLeftPriority`、 `nestedScrollTopPriority`、 `nestedScrollRightPriority`、 `nestedScrollBottomPriority`。 `Android最低支持版本 2.16.0，iOS最低支持版本3.3.3` | `enum(self,parent,none)`    | `Android、iOS` |
-| nestedScrollLeftPriority | 嵌套时**从右往左**滚动事件的处理优先级，会覆盖 `nestedScrollPriority` 对应方向的值。`最低支持版本 2.16.0，iOS最低支持版本3.3.3` | `enum(self,parent,none)` | `Android、iOS` |
-| nestedScrollTopPriority | 嵌套时**从下往上**滚动事件的处理优先级，会覆盖 `nestedScrollPriority` 对应方向的值。`最低支持版本 2.16.0，iOS最低支持版本3.3.3` | `enum(self,parent,none)` | `Android、iOS` |
-| nestedScrollRightPriority | 嵌套时**从左往右**滚动事件的处理优先级，会覆盖 `nestedScrollPriority` 对应方向的值。`最低支持版本 2.16.0，iOS最低支持版本3.3.3` | `enum(self,parent,none)` | `Android、iOS` |
-| nestedScrollBottomPriority | 嵌套时**从上往下**滚动事件的处理优先级，会覆盖 `nestedScrollPriority` 对应方向的值。`最低支持版本 2.16.0，iOS最低支持版本3.3.3` | `enum(self,parent,none)` | `Android、iOS` |
+| nestedScrollPriority* | 嵌套滚动事件处理优先级，`default:self`。相当于同时设置 `nestedScrollLeftPriority`、 `nestedScrollTopPriority`、 `nestedScrollRightPriority`、 `nestedScrollBottomPriority`。 `Android最低支持版本 2.16.0，iOS最低支持版本3.3.3` | `enum(self,parent,none)`    | `Android、iOS、Ohos` |
+| nestedScrollLeftPriority | 嵌套时**从右往左**滚动事件的处理优先级，会覆盖 `nestedScrollPriority` 对应方向的值。`最低支持版本 2.16.0，iOS最低支持版本3.3.3` | `enum(self,parent,none)` | `Android、iOS、Ohos` |
+| nestedScrollTopPriority | 嵌套时**从下往上**滚动事件的处理优先级，会覆盖 `nestedScrollPriority` 对应方向的值。`最低支持版本 2.16.0，iOS最低支持版本3.3.3` | `enum(self,parent,none)` | `Android、iOS、Ohos` |
+| nestedScrollRightPriority | 嵌套时**从左往右**滚动事件的处理优先级，会覆盖 `nestedScrollPriority` 对应方向的值。`最低支持版本 2.16.0，iOS最低支持版本3.3.3` | `enum(self,parent,none)` | `Android、iOS、Ohos` |
+| nestedScrollBottomPriority | 嵌套时**从上往下**滚动事件的处理优先级，会覆盖 `nestedScrollPriority` 对应方向的值。`最低支持版本 2.16.0，iOS最低支持版本3.3.3` | `enum(self,parent,none)` | `Android、iOS、Ohos` |
 
 * nestedScrollPriority 的参数含义：
 
@@ -384,6 +384,9 @@ import icon from './qb_icon_new.png';
 | placeholder           | 如果没有任何文字输入，会显示此字符串。                       | `string`                                                     | `Android、iOS、hippy-react-web、Web-Renderer、Voltron` |
 | placeholderTextColor  | 占位字符串显示的文字颜色。（也可设置为 Style 属性）`最低支持版本2.13.4`                | [`color`](api/style/color.md)                                | `Android、iOS、Web-Renderer、Voltron`     |
 | returnKeyType         | 指定软键盘的回车键显示的样式。（其中部分样式仅`multiline=false`时有效） | `enum (done, go, next, search, send)`              | `Android、iOS、Web-Renderer、Voltron`     |
+| blurOnSubmit          | 指定当 `TextInput` 组件为多行时，按下回车键是否自动失去焦点。`default: false` | `boolean` | `iOS` |
+| autoCorrect           | 指定 `TextInput` 组件输入的文字是否自动修正。`default: false` | `boolean` | `iOS` |
+| clearTextOnFocus      | 指定当 `TextInput` 组件为多行时，是否在获取焦点时清除文字。`default: false` | `boolean` | `iOS` |
 | value                 | 指定 `TextInput` 组件的值。                                  | `string`                                                     | `Android、iOS、hippy-react-web、Web-Renderer、Voltron` |
 | autoFocus             | 组件渲染时自动获得焦点。                                       | `boolean`                                                    | `Android、iOS、hippy-react-web、Web-Renderer、Voltron` |
 | breakStrategy* | 设置Android API 23及以上系统的文本折行策略。`default: simple` | `enum(simple, high_quality, balanced)` | `Android(版本 2.14.2以上)` |
@@ -465,6 +468,8 @@ import icon from './qb_icon_new.png';
 
 最基础的容器组件，它是一个支持Flexbox布局、样式、一些触摸处理、和一些无障碍功能的容器，并且它可以放到其它的视图里，也可以有任意多个任意类型的子视图。不论在什么平台上，`View` 都会直接对应一个平台的原生视图。
 
+> **新特性**：现已支持 iOS 26+ Liquid Glass（液态玻璃）效果，详见`glassEffect` 相关API说明。
+
 !> Android 具有节点优化的特性，请注意 `collapsable` 属性的使用
 
 ## 属性
@@ -485,6 +490,11 @@ import icon from './qb_icon_new.png';
 | onTouchEnd    | 当触屏操作结束，用户在该控件上抬起手指时，此函数将被回调，event参数也会通知当前的触屏点信息；参数为 `nativeEvent: { name, page_x, page_y, id }`，`page_x` 和 `page_y` 分别表示点击在屏幕内的绝对位置 | `Function`                                | `Android、iOS、hippy-react-web、Web-Renderer、Voltron` |
 | onTouchCancel | 当用户触屏过程中，某个系统事件中断了触屏，例如电话呼入、组件变化（如设置为hidden）、其他组件的滑动手势，此函数会收到回调，触屏点信息也会通过event参数告知前端；参数为 `nativeEvent: { name, page_x, page_y, id }`，`page_x` 和 `page_y` 分别表示点击在屏幕内的绝对位置 | `Function`                                | `Android、iOS、hippy-react-web、Web-Renderer、Voltron` |
 | pointerEvents | 用于控制视图是否可以成为触摸事件的目标。 | `enum('box-none', 'none', 'box-only', 'auto')` | `iOS` |
+| glassEffectEnabled | 启用或禁用 iOS 26 Liquid Glass（液态玻璃）效果。当设置为 `true` 时，视图将应用液态玻璃视觉效果。 | `boolean` | `iOS 26+` |
+| glassEffectStyle | 设置液态玻璃效果的样式。可选值为 `'clear'` 和 `'regular'`，默认为 `'regular'`。 | `string` | `iOS 26+` |
+| glassEffectInteractive | 控制液态玻璃效果是否响应用户交互。当设置为 `true` 时，玻璃效果会根据用户触摸产生动态变化。 | `boolean` | `iOS 26+` |
+| glassEffectTintColor | 设置液态玻璃效果的着色颜色。可以使用任何有效的颜色值来调整玻璃效果的色调。 | `Color` | `iOS 26+` |
+| glassEffectContainerSpacing | 设置液态玻璃容器效果的间距值。当设置此属性后，视图将成为一个液态玻璃组合容器，其内嵌的液态玻璃组件之间将产生融合效果。 | `number` | `iOS 26+` |
 
 * pointerEvents 的参数含义：
   * `auto`（默认值） - 视图可以是触摸事件的目标；

@@ -121,6 +121,9 @@ constexpr char kHippyGetTurboModule[] = "getTurboModule";
     const char *pName = [self.enginekey UTF8String] ?: "";
     auto scope = engine->GetEngine()->CreateScope(pName);
     
+    // Assign pScope first, then register the callback
+    _pScope = scope;
+    
     __weak __typeof(self)weakSelf = self;
     if (!bridge.usingHermesEngine) {
         hippy::base::RegisterFunction taskEndCB = [weakSelf](void *) {
@@ -200,7 +203,6 @@ constexpr char kHippyGetTurboModule[] = "getTurboModule";
             [strongSelf executeBlockOnJavaScriptQueue:obj];
         }];
     });
-    _pScope = scope;
     dispatch_semaphore_signal(scopeSemaphore);
     
 #ifdef ENABLE_INSPECTOR
@@ -258,22 +260,14 @@ constexpr char kHippyGetTurboModule[] = "getTurboModule";
     _valid = NO;
     HippyLogInfo(@"[Hippy_OC_Log][Life_Circle],HippyJSCExecutor invalide %p", self);
     
-    HippyBridge *bridge = self.bridge;
 #ifdef ENABLE_INSPECTOR
     auto devtools_data_source = self.pScope->GetDevtoolsDataSource();
     if (devtools_data_source) {
-        bool reload = bridge.invalidateReason == HippyInvalidateReasonReload ? true : false;
+        HippyBridge *bridge = self.bridge; // Note: bridge may be nil
+        bool reload = (bridge && bridge.invalidateReason == HippyInvalidateReasonReload) ? true : false;
         devtools_data_source->Destroy(reload);
     }
 #endif /* ENABLE_INSPECTOR */
-
-#ifdef JS_JSC
-    if (self.pScope && bridge && !bridge.usingHermesEngine) {
-        auto jsc_context = std::static_pointer_cast<hippy::napi::JSCCtx>(self.pScope->GetContext());
-        static CFStringRef delName = CFSTR("HippyJSContext(delete)");
-        jsc_context->SetName(delName);
-    }
-#endif /* JS_JSC */
 
     self.pScope->WillExit();
     _pScope = nullptr;
@@ -343,20 +337,18 @@ static void setupDebuggerAgent(HippyBridge *bridge, const std::shared_ptr<hippy:
                                        scope:(const std::shared_ptr<hippy::Scope> &)scope {
     __weak __typeof(self)weakSelf = self;
     auto requireModuleConfigFunWrapper = std::make_unique<hippy::FunctionWrapper>([](hippy::CallbackInfo& info, void* data) {
-        @autoreleasepool {
-            HippyJSExecutor *strongSelf = (__bridge HippyJSExecutor*)data;
-            HippyBridge *bridge = strongSelf.bridge;
-            if (!strongSelf.valid || !bridge || !strongSelf.pScope) {
-                return;
-            }
-            
-            const auto &context = strongSelf.pScope->GetContext();
-            if (context->IsString(info[0])) {
-                NSString *moduleName = ObjectFromCtxValue(context, info[0]);
-                if (moduleName) {
-                    NSArray *result = [bridge configForModuleName:moduleName];
-                    info.GetReturnValue()->Set([HippyNullIfNil(result) convertToCtxValue:context]);
-                }
+        HippyJSExecutor *strongSelf = (__bridge HippyJSExecutor*)data;
+        HippyBridge *bridge = strongSelf.bridge;
+        if (!strongSelf.valid || !bridge || !strongSelf.pScope) {
+            return;
+        }
+        
+        const auto &context = strongSelf.pScope->GetContext();
+        if (context->IsString(info[0])) {
+            NSString *moduleName = ObjectFromCtxValue(context, info[0]);
+            if (moduleName) {
+                NSArray *result = [bridge configForModuleName:moduleName];
+                info.GetReturnValue()->Set([HippyNullIfNil(result) convertToCtxValue:context]);
             }
         }
     }, (__bridge void*)weakSelf);
@@ -370,18 +362,16 @@ static void setupDebuggerAgent(HippyBridge *bridge, const std::shared_ptr<hippy:
                                       scope:(const std::shared_ptr<hippy::Scope> &)scope {
     __weak __typeof(self)weakSelf = self;
     auto nativeFlushQueueFunWrapper = std::make_unique<hippy::FunctionWrapper>([](hippy::CallbackInfo& info, void* data) {
-        @autoreleasepool {
-            HippyJSExecutor *strongSelf = (__bridge HippyJSExecutor*)data;
-            HippyBridge *bridge = strongSelf.bridge;
-            if (!strongSelf.valid || !bridge || !strongSelf.pScope) {
-                return;
-            }
-            
-            const auto &context = strongSelf.pScope->GetContext();
-            if (context->IsArray(info[0])) {
-                NSArray *calls = ObjectFromCtxValue(context, info[0]);
-                [bridge handleBuffer:calls batchEnded:NO];
-            }
+        HippyJSExecutor *strongSelf = (__bridge HippyJSExecutor*)data;
+        HippyBridge *bridge = strongSelf.bridge;
+        if (!strongSelf.valid || !bridge || !strongSelf.pScope) {
+            return;
+        }
+        
+        const auto &context = strongSelf.pScope->GetContext();
+        if (context->IsArray(info[0])) {
+            NSArray *calls = ObjectFromCtxValue(context, info[0]);
+            [bridge handleBuffer:calls batchEnded:NO];
         }
     }, (__bridge void*)weakSelf);
     auto nativeFlushQueueFunction = context->CreateFunction(nativeFlushQueueFunWrapper);
@@ -394,17 +384,15 @@ static void setupDebuggerAgent(HippyBridge *bridge, const std::shared_ptr<hippy:
                                  scope:(const std::shared_ptr<hippy::Scope> &)scope {
     __weak __typeof(self)weakSelf = self;
     auto turbo_wrapper = std::make_unique<hippy::FunctionWrapper>([](hippy::CallbackInfo& info, void* data) {
-        @autoreleasepool {
-            HippyJSExecutor *strongSelf = (__bridge HippyJSExecutor*)data;
-            if (!strongSelf || !strongSelf.pScope) {
-                return;
-            }
-            const auto &context = strongSelf.pScope->GetContext();
-            if (context->IsString(info[0])) {
-                NSString *name = ObjectFromCtxValue(context, info[0]);
-                auto value = [strongSelf JSTurboObjectWithName:name];
-                info.GetReturnValue()->Set(value);
-            }
+        HippyJSExecutor *strongSelf = (__bridge HippyJSExecutor*)data;
+        if (!strongSelf || !strongSelf.pScope) {
+            return;
+        }
+        const auto &context = strongSelf.pScope->GetContext();
+        if (context->IsString(info[0])) {
+            NSString *name = ObjectFromCtxValue(context, info[0]);
+            auto value = [strongSelf JSTurboObjectWithName:name];
+            info.GetReturnValue()->Set(value);
         }
     }, (__bridge void*)weakSelf);
     auto turbo_function = context->CreateFunction(turbo_wrapper);
@@ -530,7 +518,7 @@ static void setupDebuggerAgent(HippyBridge *bridge, const std::shared_ptr<hippy:
 - (void)setContextName:(NSString *)contextName {
 #ifdef JS_JSC
 #ifdef JS_HERMES
-    // TODO: setContextName not support Hermes now
+    // SetContextName not support Hermes now
     if (self.bridge.usingHermesEngine) {
         return;
     }
@@ -541,7 +529,7 @@ static void setupDebuggerAgent(HippyBridge *bridge, const std::shared_ptr<hippy:
     __weak __typeof(self)weakSelf = self;
     [self executeBlockOnJavaScriptQueue:^{
         __strong __typeof(weakSelf)strongSelf = weakSelf;
-        if (!strongSelf.pScope) {
+        if (!strongSelf || !strongSelf.pScope || !strongSelf.pScope->isValid()) {
             return;
         }
         SharedCtxPtr context = strongSelf.pScope->GetContext();
@@ -549,11 +537,11 @@ static void setupDebuggerAgent(HippyBridge *bridge, const std::shared_ptr<hippy:
             return;
         }
         auto tryCatch = hippy::TryCatch::CreateTryCatchScope(true, context);
-        auto jsc_context = std::static_pointer_cast<hippy::napi::JSCCtx>(context);
+        auto jscContext = std::static_pointer_cast<hippy::napi::JSCCtx>(context);
         NSString *finalName = [NSString stringWithFormat:@"HippyContext: %@", contextName];
-        jsc_context->SetName((__bridge CFStringRef)finalName);
+        jscContext->SetName((__bridge CFStringRef)finalName);
         if (tryCatch->HasCaught()) {
-            HippyLogWarn(@"set context throw exception");
+            HippyLogError(@"Exception while setting Context Name!");
         }
     }];
 #endif //JS_JSC
@@ -763,18 +751,11 @@ static NSError *executeApplicationScript(NSData *script,
     }
     auto engine = engineRsc->GetEngine();
     if (engine) {
-        dispatch_block_t autoreleaseBlock = ^(void){
-            if (block) {
-                @autoreleasepool {
-                    block();
-                }
-            }
-        };
         auto runner = engine->GetJsTaskRunner();
         if (footstone::Worker::IsTaskRunning() && runner == footstone::runner::TaskRunner::GetCurrentTaskRunner()) {
-            autoreleaseBlock();
+            block();
         } else if (runner) {
-            runner->PostTask(autoreleaseBlock);
+            runner->PostTask(block);
         }
     }
 }
@@ -794,14 +775,7 @@ static NSError *executeApplicationScript(NSData *script,
     if (engine) {
         auto runner = engine->GetJsTaskRunner();
         if (runner) {
-            dispatch_block_t autoreleaseBlock = ^(void){
-                if (block) {
-                    @autoreleasepool {
-                        block();
-                    }
-                }
-            };
-            runner->PostTask(autoreleaseBlock);
+            runner->PostTask(block);
         }
     }
 }
@@ -872,7 +846,9 @@ static NSError *executeApplicationScript(NSData *script,
         devInfo.versionId = bundleURLProvider.versionId;
         devInfo.wsURL = bundleURLProvider.wsURL;
     }
-    return [devInfo assembleFullWSURLWithClientId:[self getClientID] contextName:bridge.contextName isHermesEngine:bridge.usingHermesEngine];
+    return [devInfo assembleFullWSURLWithClientId:[self getClientID]
+                                      contextName:bridge.contextName
+                                   isHermesEngine:bridge.usingHermesEngine];
 }
 
 
@@ -883,8 +859,12 @@ static void handleJsExcepiton(std::shared_ptr<hippy::Scope> scope) {
         return;
     }
 #ifdef JS_JSC
-    std::shared_ptr<hippy::napi::JSCCtx> context = std::static_pointer_cast<hippy::napi::JSCCtx>(scope->GetContext());
-    std::shared_ptr<hippy::napi::JSCCtxValue> exception = std::static_pointer_cast<hippy::napi::JSCCtxValue>(context->GetException());
+    auto context = std::dynamic_pointer_cast<hippy::napi::JSCCtx>(scope->GetContext());
+    if (!context) {
+        HippyLogError(@"[Hippy_OC_Log][HippyJSExecutor], handleJsExcepiton: scope context is not JSCCtx type!");
+        return;
+    }
+    auto exception = std::dynamic_pointer_cast<hippy::napi::JSCCtxValue>(context->GetException());
     if (exception) {
         // if native does not handled, rethrow to js
         if (!context->IsExceptionHandled()) {

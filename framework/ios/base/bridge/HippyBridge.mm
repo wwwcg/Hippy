@@ -205,6 +205,8 @@ typedef NS_ENUM(NSUInteger, HippyBridgeFields) {
 @synthesize bundleQueue = _bundleQueue;
 @synthesize loadingCount = _loadingCount;
 @synthesize lastExecuteOperation = _lastExecuteOperation;
+@synthesize lastRootSizeForDimensions = _lastRootSizeForDimensions;
+@synthesize shouldUseRootSizeAsWindowSize = _shouldUseRootSizeAsWindowSize;
 
 // Use kCFNull to identify the use of JS thread,
 // Reserve it for compatibility with hippy2.
@@ -374,9 +376,6 @@ static inline void registerLogDelegateToHippyCore() {
             }
         };
         [_javaScriptExecutor setup];
-        if (_contextName) {
-            _javaScriptExecutor.contextName = _contextName;
-        }
         
         // Setup all extra and internal modules
         [_moduleSetup setupModulesWithCompletionBlock:^{
@@ -419,7 +418,7 @@ static inline void registerLogDelegateToHippyCore() {
     // Get global enviroment info
     HippyExecuteOnMainThread(^{
         self->_isOSNightMode = [HippyDeviceBaseInfo isUIScreenInOSDarkMode];
-        self.cachedDimensionsInfo = hippyExportedDimensions(self);
+        self.cachedDimensionsInfo = hippyExportedDimensions(self, nil);
     }, YES);
     
     // Setup module manager and js executor.
@@ -928,6 +927,10 @@ static NSString *const hippyOnNightModeChangedParam2 = @"RootViewTag";
 
 - (void)setInspectable:(BOOL)isInspectable {
     [self.javaScriptExecutor setInspecable:isInspectable];
+    if (isInspectable && !self.contextName) {
+        // Set context name of JSC when inspectable
+        self.contextName = self.moduleName;
+    }
 }
 
 - (NSURL *)debugURL {

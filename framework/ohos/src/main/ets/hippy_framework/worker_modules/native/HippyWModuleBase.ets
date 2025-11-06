@@ -17,4 +17,30 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-export * from "./HippyLibrary"
+import { HippyAny } from '../../../support/common/HippyTypes';
+import { HippyModulePromise } from '../../modules/HippyModulePromise';
+import { HippyWModuleContext } from '../HippyWModuleContext';
+
+
+export class HippyWModuleBase {
+  public static readonly NAME: string
+  protected ctx: HippyWModuleContext
+
+  constructor(ctx: HippyWModuleContext) {
+    this.ctx = ctx
+  }
+
+  isTurbo() {
+    return false;
+  }
+
+  call(method: string, params: Array<HippyAny>, promise: HippyModulePromise): HippyAny {
+    return null
+  }
+
+  initialize(): void {
+  }
+
+  destroy(): void {
+  }
+}

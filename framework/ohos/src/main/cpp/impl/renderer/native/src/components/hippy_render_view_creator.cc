@@ -22,6 +22,7 @@
 
 #include "renderer/components/hippy_render_view_creator.h"
 #include "renderer/components/div_view.h"
+#include "renderer/components/image_nine_view.h"
 #include "renderer/components/image_view.h"
 #include "renderer/components/list_item_view.h"
 #include "renderer/components/list_view.h"
@@ -38,13 +39,15 @@
 #include "renderer/components/scroll_view.h"
 #include "renderer/components/text_input_view.h"
 #include "renderer/components/waterfall_item_view.h"
+#include "renderer/components/waterfall_pull_footer_view.h"
+#include "renderer/components/waterfall_pull_header_view.h"
 #include "renderer/components/waterfall_view.h"
 
 namespace hippy {
 inline namespace render {
 inline namespace native {
 
-std::shared_ptr<BaseView> HippyCreateRenderView(std::string &view_name, bool is_parent_text, std::shared_ptr<NativeRenderContext> &ctx) {
+std::shared_ptr<BaseView> HippyCreateRenderView(std::string &view_name, bool is_parent_text, bool is_parent_waterfall, bool is_nine_img, std::shared_ptr<NativeRenderContext> &ctx) {
 //  FOOTSTONE_DLOG(INFO)<<__FUNCTION__<<" view_name = "<<view_name;
   if (view_name == "View") {
     auto view = std::make_shared<DivView>(ctx);
@@ -53,6 +56,10 @@ std::shared_ptr<BaseView> HippyCreateRenderView(std::string &view_name, bool is_
   } else if (view_name == "Image") {
     if (is_parent_text) {
       auto view = std::make_shared<RichTextImageSpanView>(ctx);
+      view->Init();
+      return view;
+    } else if (is_nine_img) {
+      auto view = std::make_shared<ImageNineView>(ctx);
       view->Init();
       return view;
     } else {
@@ -115,11 +122,21 @@ std::shared_ptr<BaseView> HippyCreateRenderView(std::string &view_name, bool is_
     view->Init();
     return view;
   } else if (view_name == "PullHeaderView") {
-    auto view = std::make_shared<PullHeaderView>(ctx);
+    std::shared_ptr<BaseView> view;
+    if (is_parent_waterfall) {
+      view = std::make_shared<WaterfallPullHeaderView>(ctx);
+    } else {
+      view = std::make_shared<PullHeaderView>(ctx);
+    }
     view->Init();
     return view;
   } else if (view_name == "PullFooterView") {
-    auto view = std::make_shared<PullFooterView>(ctx);
+    std::shared_ptr<BaseView> view;
+    if (is_parent_waterfall) {
+      view = std::make_shared<WaterfallPullFooterView>(ctx);
+    } else {
+      view = std::make_shared<PullFooterView>(ctx);
+    }
     view->Init();
     return view;
   }
@@ -130,7 +147,7 @@ std::shared_ptr<BaseView> HippyCreateRenderView(std::string &view_name, bool is_
 }
 
 bool HippyIsLazyCreateView(const std::string &view_type) {
-  if (view_type == "ViewPagerItem" || view_type == "ListViewItem") {
+  if (view_type == "ViewPagerItem" || view_type == "ListViewItem" || view_type == "WaterfallItem") {
     return true;
   }
   return false;

@@ -60,7 +60,7 @@ class DefaultEngineListener implements EngineListener {
         null,
       )
       loadParams.componentName = "Demo"
-      loadParams.codeCacheTag = "Demo"
+      loadParams.codeCacheTag = "Demo_1.0" // 建议tag拼接js version，tag会用来拼接v8 code cache文件的路径，不同js不同cache文件
       loadParams.jsParams = new Map<string, HippyValue>()
       loadParams.jsParams.set(
         "msgFromNative",
@@ -114,6 +114,9 @@ struct Index {
     this.hippyEngine = createHippyEngine(params)
     let engineListener = new DefaultEngineListener(this.hippyEngine, this.rootViewWrapper)
     this.hippyEngine.initEngine(engineListener)
+
+    this.hippyEngine.setUIContext(this.getUIContext())
+    this.hippyEngine.setCustomWrappedRenderViewBuilderForCInterface(wrapBuilder(buildCustomRenderView))
   }
 
   build() {
@@ -124,6 +127,12 @@ struct Index {
         .width(300)
         .height(400)
         .border({width: 1, color: Color.Black})
+      Button('测试销毁')
+        .width(120)
+        .height(30)
+        .onClick((event) => {
+          demoNapi.Demo_TestDestroy();
+        })
     }
     .width('100%')
   }

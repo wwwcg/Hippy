@@ -31,7 +31,10 @@
 #include "renderer/components/custom_ts_view.h"
 #include "renderer/components/custom_view.h"
 #include "renderer/components/hippy_render_view_creator.h"
+#include "renderer/components/image_base_view.h"
+#include "renderer/components/image_view.h"
 #include "renderer/components/modal_view.h"
+#include "renderer/components/rich_text_image_span_view.h"
 #include "renderer/components/rich_text_view.h"
 #include "renderer/dom_node/hr_node_props.h"
 #include "renderer/native_render_context.h"
@@ -195,7 +198,11 @@ void HRViewManager::ApplyMutations() {
 void HRViewManager::ApplyMutation(std::shared_ptr<HRMutation> &m) {
   if (m->type_ == HRMutationType::CREATE) {
     auto tm = std::static_pointer_cast<HRCreateMutation>(m);
-    auto view = CreateRenderView(tm->tag_, tm->view_name_, tm->is_parent_text_);
+    bool is_nine_img = false;
+    if (tm->view_name_ == "Image" && tm->props_.find("capInsets") != tm->props_.end()) {
+      is_nine_img = true;
+    }
+    auto view = CreateRenderView(tm->tag_, tm->view_name_, tm->is_parent_text_, tm->is_parent_waterfall_, is_nine_img);
     if (view) {
       UpdateProps(view, tm->props_);
       InsertSubRenderView(tm->parent_tag_, view, tm->index_);
@@ -245,7 +252,7 @@ std::shared_ptr<BaseView> HRViewManager::FindRenderView(uint32_t tag) {
   return nullptr;
 }
 
-std::shared_ptr<BaseView> HRViewManager::CreateRenderView(uint32_t tag, std::string &view_name, bool is_parent_text) {
+std::shared_ptr<BaseView> HRViewManager::CreateRenderView(uint32_t tag, std::string &view_name, bool is_parent_text, bool is_parent_waterfall, bool is_nine_img) {
   auto exist_view = FindRenderView(tag);
   if (exist_view) {
     return exist_view;
@@ -265,7 +272,7 @@ std::shared_ptr<BaseView> HRViewManager::CreateRenderView(uint32_t tag, std::str
   // build-in view
   auto it = mapping_render_views_.find(view_name);
   auto real_view_name = it != mapping_render_views_.end() ? it->second : view_name;
-  auto view = HippyCreateRenderView(real_view_name, is_parent_text, ctx_);
+  auto view = HippyCreateRenderView(real_view_name, is_parent_text, is_parent_waterfall, is_nine_img, ctx_);
   if (view) {
     view->SetTag(tag);
     view->SetViewType(real_view_name);
@@ -278,8 +285,8 @@ std::shared_ptr<BaseView> HRViewManager::CreateRenderView(uint32_t tag, std::str
   return nullptr;
 }
 
-std::shared_ptr<BaseView> HRViewManager::PreCreateRenderView(uint32_t tag, std::string &view_name, bool is_parent_text) {
-  return CreateRenderView(tag, view_name, is_parent_text);
+std::shared_ptr<BaseView> HRViewManager::PreCreateRenderView(uint32_t tag, std::string &view_name, bool is_parent_text, bool is_parent_waterfall, bool is_nine_img) {
+  return CreateRenderView(tag, view_name, is_parent_text, is_parent_waterfall, is_nine_img);
 }
 
 void HRViewManager::RemoveRenderView(uint32_t tag) {
@@ -570,6 +577,19 @@ void HRViewManager::RemoveBizViewInRoot(uint32_t biz_view_id) {
   }
 }
 
+void HRViewManager::DoCallbackForFetchLocalPathAsync(uint32_t node_id, bool success, const std::string &path) {
+  auto view = FindRenderView(node_id);
+  if (view == nullptr) {
+    return;
+  }
+  if (view->GetViewType() == "Image") {
+    auto imageBaseView = std::static_pointer_cast<ImageBaseView>(view);
+    if (imageBaseView) {
+      imageBaseView->OnFetchLocalPathAsyncResult(success, path);
+    }
+  }
+}
+
 bool HRViewManager::IsCustomTsRenderView(std::string &view_name) {
   // custom ts view or WebView (no c-api for WebView)
   return custom_ts_render_views_.find(view_name) != custom_ts_render_views_.end() || view_name == "WebView";
@@ -594,6 +614,7 @@ std::shared_ptr<BaseView> HRViewManager::CreateCustomTsRenderView(uint32_t tag, 
   
   auto delegateObject = arkTs.GetObject(ts_render_provider_ref_);
   napi_value nodeResult = delegateObject.Call("createRenderViewForCApi", args);
+  hasCustomTsView_ = true;
   
   napi_valuetype type = arkTs.GetType(nodeResult);
   if (type != napi_object) {
@@ -675,7 +696,8 @@ void HRViewManager::UpdateCustomTsProps(std::shared_ptr<BaseView> &view, const H
     if (props.size() > 0) {
       for (auto prop_it = props.begin(); prop_it != props.end(); prop_it++) {
         auto &key = prop_it->first;
-        if (key == HRNodeProps::VISIBILITY || key == HRNodeProps::TRANSFORM || key == HRNodeProps::OVERFLOW) {
+        if (key == HRNodeProps::VISIBILITY || key == HRNodeProps::TRANSFORM || key == HRNodeProps::OVERFLOW ||
+            key == "native-scroll-ohos") {
           customTsView->SetProp(key, prop_it->second);
         }
       }
@@ -710,8 +732,8 @@ void HRViewManager::SetCustomTsRenderViewFrame(uint32_t tag, const HRRect &frame
   auto params_builder = arkTs.CreateObjectBuilder();
   params_builder.AddProperty("rootTag", ctx_->GetRootId());
   params_builder.AddProperty("tag", tag);
-  params_builder.AddProperty("left", frame.x);
-  params_builder.AddProperty("top", frame.y);
+  params_builder.AddProperty("left", 0); // Ts节点外层有包装节点，坐标设给了包装节点，这里设0
+  params_builder.AddProperty("top", 0);
   params_builder.AddProperty("width", frame.width);
   params_builder.AddProperty("height", frame.height);
   
@@ -780,6 +802,17 @@ std::shared_ptr<BaseView> HRViewManager::GetViewFromRegistry(uint32_t node_id) {
     return viewIt->second;
   }
   return nullptr;
+}
+
+void HRViewManager::CheckAndDestroyTsRootForCInterface() {
+  if (hasCustomTsView_) {
+    ArkTS arkTs(ts_env_);
+    std::vector<napi_value> args = {
+      arkTs.CreateUint32(root_id_)
+    };
+    auto delegateObject = arkTs.GetObject(ts_render_provider_ref_);
+    delegateObject.Call("destroyRootForCInterface", args);
+  }
 }
 
 } // namespace native

@@ -39,6 +39,11 @@ ArkUINode::ArkUINode(ArkUI_NodeHandle nodeHandle) : nodeHandle_(nodeHandle) {
   FOOTSTONE_DLOG(INFO) << "Hippy ohos mem check, ArkUINode handle, new: " << nodeHandle_ << ", count: " << sCount;
 #endif
 
+  if (!nodeHandle_) {
+    FOOTSTONE_LOG(ERROR) << "ark ui node construction, handle is null";
+    return;
+  }
+  
   SetDefaultAttributes();
   ArkUINodeRegistry::GetInstance().RegisterNode(this);
 }
@@ -77,6 +82,10 @@ void ArkUINode::MarkDirty() {
   NativeNodeApi::GetInstance()->markDirty(GetArkUINodeHandle(), ArkUI_NodeDirtyFlag::NODE_NEED_MEASURE);
 }
 
+void ArkUINode::MarkDirty(ArkUI_NodeDirtyFlag flag) {
+  NativeNodeApi::GetInstance()->markDirty(GetArkUINodeHandle(), flag);
+}
+
 void ArkUINode::AddChild(ArkUINode *child) {
   if (!child) {
     return;
@@ -97,6 +106,10 @@ void ArkUINode::RemoveChild(ArkUINode *child) {
     return;
   }
   MaybeThrow(NativeNodeApi::GetInstance()->removeChild(nodeHandle_, child->GetArkUINodeHandle()));
+}
+
+void ArkUINode::RemoveAllChildren() {
+  MaybeThrow(NativeNodeApi::GetInstance()->removeAllChildren(nodeHandle_));
 }
 
 void ArkUINode::RemoveSelfFromParent() {
@@ -123,6 +136,7 @@ bool ArkUINode::HasParent() {
 }
 
 void ArkUINode::SetDefaultAttributes() {
+  // TODO: HitTest改默认行为有问题，待研究。
   SetHitTestMode(ARKUI_HIT_TEST_MODE_TRANSPARENT);
   baseAttributesFlagValue_ = 0;
 }
@@ -169,6 +183,24 @@ HRPosition ArkUINode::GetAbsolutePosition() const {
     parentHandle = NativeNodeApi::GetInstance()->getParent(parentHandle);
   }
   return HRPosition{x, y};
+}
+
+HRSize ArkUINode::GetLayoutSize() const {
+  ArkUI_IntSize size;
+  auto status = OH_ArkUI_NodeUtils_GetLayoutSize(nodeHandle_, &size);
+  if (status == ARKUI_ERROR_CODE_NO_ERROR) {
+    return HRSize{ HRPixelUtils::PxToDp((float)size.width), HRPixelUtils::PxToDp((float)size.height) };
+  }
+  return HRSize{0, 0};
+}
+
+HRPosition ArkUINode::GetLayoutPosition() const {
+  ArkUI_IntOffset offset;
+  auto status = OH_ArkUI_NodeUtils_GetLayoutPosition(nodeHandle_, &offset);
+  if (status == ARKUI_ERROR_CODE_NO_ERROR) {
+    return HRPosition{ HRPixelUtils::PxToDp((float)offset.x), HRPixelUtils::PxToDp((float)offset.y) };
+  }
+  return HRPosition{0, 0};
 }
 
 HRPosition ArkUINode::GetLayoutPositionInScreen() const {
@@ -661,7 +693,13 @@ void ArkUINode::OnNodeEvent(ArkUI_NodeEvent *event) {
   }
 
   auto eventType = OH_ArkUI_NodeEvent_GetEventType(event);
-  if (eventType == ArkUI_NodeEventType::NODE_TOUCH_EVENT) {
+  if (eventType == ArkUI_NodeEventType::NODE_ON_CLICK) {
+    auto nodeComponentEvent = OH_ArkUI_NodeEvent_GetNodeComponentEvent(event);
+    ArkUI_NumberValue* data = nodeComponentEvent->data;
+    float x = HRPixelUtils::PxToDp(data[0].f32);
+    float y = HRPixelUtils::PxToDp(data[1].f32);
+    arkUINodeDelegate_->OnClick(HRPosition(x, y));
+  } else if (eventType == ArkUI_NodeEventType::NODE_TOUCH_EVENT) {
     ArkUI_UIInputEvent *inputEvent = OH_ArkUI_NodeEvent_GetInputEvent(event);
     auto type = OH_ArkUI_UIInputEvent_GetType(inputEvent);
     if (type == ARKUI_UIINPUTEVENT_TYPE_TOUCH) {
@@ -678,12 +716,21 @@ void ArkUINode::OnNodeEvent(ArkUI_NodeEvent *event) {
     auto nodeComponentEvent = OH_ArkUI_NodeEvent_GetNodeComponentEvent(event);
     ArkUI_NumberValue* data = nodeComponentEvent->data;
     arkUINodeDelegate_->OnAreaChange(data);
+  } else if (eventType == ArkUI_NodeEventType::NODE_EVENT_ON_ATTACH) {
+    arkUINodeDelegate_->OnAttach();
+  } else if (eventType == ArkUI_NodeEventType::NODE_EVENT_ON_DETACH) {
+    arkUINodeDelegate_->OnDetach();
   }
 }
 
 void ArkUINode::RegisterClickEvent() {
   // SpanNode调用addGestureToNode API会crash
   if (isSpanNode_) {
+    RegisterOldClickEvent();
+    return;
+  }
+  if (!nodeHandle_) {
+    FOOTSTONE_LOG(ERROR) << "ark ui node register click, handle is null";
     return;
   }
   if (!tapGesture_) {
@@ -713,6 +760,10 @@ void ArkUINode::RegisterClickEvent() {
 }
 
 void ArkUINode::UnregisterClickEvent() {
+  if (isSpanNode_) {
+    UnregisterOldClickEvent();
+    return;
+  }
   if (tapGesture_) {
     NativeGestureApi::GetInstance()->removeGestureFromNode(nodeHandle_, tapGesture_);
     NativeGestureApi::GetInstance()->dispose(tapGesture_);
@@ -720,8 +771,26 @@ void ArkUINode::UnregisterClickEvent() {
   }
 }
 
+void ArkUINode::RegisterOldClickEvent() {
+  if (!hasOldClickEvent_) {
+    MaybeThrow(NativeNodeApi::GetInstance()->registerNodeEvent(nodeHandle_, NODE_ON_CLICK, 0, nullptr));
+    hasOldClickEvent_ = true;
+  }
+}
+
+void ArkUINode::UnregisterOldClickEvent() {
+  if (hasOldClickEvent_) {
+    NativeNodeApi::GetInstance()->unregisterNodeEvent(nodeHandle_, NODE_ON_CLICK);
+    hasOldClickEvent_ = false;
+  }
+}
+
 void ArkUINode::RegisterLongClickEvent() {
   if (isSpanNode_) {
+    return;
+  }
+  if (!nodeHandle_) {
+    FOOTSTONE_LOG(ERROR) << "ark ui node register long click, handle is null";
     return;
   }
   if (!longPressGesture_) {
@@ -811,6 +880,34 @@ void ArkUINode::UnregisterAreaChangeEvent(){
   if (hasAreaChangeEvent_){
     NativeNodeApi::GetInstance()->unregisterNodeEvent(nodeHandle_, NODE_EVENT_ON_AREA_CHANGE);
     hasAreaChangeEvent_ = false ;
+  }
+}
+
+void ArkUINode::RegisterAttachEvent() {
+  if (!hasAttachEvent_){
+    MaybeThrow(NativeNodeApi::GetInstance()->registerNodeEvent(nodeHandle_, NODE_EVENT_ON_ATTACH, 0, nullptr));
+    hasAttachEvent_ = true ;
+  }
+}
+
+void ArkUINode::UnregisterAttachEvent() {
+  if (hasAttachEvent_){
+    NativeNodeApi::GetInstance()->unregisterNodeEvent(nodeHandle_, NODE_EVENT_ON_ATTACH);
+    hasAttachEvent_ = false ;
+  }
+}
+
+void ArkUINode::RegisterDetachEvent() {
+  if (!hasDetachEvent_){
+    MaybeThrow(NativeNodeApi::GetInstance()->registerNodeEvent(nodeHandle_, NODE_EVENT_ON_DETACH, 0, nullptr));
+    hasDetachEvent_ = true ;
+  }
+}
+
+void ArkUINode::UnregisterDetachEvent() {
+  if (hasDetachEvent_){
+    NativeNodeApi::GetInstance()->unregisterNodeEvent(nodeHandle_, NODE_EVENT_ON_DETACH);
+    hasDetachEvent_ = false ;
   }
 }
 

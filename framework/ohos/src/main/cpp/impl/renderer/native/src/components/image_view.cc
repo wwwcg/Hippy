@@ -21,7 +21,8 @@
  */
 
 #include "renderer/components/image_view.h"
-#include "renderer/dom_node/hr_node_props.h"
+#include "oh_napi/ark_ts.h"
+#include "oh_napi/oh_napi_object.h"
 #include "renderer/utils/hr_event_utils.h"
 #include "renderer/utils/hr_url_utils.h"
 #include "renderer/utils/hr_value_utils.h"
@@ -31,7 +32,7 @@ namespace hippy {
 inline namespace render {
 inline namespace native {
 
-ImageView::ImageView(std::shared_ptr<NativeRenderContext> &ctx) : BaseView(ctx) {
+ImageView::ImageView(std::shared_ptr<NativeRenderContext> &ctx) : ImageBaseView(ctx) {
 }
 
 ImageView::~ImageView() {}
@@ -64,6 +65,10 @@ bool ImageView::RecycleArkUINodeImpl(std::shared_ptr<RecycleView> &recycleView) 
 
 bool ImageView::ReuseArkUINodeImpl(std::shared_ptr<RecycleView> &recycleView) {
   if (recycleView->cachedNodes_.size() < 1) {
+    return false;
+  }
+  // 图片组件衍生出整图和9图两种情况，这里做个判断
+  if (recycleView->cachedNodes_[0]->IsCustomNode()) {
     return false;
   }
   imageNode_ = std::static_pointer_cast<ImageNode>(recycleView->cachedNodes_[0]);
@@ -112,17 +117,6 @@ bool ImageView::SetPropImpl(const std::string &propKey, const HippyValue &propVa
     auto value = HRValueUtils::GetInt32(propValue);
     GetLocalRootArkUINode()->SetTintColorBlendMode(value);
     return true;
-  } else if (propKey == "capInsets") {
-    HippyValueObjectType m;
-    if (propValue.ToObject(m)) {
-      auto left = HRValueUtils::GetFloat(m["left"]);
-      auto top = HRValueUtils::GetFloat(m["top"]);
-      auto right = HRValueUtils::GetFloat(m["right"]);
-      auto bottom = HRValueUtils::GetFloat(m["bottom"]);
-      GetLocalRootArkUINode()->SetResizeable(left, top, right, bottom);
-    } else {
-      return false;
-    }
 	} else if (propKey == "blur") {
 		auto value = HRPixelUtils::DpToPx(HRValueUtils::GetFloat(propValue));
     GetLocalRootArkUINode()->SetBlur(value);
@@ -135,22 +129,6 @@ bool ImageView::SetPropImpl(const std::string &propKey, const HippyValue &propVa
 
 void ImageView::UpdateRenderViewFrameImpl(const HRRect &frame, const HRPadding &padding) {
   BaseView::UpdateRenderViewFrameImpl(frame, padding);
-}
-
-void ImageView::FetchAltImage(const std::string &imageUrl) {
-  if (imageUrl.size() > 0) {
-    auto bundlePath = ctx_->GetNativeRender().lock()->GetBundlePath();
-    auto url = HRUrlUtils::ConvertImageUrl(bundlePath, ctx_->IsRawFile(), ctx_->GetResModuleName(), imageUrl);
-    GetLocalRootArkUINode()->SetAlt(url);
-  }
-}
-
-void ImageView::FetchImage(const std::string &imageUrl) {
-  if (imageUrl.size() > 0) {
-    auto bundlePath = ctx_->GetNativeRender().lock()->GetBundlePath();
-    auto url = HRUrlUtils::ConvertImageUrl(bundlePath, ctx_->IsRawFile(), ctx_->GetResModuleName(), imageUrl);
-    GetLocalRootArkUINode()->SetSources(url);
-	}
 }
 
 void ImageView::OnComplete(float width, float height) {
@@ -177,6 +155,16 @@ void ImageView::OnError(int32_t errorCode) {
 
 void ImageView::ClearProps() {
   src_.clear();
+}
+
+void ImageView::SetSourcesOrAlt(const std::string &imageUrl, bool isSources) {
+  auto bundlePath = ctx_->GetNativeRender().lock()->GetBundlePath();
+  auto url = HRUrlUtils::ConvertImageUrl(bundlePath, ctx_->IsRawFile(), ctx_->GetResModuleName(), imageUrl);
+  if (isSources) {
+    GetLocalRootArkUINode()->SetSources(url);
+  } else {
+    GetLocalRootArkUINode()->SetAlt(url);
+  }
 }
 
 } // namespace native
