@@ -42,6 +42,7 @@
 #pragma clang diagnostic ignored "-Wdeprecated"
 #include "nlohmann/json.hpp"
 #include <cstdint>
+#include <mutex>
 
 
 namespace hippy {
@@ -66,9 +67,18 @@ class DomInterceptor : public DomManager {
   public:
   DomInterceptor(HippyDomInterceptor handler) : DomManager(DomManagerType::kJson), handler_(handler) {}
   ~DomInterceptor() override {
-    event_callback_map_.clear();
-    function_callback_map_.clear();
-    animation_map_.clear();
+    {
+      std::lock_guard<std::mutex> lock(event_callback_map_mutex_);
+      event_callback_map_.clear();
+    }
+    {
+      std::lock_guard<std::mutex> lock(function_callback_map_mutex_);
+      function_callback_map_.clear();
+    }
+    {
+      std::lock_guard<std::mutex> lock(animation_map_mutex_);
+      animation_map_.clear();
+    }
   }
 
   void SetRenderManager(const std::weak_ptr<RenderManager> &render_manager) override {
@@ -141,7 +151,10 @@ class DomInterceptor : public DomManager {
     if (!root_node) {
       return;
     }
-    event_callback_map_[listener_id] = std::move(cb);
+    {
+      std::lock_guard<std::mutex> lock(event_callback_map_mutex_);
+      event_callback_map_[listener_id] = std::move(cb);
+    }
     json params = {
       {"id", dom_id},
       {"event", event_name},
@@ -158,7 +171,10 @@ class DomInterceptor : public DomManager {
     if (!root_node) {
       return;
     }
-    event_callback_map_.erase(listener_id);
+    {
+      std::lock_guard<std::mutex> lock(event_callback_map_mutex_);
+      event_callback_map_.erase(listener_id);
+    }
     json params = {
       {"id", dom_id},
       {"event", event_name},
@@ -171,7 +187,6 @@ class DomInterceptor : public DomManager {
   void HandleEventListener(const char* param) {
     auto event_json = json::parse(param);
     std::vector<std::function<void()>> ops = {[this, event_json = std::move(event_json)] {
-      auto self = this;
       double id = event_json["id"];
       std::string event_name = event_json["eventName"];
       std::string event_params = event_json["eventParams"];
@@ -181,6 +196,16 @@ class DomInterceptor : public DomManager {
       json current_bubble = event_json["currentBubble"];
       bool use_capture = event_json["capture"];
       bool use_bubble = event_json["bubble"];
+                
+      // 仅在实际访问callback map时加锁
+      auto findCallback = [this](uint32_t listenerId) -> EventCallback {
+        std::lock_guard<std::mutex> lock(event_callback_map_mutex_);
+        auto it = event_callback_map_.find(listenerId);
+        return (it != event_callback_map_.end()) ? it->second : nullptr;
+      };
+      
+      // 使用局部变量存储回调，避免在锁内执行
+      EventCallback current_cb = nullptr;
 
       auto event = std::make_shared<DomEvent>(event_name, static_cast<uint32_t>(id), use_capture, use_bubble, std::make_shared<std::string>(std::move(event_params)));
       // 执行捕获流程
@@ -189,11 +214,12 @@ class DomInterceptor : public DomManager {
         event->SetCurrentTargetId(static_cast<uint32_t>(targetId));  // 设置当前节点，cb里会用到
         json listeners = target["listeners"];
         for (double listenerId : listeners) {
-          auto it = self->event_callback_map_.find(static_cast<uint32_t>(listenerId));
-          if (it != self->event_callback_map_.end()) {
-            event->SetEventPhase(EventPhase::kCapturePhase);
-            it->second(event);  // StopPropagation并不会影响同级的回调调用
-          }
+          // 获取回调
+          if (!(current_cb = findCallback(static_cast<uint32_t>(listenerId)))) 
+            continue;
+          // 在锁外执行回调
+          event->SetEventPhase(EventPhase::kCapturePhase);
+          current_cb(event); // StopPropagation并不会影响同级的回调调用
         }
         if (event->IsPreventCapture()) {  // cb 内部调用了 event.StopPropagation 会阻止捕获
           return;  // 捕获流中StopPropagation不仅会导致捕获流程结束，后面的目标事件和冒泡都会终止
@@ -201,40 +227,31 @@ class DomInterceptor : public DomManager {
       }
       // 执行本身节点回调
       event->SetCurrentTargetId(event->GetTargetId());
-      for (double listenerId : current_capture) {
-        auto it = self->event_callback_map_.find(static_cast<uint32_t>(listenerId));
-        if (it != self->event_callback_map_.end()) {
+      auto executeCallbacks = [&](const json& list) {
+        for (double listenerId : list) {
+          if (!(current_cb = findCallback(static_cast<uint32_t>(listenerId)))) 
+            continue;
           event->SetEventPhase(EventPhase::kAtTarget);
-          it->second(event);
+          current_cb(event);
         }
-      }
-      if (event->IsPreventCapture()) {
-        return;
-      }
-      for (double listenerId : current_bubble) {
-        auto it = self->event_callback_map_.find(static_cast<uint32_t>(listenerId));
-        if (it != self->event_callback_map_.end()) {
-          event->SetEventPhase(EventPhase::kAtTarget);
-          it->second(event);
-        }
-      }
-      if (event->IsPreventBubble()) {
-        return;
-      }
+      };
+      executeCallbacks(current_capture);
+      if (event->IsPreventCapture()) return;
+      executeCallbacks(current_bubble);
+      if (event->IsPreventBubble()) return;
+      
       // 执行冒泡流程
       for (const auto& target : bubble_list) {
         double targetId = target["id"];
         event->SetCurrentTargetId(static_cast<uint32_t>(targetId));
         json listeners = target["listeners"];
         for (double listenerId : listeners) {
-          auto it = self->event_callback_map_.find(static_cast<uint32_t>(listenerId));
-          if (it != self->event_callback_map_.end()) {
-            event->SetEventPhase(EventPhase::kBubblePhase);
-            it->second(event);
+          if (!(current_cb = findCallback(static_cast<uint32_t>(listenerId)))) {
+            continue;
           }
-          if (event->IsPreventBubble()) {
-            break;
-          }
+          event->SetEventPhase(EventPhase::kBubblePhase);
+          current_cb(event);
+          if (event->IsPreventBubble()) break;
         }
       }
     }};
@@ -259,7 +276,10 @@ class DomInterceptor : public DomManager {
     };
     if (cb) {
       params["callback"] = cb_id;
-      function_callback_map_[cb_id] = cb;
+      {
+        std::lock_guard<std::mutex> lock(function_callback_map_mutex_);
+        function_callback_map_[cb_id] = cb;
+      }
     }
     handler_.CallFunction(handler_.context, id_, params.dump().c_str());
   }
@@ -268,10 +288,16 @@ class DomInterceptor : public DomManager {
     auto callback_json = json::parse(param);
     uint32_t cb_id = callback_json["callback"];
     std::string buffer = callback_json["buffer"];
-    auto it = function_callback_map_.find(cb_id);
-    if (it != function_callback_map_.end()) {
-      auto cb = it->second;
-      function_callback_map_.erase(cb_id);
+    CallFunctionCallback cb;
+    {
+      std::lock_guard<std::mutex> lock(function_callback_map_mutex_);
+      auto it = function_callback_map_.find(cb_id);
+      if (it != function_callback_map_.end()) {
+        cb = it->second;
+        function_callback_map_.erase(cb_id);
+      }
+    }
+    if (cb) {
       auto args = std::make_shared<hippy::DomArgument>(buffer);
       cb(args);
     }
@@ -304,34 +330,44 @@ class DomInterceptor : public DomManager {
     
   void CallAnimation(int32_t op, std::shared_ptr<Animation> animation, const char *params, bool is_set) {
     auto animation_id = animation->GetId();
-    if (op == kAnimationOpCreate) {
-      animation_map_[animation_id] = animation;
-    } else if (op == kAnimationOpDestroy) {
-      animation_map_.erase(animation_id);
+    {
+      std::lock_guard<std::mutex> lock(animation_map_mutex_);
+      if (op == kAnimationOpCreate) {
+        animation_map_[animation_id] = animation;
+      } else if (op == kAnimationOpDestroy) {
+        animation_map_.erase(animation_id);
+      }
     }
     handler_.CallAnimation(handler_.context, id_, op, animation_id, params, is_set);
   }
     
   void HandleAnimationEvent(uint32_t animation_id, std::string& event_name) {
-    auto it = animation_map_.find(animation_id);
-    if (it != animation_map_.end()) {
-      auto animation = it->second;
-      if (event_name == kAnimationStartKey) {
-        if (auto start_cb = animation->GetAnimationStartCb()) {
-          PostTask(Scene({start_cb}));
-        }
-      } else if (event_name == kAnimationEndKey) {
-        if (auto end_cb = animation->GetAnimationEndCb()) {
-          PostTask(Scene({end_cb}));
-        }
-      } else if (event_name == kAnimationCancelKey) {
-        if (auto cancel_cb = animation->GetAnimationCancelCb()) {
-          PostTask(Scene({cancel_cb}));
-        }
-      } else if (event_name == kAnimationRepeatKey) {
-        if (auto repeat_cb = animation->GetAnimationRepeatCb()) {
-          PostTask(Scene({repeat_cb}));
-        }
+    std::shared_ptr<Animation> animation;
+    {
+      std::lock_guard<std::mutex> lock(animation_map_mutex_);
+      auto it = animation_map_.find(animation_id);
+      if (it == animation_map_.end()) {
+        FOOTSTONE_LOG(WARNING) << "Animation not found: " << animation_id;
+        return;
+      }
+      animation = it->second;
+    }
+
+    if (event_name == kAnimationStartKey) {
+      if (auto start_cb = animation->GetAnimationStartCb()) {
+        PostTask(Scene({start_cb}));
+      }
+    } else if (event_name == kAnimationEndKey) {
+      if (auto end_cb = animation->GetAnimationEndCb()) {
+        PostTask(Scene({end_cb}));
+      }
+    } else if (event_name == kAnimationCancelKey) {
+      if (auto cancel_cb = animation->GetAnimationCancelCb()) {
+        PostTask(Scene({cancel_cb}));
+      }
+    } else if (event_name == kAnimationRepeatKey) {
+      if (auto repeat_cb = animation->GetAnimationRepeatCb()) {
+        PostTask(Scene({repeat_cb}));
       }
     }
   }
@@ -353,6 +389,9 @@ class DomInterceptor : public DomManager {
   }
 
   HippyDomInterceptor handler_;
+  std::mutex event_callback_map_mutex_;
+  std::mutex function_callback_map_mutex_;
+  std::mutex animation_map_mutex_;
   std::unordered_map<uint64_t, EventCallback> event_callback_map_;
   std::unordered_map<uint32_t, CallFunctionCallback> function_callback_map_;
   std::unordered_map<uint32_t, std::shared_ptr<Animation>> animation_map_;
@@ -491,10 +530,10 @@ uint32_t HippyCreateDomInterceptor(HippyDomInterceptor handler) {
 static std::shared_ptr<hippy::DomManager> GetDomManager(uint32_t dom_interceptor_id) {
   uint32_t dom_manager_num = 0;
   auto flag = hippy::global_dom_manager_num_holder.Find(dom_interceptor_id, dom_manager_num);
-  FOOTSTONE_CHECK(dom_manager_num == 1);
+  FOOTSTONE_DCHECK(dom_manager_num == 1);
   std::any dom_manager;
   flag = hippy::global_data_holder.Find(dom_interceptor_id, dom_manager);
-  FOOTSTONE_CHECK(flag);
+  FOOTSTONE_DCHECK(flag);
   return std::any_cast<std::shared_ptr<hippy::DomManager>>(dom_manager);
 }
 
@@ -539,13 +578,41 @@ void HippyBridgeCallFunction(uint32_t scope_id, const char *action_name, const c
 }
 
 void HippyDomInterceptorSendAnimationEvent(uint32_t dom_interceptor_id, const char *buffer) {
-  auto dom_manager_object = GetDomManager(dom_interceptor_id);
-  auto dom_interceptor = std::dynamic_pointer_cast<hippy::DomInterceptor>(dom_manager_object);
-  if (dom_interceptor) {
-    auto event_json = nlohmann::json::parse(buffer);
+  if (!buffer || strlen(buffer) == 0) {
+    FOOTSTONE_LOG(WARNING) << "Invalid animation event buffer";
+    return;
+  }
+  
+  try {
+    // 安全JSON解析
+    auto event_json = nlohmann::json::parse(buffer, nullptr, false);
+    if (event_json.is_discarded()) {
+      FOOTSTONE_LOG(ERROR) << "Malformed JSON: " << buffer;
+      return;
+    }
+    // 关键字段校验
+    if (!event_json.contains("id") || !event_json["id"].is_number()) {
+      FOOTSTONE_LOG(ERROR) << "Missing/invalid animation id";
+      return;
+    }
+    // 获取动画管理器
+    auto dom_manager = GetDomManager(dom_interceptor_id);
+    if (!dom_manager) {
+      FOOTSTONE_LOG(WARNING) << "DomManager not found: " << dom_interceptor_id;
+      return;
+    }
+    // 安全类型转换
+    auto interceptor = std::dynamic_pointer_cast<hippy::DomInterceptor>(dom_manager);
+    if (!interceptor) {
+      FOOTSTONE_LOG(ERROR) << "Invalid DomInterceptor type";
+      return;
+    }
+    // 提取参数
     uint32_t animation_id = event_json["id"];
-    std::string event_name = event_json["event"];
-    dom_interceptor->HandleAnimationEvent(animation_id, event_name);
+    std::string event_name = event_json.value("event", "");
+    interceptor->HandleAnimationEvent(animation_id, event_name);
+  } catch (const std::exception& e) {
+    FOOTSTONE_LOG(ERROR) << "Animation event processing failed: " << e.what();
   }
 }
 EXTERN_C_END
