@@ -265,7 +265,7 @@ export class HippyEngineContextImpl implements HippyEngineContext {
     if (this.mEngineInitParams.domInterceptor) {
       // hippy规定使用整10数作为rootId，暂定使用DomInterceptorId * 10
       const rootId = this.mEngineInitParams.domInterceptor.instanceId * 10;
-      this.attachDomToRootView(rootId, false);
+      this.attachDomToRootView(rootId, HippyLayoutEngineType.Default);
       this.attachJsToRootView(rootId);
       return null;
     }
