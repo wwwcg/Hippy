@@ -57,7 +57,7 @@ struct DomInfo;
 using EventCallback = std::function<void(const std::shared_ptr<DomEvent>&)>;
 using CallFunctionCallback = std::function<void(std::shared_ptr<DomArgument>)>;
 
-// This class is used to mainpulate dom. Please note that the member
+// This class is used to manipulate dom. Please note that the member
 // function of this class must be run in dom thread. If you want to call
 // in other thread please use PostTask.
 // Example:
@@ -125,19 +125,19 @@ class DomManager {
   virtual byte_string GetSnapShot(const std::shared_ptr<RootNode>& root_node) = 0;
   virtual bool SetSnapShot(const std::shared_ptr<RootNode>& root_node, const byte_string& buffer) = 0;
 
-  void RecordDomStartTimePoint() {
-    if (dom_start_time_point_.ToEpochDelta() == footstone::TimeDelta::Zero()) {
-      dom_start_time_point_ = footstone::TimePoint::SystemNow();
+  inline void RecordDomStartTimePoint(uint32_t root_id) {
+    if (dom_start_time_point_[root_id].ToEpochDelta() == footstone::TimeDelta::Zero()) {
+      dom_start_time_point_[root_id] = footstone::TimePoint::SystemNow();
     }
   }
-  void RecordDomEndTimePoint() {
-    if (dom_end_time_point_.ToEpochDelta() == footstone::TimeDelta::Zero() &&
-        dom_start_time_point_.ToEpochDelta() != footstone::TimeDelta::Zero()) {
-      dom_end_time_point_ = footstone::TimePoint::SystemNow();
+  inline void RecordDomEndTimePoint(uint32_t root_id) {
+    if (dom_end_time_point_[root_id].ToEpochDelta() == footstone::TimeDelta::Zero()
+    && dom_start_time_point_[root_id].ToEpochDelta() != footstone::TimeDelta::Zero()) {
+      dom_end_time_point_[root_id] = footstone::TimePoint::SystemNow();
     }
   }
-  inline auto GetDomStartTimePoint() { return dom_start_time_point_; }
-  inline auto GetDomEndTimePoint() { return dom_end_time_point_; }
+  inline auto GetDomStartTimePoint(uint32_t root_id) { return dom_start_time_point_[root_id]; }
+  inline auto GetDomEndTimePoint(uint32_t root_id) { return dom_end_time_point_[root_id]; }
   inline DomManagerType GetType() { return type_; }
   inline void SetId(uint32_t id) { id_ = id; }
   inline uint32_t GetId() { return id_; }
@@ -150,8 +150,8 @@ class DomManager {
   std::shared_ptr<TaskRunner> task_runner_;
   std::shared_ptr<Worker> worker_;
 
-  footstone::TimePoint dom_start_time_point_;
-  footstone::TimePoint dom_end_time_point_;
+  std::unordered_map<uint32_t, footstone::TimePoint> dom_start_time_point_;
+  std::unordered_map<uint32_t, footstone::TimePoint> dom_end_time_point_;
 };
 
 class DomManagerImpl : public DomManager {
@@ -199,11 +199,7 @@ class DomManagerImpl : public DomManager {
 
   byte_string GetSnapShot(const std::shared_ptr<RootNode>& root_node) override;
   bool SetSnapShot(const std::shared_ptr<RootNode>& root_node, const byte_string& buffer) override;
-    
-  void RecordDomStartTimePoint(uint32_t root_id);
-  void RecordDomEndTimePoint(uint32_t root_id);
-  inline auto GetDomStartTimePoint(uint32_t root_id) { return dom_start_time_point_[root_id]; }
-  inline auto GetDomEndTimePoint(uint32_t root_id) { return dom_end_time_point_[root_id]; }
+
 
  private:
   friend class DomNode;
@@ -214,8 +210,7 @@ class DomManagerImpl : public DomManager {
 #else
   std::shared_ptr<RenderManager> render_manager_;
 #endif
-  std::unordered_map<uint32_t, footstone::TimePoint> dom_start_time_point_;
-  std::unordered_map<uint32_t, footstone::TimePoint> dom_end_time_point_;
+
 };
 }  // namespace dom
 }  // namespace hippy

@@ -102,9 +102,6 @@ class Worker {
   bool HasUnschedulableRunner();
   void BalanceNoLock();
   void SortNoLock();
-  
-  bool HasTask();
-  bool HasMoreUrgentTask(TimeDelta min_wait_time, TimePoint now);
 
   bool HasTask();
   bool HasMoreUrgentTask(TimeDelta min_wait_time, TimePoint now);

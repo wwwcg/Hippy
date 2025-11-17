@@ -408,8 +408,6 @@ std::unique_ptr<Task> Worker::GetNextTask() {
   if (driver_->IsTerminated()) {
     return nullptr;
   }
-    
-  std::unique_lock<std::mutex> lock(driver_->Mutex());
   if (min_wait_time_ == TimeDelta::Max()) {
     if (HasTask()) {
       return nullptr;

@@ -36,18 +36,6 @@ void CVDriver::WaitFor(const TimeDelta& delta, std::unique_lock<std::mutex>& loc
   }
 }
 
-std::mutex& CVDriver::Mutex() {
-  return mutex_;
-}
-
-void CVDriver::WaitFor(const TimeDelta& delta, std::unique_lock<std::mutex>& lock) {
-  if (delta != TimeDelta::Max() && delta >= TimeDelta::Zero()) {
-    cv_.wait_for(lock, std::chrono::nanoseconds(delta.ToNanoseconds()));
-  } else {
-    cv_.wait(lock);
-  }
-}
-
 void CVDriver::Start() {
   while (!is_terminated_) {
     unit_();
