@@ -266,7 +266,7 @@ static NSString *NativeRenderRecursiveAccessibilityLabel(UIView *view) {
         CGPoint topLeftEndPoint = CGPointMake(MAX(topLeft, _borderLeftWidth), MAX(topLeft, _borderTopWidth));
         CGPoint bottomRightEndPoint = CGPointMake(viewWidth - MAX(bottomRight, _borderRightWidth), viewHeight -  MAX(bottomRight, _borderBottomWidth));
         CGPoint bottomLeftEndPoint = CGPointMake(MAX(bottomLeft, _borderLeftWidth), viewHeight - MAX(bottomLeft, _borderBottomWidth));
-        
+
         self.innerShadowLayer.mInnerTopStart = CGPointMake(topLeftEndPoint.x, _borderTopWidth);
         self.innerShadowLayer.mInnerTopEnd = CGPointMake(topRightEndPoint.x, _borderTopWidth);
         self.innerShadowLayer.mInnerRightStart = CGPointMake(viewWidth - _borderRightWidth, topRightEndPoint.y);
@@ -275,7 +275,7 @@ static NSString *NativeRenderRecursiveAccessibilityLabel(UIView *view) {
         self.innerShadowLayer.mInnerBottomEnd = CGPointMake(bottomRightEndPoint.x, viewHeight - _borderBottomWidth);
         self.innerShadowLayer.mInnerLeftStart = CGPointMake(_borderLeftWidth, topLeftEndPoint.y);
         self.innerShadowLayer.mInnerLeftEnd = CGPointMake(_borderLeftWidth, bottomLeftEndPoint.y);
-        
+
         [self.innerShadowLayer setNeedsDisplay];
     } else {
         if (_innerShadowLayer) {
