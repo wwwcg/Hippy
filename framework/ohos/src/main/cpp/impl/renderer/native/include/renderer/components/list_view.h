@@ -23,6 +23,7 @@
 #pragma once
 
 #include <vector>
+#include "renderer/arkui/refresh_node.h"
 #include "renderer/components/base_view.h"
 #include "renderer/arkui/stack_node.h"
 #include "renderer/arkui/list_node.h"
@@ -38,23 +39,22 @@ const int32_t INVALID_STICKY_INDEX = -1;
 
 enum class ScrollAction : int32_t {
   None,
-  PullHeader,
-  ReleaseHeader,
   PullFooter,
   ReleaseFooter
 };
 
-class ListView : public BaseView, public ListNodeDelegate, public ListItemNodeDelegate {
+class ListView : public BaseView, public ListNodeDelegate, public ListItemNodeDelegate, public RefreshNodeDelegate, public PullHeaderViewDelegate {
 public:
   ListView(std::shared_ptr<NativeRenderContext> &ctx);
   ~ListView();
 
   void Init() override;
 
-  StackNode *GetLocalRootArkUINode() override;
+  ArkUINode *GetLocalRootArkUINode() override;
   void CreateArkUINodeImpl() override;
   void DestroyArkUINodeImpl() override;
   bool SetPropImpl(const std::string &propKey, const HippyValue &propValue) override;
+  void OnSetPropsEndImpl() override;
   void CallImpl(const std::string &method, const std::vector<HippyValue> params,
                     std::function<void(const HippyValue &result)> callback) override;
 
@@ -66,7 +66,6 @@ public:
   void UpdateRenderViewFrameImpl(const HRRect &frame, const HRPadding &padding) override;
 
   void ScrollToIndex(int32_t index, bool animated);
-  void SetScrollNestedMode(ArkUI_ScrollNestedMode scrollForward, ArkUI_ScrollNestedMode scrollBackward);
 
   void OnAppear() override;
   void OnDisappear() override;
@@ -81,8 +80,20 @@ public:
 
   void OnItemVisibleAreaChange(int32_t index, bool isVisible, float currentRatio) override;
 
+  // RefreshNodeDelegate
+  void OnRefreshing() override;
+  void OnStateChange(int32_t state) override;
+  void OnOffsetChange(float_t offset) override;
+  
+  // PullHeaderViewDelegate
+  void OnPullHeaderViewSizeUpdated(const HRSize &size) override;
+  
+  // pull head
+  void OnHeadRefreshFinish(int32_t delay);
+  void OnHeadRefresh();
 private:
   void HandleOnChildrenUpdated();
+  void CreateArkUINodeAfterHeaderCheck();
 
   void EmitScrollEvent(const std::string &eventName);
   void CheckSendOnScrollEvent();
@@ -93,20 +104,30 @@ private:
   void CheckEndDrag();
   void CheckPullOnItemVisibleAreaChange(int32_t index, bool isVisible, float currentRatio);
   void CheckPullOnScroll();
-  void CheckStickyOnItemVisibleAreaChange(int32_t index, bool isVisible, float currentRatio);
   void CheckInitOffset();
   void CheckValidListSize();
   void CheckInitListReadyNotify();
+  
+  void CheckStickyOnChildrenUpdated();
+  bool ShouldSticky();
+  bool CalculateStickyItemPosition(HRPosition *resultPosition);
+  void StopSticky();
+  void CheckAndUpdateSticky();
 
   constexpr static const char *CONTENT_OFFSET = "contentOffset";
   constexpr static const char *PULL_HEADER_VIEW_TYPE = "PullHeaderView";
   constexpr static const char *PULL_FOOTER_VIEW_TYPE = "PullFooterView";
   constexpr static const char *LIST_VIEW_ITEM_TYPE = "ListViewItem";
-
+  
   std::shared_ptr<StackNode> stackNode_;
+  std::shared_ptr<RefreshNode> refreshNode_;
   std::shared_ptr<ListNode> listNode_;
 
   std::shared_ptr<ListItemAdapter> adapter_;
+  
+  ArkUI_ScrollNestedMode scrollForward_ = ARKUI_SCROLL_NESTED_MODE_SELF_FIRST;
+  ArkUI_ScrollNestedMode scrollBackward_ = ARKUI_SCROLL_NESTED_MODE_SELF_FIRST;
+  bool toSetScrollNestedMode_ = false;
 
   float width_ = 0;
   float height_ = 0;
@@ -125,24 +146,27 @@ private:
   bool onScrollEventEnable_ = false;
 
   bool hasPullHeader_ = false;
-  float pullHeaderHeight_ = 0;
+  float pullHeaderWH_ = 0;
+  
+  bool hasCreateAfterHeaderCheck_ = false;
 
   ScrollAction pullAction_ = ScrollAction::None;
   std::shared_ptr<PullHeaderView> headerView_ = nullptr;
   std::shared_ptr<PullFooterView> footerView_ = nullptr;
   int64_t lastScrollTime_ = 0;
   bool isLastTimeReachEnd_ = false;
-
-  int32_t stickyIndex_ = INVALID_STICKY_INDEX;
+  
   std::vector<int32_t> stickyArray_;
-  std::vector<int32_t> stickyStack_;
+  int32_t stickyIndex_ = INVALID_STICKY_INDEX;
+  int32_t stickyingIndex_ = INVALID_STICKY_INDEX;
+  
+  std::shared_ptr<ArkUINode> stickyNode_;
+  float stickyItemOffsetXY_ = 0;
 
   bool isDragging_ = false;
-  float lastMoveY_ = 0;
-
-  bool headerViewFullVisible_ = false;
+  
   bool footerViewFullVisible_ = false;
-  float lastItemFullVisibleYOffset_ = 0;
+  float lastItemFullVisibleOffset_ = 0;
 
   uint64_t end_batch_callback_id_ = 0;
   

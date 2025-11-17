@@ -60,17 +60,13 @@ void PagerView::DestroyArkUINodeImpl() {
   swiperNode_->ResetLazyAdapter();
   swiperNode_ = nullptr;
   adapter_.reset();
-  initialPageUsed_ = false;
 }
 
 bool PagerView::SetPropImpl(const std::string &propKey, const HippyValue &propValue) {
   if (propKey == "initialPage") {
-    if (!initialPageUsed_) {
-      initialPageUsed_ = true;
-      initialPage_ = HRValueUtils::GetInt32(propValue);
-      index_ = initialPage_;
-      GetLocalRootArkUINode()->SetSwiperIndex(index_);
-    }
+    initialPage_ = HRValueUtils::GetInt32(propValue);
+    index_ = initialPage_;
+    GetLocalRootArkUINode()->SetSwiperIndex(index_);
     return true;
   } else if (propKey == "scrollEnabled") {
     bool enable = HRValueUtils::GetBool(propValue, true);
@@ -78,8 +74,7 @@ bool PagerView::SetPropImpl(const std::string &propKey, const HippyValue &propVa
     GetLocalRootArkUINode()->SetSwiperDisableSwipe(disableSwipe_);
     return true;
   } else if (propKey == "direction") {
-    std::string directionVal;
-    propValue.ToString(directionVal);
+    auto& directionVal = propValue.ToStringSafe();
     if (directionVal == "vertical") {
       vertical_ = true;
       GetLocalRootArkUINode()->SetSwiperVertical(1);
@@ -147,6 +142,11 @@ void PagerView::OnAnimationStart(const int32_t &currentIndex, const int32_t &tar
 void PagerView::OnAnimationEnd(const int32_t &currentIndex, const float_t &currentOffset) {
   FOOTSTONE_DLOG(INFO) << "PagerView::OnAnimationEnd - Index: " << currentIndex
                        << ", Final offset: " << currentOffset;
+  HippyValueObjectType type = {{PAGE_ITEM_POSITION, HippyValue{lastScrollEventPosition_}},
+                               {PAGE_ITEM_OFFSET, HippyValue{lastScrollEventOffset_ < 0 ? -1.0 : 1.0}}};
+  std::shared_ptr<HippyValue> params = std::make_shared<HippyValue>(type);
+  HREventUtils::SendComponentEvent(ctx_, tag_, HREventUtils::EVENT_PAGE_SCROLL, params);
+  OnViewComponentEvent(HREventUtils::EVENT_PAGE_SCROLL, type);
 }
 
 void PagerView::OnContentDidScroll(const int32_t currentIndex, const int32_t pageIndex, const float_t pageOffset) {
@@ -178,7 +178,25 @@ void PagerView::OnContentDidScroll(const int32_t currentIndex, const int32_t pag
     // no need to handle current page params
     return;
   }
-
+  
+  // 限频原因：高频率和js交互有性能问题。对比一次切换Android 19次通知，鸿蒙有48次通知。
+  // 限频策略：取1/3的事件量。不单用offset距离限制的原因：offset不是线性函数。
+  if (position != lastScrollEventPosition_) {
+    lastScrollEventPosition_ = position;
+    scrollEventCount_ = 0;
+  } else {
+    ++scrollEventCount_;
+  }
+  float dOffset = offset - lastScrollEventOffset_;
+  if (dOffset < 0) {
+    dOffset = -dOffset;
+  }
+  if (scrollEventCount_ % 3 != 0 && dOffset < 0.1) {
+    return;
+  }
+  
+  lastScrollEventOffset_ = offset;
+  
   // FOOTSTONE_DLOG(INFO) << "PagerView on scroll, position: " << position << ", offset: " << offset;
 
   HippyValueObjectType type = {{PAGE_ITEM_POSITION, HippyValue{position}},

@@ -40,14 +40,18 @@
 @synthesize viewName = _viewName;
 
 - (void)amendLayoutBeforeMount:(NSMutableSet<NativeRenderApplierBlock> *)blocks {
-    if (NativeRenderUpdateLifecycleComputed == _propagationLifecycle) {
+    // Skip processing if layout has already been computed in this batch
+    if (_isLayoutComputed) {
         return;
     }
     
-    // do some additional layout adjust
+    // Process any updated properties before mounting
     [self processUpdatedPropertiesBeforeMount:blocks];
     
-    _propagationLifecycle = NativeRenderUpdateLifecycleComputed;
+    // Mark as computed to prevent redundant processing
+    _isLayoutComputed = YES;
+    
+    // Recursively process subviews
     for (HippyShadowView *subShadowView in self.hippySubviews) {
         [subShadowView amendLayoutBeforeMount:blocks];
     }
@@ -75,9 +79,8 @@
 
 - (instancetype)init {
     if ((self = [super init])) {
-        _propagationLifecycle = NativeRenderUpdateLifecycleUninitialized;
+        _isLayoutComputed = NO;
         _frame = CGRectMake(0, 0, NAN, NAN);
-        _objectSubviews = [NSMutableArray array];
         _confirmedLayoutDirection = hippy::Direction::Inherit;
         _layoutDirection = hippy::Direction::Inherit;
     }
@@ -92,24 +95,15 @@
     return NO;
 }
 
-- (void)dirtyPropagation:(NativeRenderUpdateLifecycle)dirtyType {
-    if (dirtyType == _propagationLifecycle ||
-        NativeRenderUpdateLifecycleAllDirtied == _propagationLifecycle) {
-        return;
-    }
-    if (NativeRenderUpdateLifecycleUninitialized == _propagationLifecycle ||
-        NativeRenderUpdateLifecycleComputed == _propagationLifecycle) {
-        _propagationLifecycle = dirtyType;
-    }
-    else {
-        _propagationLifecycle = NativeRenderUpdateLifecycleAllDirtied;
-    }
-    [_superview dirtyPropagation:dirtyType];
+- (void)markLayoutDirty {
+    // Mark this view as needing layout processing
+    _isLayoutComputed = NO;
+    // Note: We don't propagate to parent anymore as it provides no benefit.
+    // Layout calculation always starts from root and traverses the entire tree.
 }
 
-- (BOOL)isPropagationDirty:(NativeRenderUpdateLifecycle)dirtyType {
-    BOOL isDirty = _propagationLifecycle == dirtyType || _propagationLifecycle == NativeRenderUpdateLifecycleAllDirtied;
-    return isDirty;
+- (BOOL)isLayoutComputed {
+    return _isLayoutComputed;
 }
 
 - (void)dirtyText:(BOOL)needToDoLayout {
@@ -135,14 +129,10 @@
     return _creationType;
 }
 
-- (void)setTextComputed {
-//    _textLifecycle = NativeRenderUpdateLifecycleComputed;
-}
-
-- (void)synchronousRecusivelySetCreationTypeToInstant {
+- (void)synchronousRecursivelySetCreationTypeToInstant {
     self.creationType = HippyCreationTypeInstantly;
     for (HippyShadowView *subShadowView in self.hippySubviews) {
-        [subShadowView synchronousRecusivelySetCreationTypeToInstant];
+        [subShadowView synchronousRecursivelySetCreationTypeToInstant];
     }
 }
 
@@ -165,15 +155,23 @@
         HippyFatal(HippyErrorWithMessage(@"Illegal nil shadow subview in insertHippySubview!"));
         return;
     }
-    if (atIndex <= [_objectSubviews count]) {
-        [_objectSubviews insertObject:subview atIndex:atIndex];
-    } else {
-        [_objectSubviews addObject:subview];
+
+    @synchronized (self) {
+        if (!_shadowSubviews) {
+            _shadowSubviews = [NSMutableArray array];
+        }
+        
+        if (atIndex <= [_shadowSubviews count]) {
+            [_shadowSubviews insertObject:subview atIndex:atIndex];
+        } else {
+            [_shadowSubviews addObject:subview];
+        }
     }
+    
     subview->_superview = self;
     _didUpdateSubviews = YES;
     [self dirtyText:NO];
-    [self dirtyPropagation:NativeRenderUpdateLifecycleLayoutDirtied];
+    [self markLayoutDirty];
 }
 
 - (void)moveHippySubview:(id<HippyComponent>)subview toIndex:(NSUInteger)atIndex {
@@ -187,10 +185,13 @@
 
 - (void)removeHippySubview:(HippyShadowView *)subview {
     [subview dirtyText:NO];
-    [subview dirtyPropagation:NativeRenderUpdateLifecycleLayoutDirtied];
+    [subview markLayoutDirty];
     _didUpdateSubviews = YES;
     subview->_superview = nil;
-    [_objectSubviews removeObject:subview];
+    
+    @synchronized (self) {
+        [_shadowSubviews removeObject:subview];
+    }
 }
 
 - (void)removeFromHippySuperview {
@@ -199,7 +200,11 @@
 }
 
 - (NSArray<HippyShadowView *> *)hippySubviews {
-    return _objectSubviews;
+    NSArray<HippyShadowView *> *subviews;
+    @synchronized (self) {
+        subviews = _shadowSubviews.copy ?: @[];
+    }
+    return subviews;
 }
 
 - (HippyShadowView *)parent {
@@ -211,7 +216,7 @@
 }
 
 - (NSNumber *)hippyTagAtPoint:(CGPoint)point {
-    for (HippyShadowView *renderObject in _objectSubviews) {
+    for (HippyShadowView *renderObject in self.hippySubviews) {
         if (CGRectContainsPoint(renderObject.frame, point)) {
             CGPoint relativePoint = point;
             CGPoint origin = renderObject.frame.origin;
@@ -238,7 +243,7 @@
     [string appendString:self.description];
     [string appendString:@"\n"];
 
-    for (HippyShadowView *subview in _objectSubviews) {
+    for (HippyShadowView *subview in self.hippySubviews) {
         [subview addRecursiveDescriptionToString:string atLevel:level + 1];
     }
 }
@@ -247,12 +252,6 @@
     NSMutableString *description = [NSMutableString string];
     [self addRecursiveDescriptionToString:description atLevel:0];
     return description;
-}
-
-- (UIEdgeInsets)paddingAsInsets {
-    UIEdgeInsets insets = UIEdgeInsetsZero;
-    insets = UIEdgeInsetsFromLayoutResult(_nodeLayoutResult);
-    return insets;
 }
 
 - (void)setFrame:(CGRect)frame {
@@ -293,7 +292,7 @@
                 renderManager->UpdateLayout(strongSelf.rootNode, changed_nodes);
             }
             if (dirtyPropagation) {
-                [strongSelf dirtyPropagation:NativeRenderUpdateLifecycleLayoutDirtied];
+                [strongSelf markLayoutDirty];
             }
             renderManager->EndBatch(strongSelf.rootNode);
         }};
@@ -303,7 +302,7 @@
 
 - (void)setBackgroundColor:(UIColor *)color {
     _backgroundColor = color;
-    [self dirtyPropagation:NativeRenderUpdateLifecyclePropsDirtied];
+    [self markLayoutDirty];
 }
 
 - (void)setZIndex:(NSInteger)zIndex {
@@ -312,7 +311,7 @@
     if (superShadowView) {
         // Changing zIndex means the subview order of the parent needs updating
         superShadowView->_didUpdateSubviews = YES;
-        [superShadowView dirtyPropagation:NativeRenderUpdateLifecycleLayoutDirtied];
+        [superShadowView markLayoutDirty];
     }
 }
 
@@ -441,6 +440,61 @@
             [subview superviewLayoutDirectionChangedTo:self.confirmedLayoutDirection];
         }
     }
+}
+
+#pragma mark - Layout Style Getters
+
+- (CGSize)getStyleSize {
+    CGFloat width = NAN;
+    CGFloat height = NAN;
+    
+    auto domManager = [self domManager].lock();
+    if (domManager) {
+        int32_t componentTag = [self.hippyTag intValue];
+        auto domNode = domManager->GetNode(self.rootNode, componentTag);
+        if (domNode) {
+            width = domNode->GetLayoutNode()->GetStyleWidth();
+            height = domNode->GetLayoutNode()->GetStyleHeight();
+        }
+    }
+    
+    return CGSizeMake(width, height);
+}
+
+- (CGFloat)getStyleWidth {
+    CGFloat width = NAN;
+    
+    auto domManager = [self domManager].lock();
+    if (domManager) {
+        int32_t componentTag = [self.hippyTag intValue];
+        auto domNode = domManager->GetNode(self.rootNode, componentTag);
+        if (domNode) {
+            width = domNode->GetLayoutNode()->GetStyleWidth();
+        }
+    }
+    
+    return width;
+}
+
+- (CGFloat)getStyleHeight {
+    CGFloat height = NAN;
+    
+    auto domManager = [self domManager].lock();
+    if (domManager) {
+        int32_t componentTag = [self.hippyTag intValue];
+        auto domNode = domManager->GetNode(self.rootNode, componentTag);
+        if (domNode) {
+            height = domNode->GetLayoutNode()->GetStyleHeight();
+        }
+    }
+    
+    return height;
+}
+
+- (UIEdgeInsets)paddingAsInsets {
+    UIEdgeInsets insets = UIEdgeInsetsZero;
+    insets = UIEdgeInsetsFromLayoutResult(_nodeLayoutResult);
+    return insets;
 }
 
 @end

@@ -58,10 +58,6 @@ HIPPY_EXPORT_MODULE(View);
     return nil;
 }
 
-- (HippyViewManagerUIBlock)uiBlockToAmendWithShadowViewRegistry:(__unused NSDictionary<NSNumber *, HippyShadowView *> *)shadowViewRegistry {
-    return nil;
-}
-
 static NSString * const HippyViewManagerGetBoundingRelToContainerKey = @"relToContainer";
 static NSString * const HippyViewManagerGetBoundingErrMsgrKey = @"errMsg";
 static NSString * const HippyXOnScreenKey = @"xOnScreen";
@@ -164,10 +160,16 @@ HIPPY_EXPORT_METHOD(getScreenShot:(nonnull NSNumber *)componentTag
             CGFloat scaleY = maxHeight / viewHeight;
             scale = MIN(scaleX, scaleY);
         }
-        UIGraphicsBeginImageContextWithOptions(view.frame.size, YES, scale);
-        [view drawViewHierarchyInRect:view.bounds afterScreenUpdates:YES];
-        UIImage *resultImage = UIGraphicsGetImageFromCurrentImageContext();
-        UIGraphicsEndImageContext();
+        
+        // Render view hierarchy into image context
+        UIGraphicsImageRendererFormat *format = [UIGraphicsImageRendererFormat preferredFormat];
+        format.opaque = YES;
+        format.scale = scale;
+        UIGraphicsImageRenderer *renderer = [[UIGraphicsImageRenderer alloc] initWithSize:view.frame.size format:format];
+        UIImage *resultImage = [renderer imageWithActions:^(UIGraphicsImageRendererContext * _Nonnull context) {
+            [view drawViewHierarchyInRect:view.bounds afterScreenUpdates:YES];
+        }];
+        
         if (resultImage) {
             int quality = [params[@"quality"] intValue];
             NSData *imageData = UIImageJPEGRepresentation(resultImage, (quality > 0 ? quality : 80) / 100.f);
@@ -256,6 +258,14 @@ HIPPY_EXPORT_METHOD(removeFrameCallback:(nonnull NSNumber *)hippyTag
 
 #pragma mark - View properties
 
+#if __IPHONE_OS_VERSION_MAX_ALLOWED >= 260000
+HIPPY_EXPORT_VIEW_PROPERTY(glassEffectEnabled, BOOL)
+HIPPY_EXPORT_VIEW_PROPERTY(glassEffectStyle, NSString)
+HIPPY_EXPORT_VIEW_PROPERTY(glassEffectInteractive, BOOL)
+HIPPY_EXPORT_VIEW_PROPERTY(glassEffectTintColor, UIColor)
+HIPPY_EXPORT_VIEW_PROPERTY(glassEffectContainerSpacing, NSNumber)
+#endif
+
 HIPPY_EXPORT_VIEW_PROPERTY(accessibilityLabel, NSString)
 HIPPY_EXPORT_VIEW_PROPERTY(backgroundColor, UIColor)
 HIPPY_EXPORT_VIEW_PROPERTY(shadowSpread, CGFloat)
@@ -281,6 +291,9 @@ HIPPY_CUSTOM_VIEW_PROPERTY(visibility, NSString, HippyView) {
 }
 
 HIPPY_CUSTOM_VIEW_PROPERTY(backgroundImage, NSString, HippyView) {
+    if (![view isKindOfClass:HippyView.class]) {
+        return;
+    }
     if (json) {
         NSString *imagePath = [HippyConvert NSString:json];
         // Old background image need to be cleaned up in time due to view's reuse
@@ -506,21 +519,21 @@ HIPPY_CUSTOM_VIEW_PROPERTY(borderRadius, CGFloat, HippyView) {
     }
 }
 HIPPY_CUSTOM_VIEW_PROPERTY(borderColor, CGColor, HippyView) {
-    CGColorRef color = nil;
+    UIColor *color = nil;
     if ([view respondsToSelector:@selector(setBorderColor:)]) {
         if (json) {
-            color = [HippyConvert CGColor:json];
+            color = [HippyConvert UIColor:json];
         } else {
-            color = defaultView ? defaultView.borderColor : [UIColor clearColor].CGColor;
+            color = defaultView ? defaultView.borderColor : [UIColor clearColor];
         }
         view.borderColor = color;
     } else {
         if (json) {
-            color = [HippyConvert CGColor:json];
+            color = [HippyConvert UIColor:json];
         } else {
-            color = defaultView ? defaultView.layer.borderColor : [UIColor clearColor].CGColor;
+            color = defaultView ? [UIColor colorWithCGColor:defaultView.layer.borderColor] : [UIColor clearColor];
         }
-        view.layer.borderColor = color;
+        view.layer.borderColor = color.CGColor;
     }
 }
 
@@ -537,34 +550,34 @@ HIPPY_CUSTOM_VIEW_PROPERTY(borderStyle, HippyBorderStyle, HippyView) {
     }
 }
 
-#define NATIVE_RENDER_VIEW_BORDER_PROPERTY(SIDE)                                                                    \
-    HIPPY_CUSTOM_VIEW_PROPERTY(border##SIDE##Width, CGFloat, HippyView) {                            \
+#define HIPPY_VIEW_BORDER_PROPERTY(SIDE)                                                                            \
+    HIPPY_CUSTOM_VIEW_PROPERTY(border##SIDE##Width, CGFloat, HippyView) {                                           \
         if ([view respondsToSelector:@selector(setBorder##SIDE##Width:)]) {                                         \
-            view.border##SIDE##Width = json ? [HippyConvert CGFloat:json] : defaultView.border##SIDE##Width; \
+            view.border##SIDE##Width = json ? [HippyConvert CGFloat:json] : defaultView.border##SIDE##Width;        \
         }                                                                                                           \
     }                                                                                                               \
-    HIPPY_CUSTOM_VIEW_PROPERTY(border##SIDE##Color, UIColor, HippyView) {                            \
+    HIPPY_CUSTOM_VIEW_PROPERTY(border##SIDE##Color, UIColor, HippyView) {                                           \
         if ([view respondsToSelector:@selector(setBorder##SIDE##Color:)]) {                                         \
-            view.border##SIDE##Color = json ? [HippyConvert CGColor:json] : defaultView.border##SIDE##Color; \
+            view.border##SIDE##Color = json ? [HippyConvert UIColor:json] : defaultView.border##SIDE##Color;        \
         }                                                                                                           \
     }
 
-NATIVE_RENDER_VIEW_BORDER_PROPERTY(Top)
-NATIVE_RENDER_VIEW_BORDER_PROPERTY(Right)
-NATIVE_RENDER_VIEW_BORDER_PROPERTY(Bottom)
-NATIVE_RENDER_VIEW_BORDER_PROPERTY(Left)
+HIPPY_VIEW_BORDER_PROPERTY(Top)
+HIPPY_VIEW_BORDER_PROPERTY(Right)
+HIPPY_VIEW_BORDER_PROPERTY(Bottom)
+HIPPY_VIEW_BORDER_PROPERTY(Left)
 
-#define NATIVE_RENDER_VIEW_BORDER_RADIUS_PROPERTY(SIDE)                                                                 \
-    HIPPY_CUSTOM_VIEW_PROPERTY(border##SIDE##Radius, CGFloat, HippyView) {                               \
+#define HIPPY_VIEW_BORDER_RADIUS_PROPERTY(SIDE)                                                                         \
+    HIPPY_CUSTOM_VIEW_PROPERTY(border##SIDE##Radius, CGFloat, HippyView) {                                              \
         if ([view respondsToSelector:@selector(setBorder##SIDE##Radius:)]) {                                            \
-            view.border##SIDE##Radius = json ? [HippyConvert CGFloat:json] : defaultView.border##SIDE##Radius;   \
+            view.border##SIDE##Radius = json ? [HippyConvert CGFloat:json] : defaultView.border##SIDE##Radius;          \
         }                                                                                                               \
     }
 
-NATIVE_RENDER_VIEW_BORDER_RADIUS_PROPERTY(TopLeft)
-NATIVE_RENDER_VIEW_BORDER_RADIUS_PROPERTY(TopRight)
-NATIVE_RENDER_VIEW_BORDER_RADIUS_PROPERTY(BottomLeft)
-NATIVE_RENDER_VIEW_BORDER_RADIUS_PROPERTY(BottomRight)
+HIPPY_VIEW_BORDER_RADIUS_PROPERTY(TopLeft)
+HIPPY_VIEW_BORDER_RADIUS_PROPERTY(TopRight)
+HIPPY_VIEW_BORDER_RADIUS_PROPERTY(BottomLeft)
+HIPPY_VIEW_BORDER_RADIUS_PROPERTY(BottomRight)
 
 HIPPY_REMAP_VIEW_PROPERTY(zIndex, hippyZIndex, NSInteger)
 

@@ -25,12 +25,45 @@
 #import "HippyUtils.h"
 #import "HippyDeviceBaseInfo.h"
 #import "HippyEventDispatcher.h"
+#import "HippyRenderUtils.h"
+#import "HippyUIManager.h"
+#import "HippyBridge+Private.h"
 
 
-NSDictionary *hippyExportedDimensions(HippyBridge *bridge) {
+NSDictionary *hippyExportedDimensions(HippyBridge * _Nonnull bridge,
+                                      NSValue * _Nullable rootSizeValue) {
     NSCAssert([NSThread mainThread], @"this function can only be called in main thread");
-    CGSize screenSize = [UIScreen mainScreen].bounds.size;
+    CGSize screenSize = HippyScreenSize();
     CGSize windowSize = HippyKeyWindow() ? HippyKeyWindow().bounds.size : screenSize;
+    
+    // Call bridge delegate method shouldUseRootViewSizeAsWindowSizeInDimensions if needed.
+    if (!bridge.shouldUseRootSizeAsWindowSize) {
+        if ([bridge.delegate respondsToSelector:@selector(shouldUseRootViewSizeAsWindowSizeInDimensions)]) {
+            bridge.shouldUseRootSizeAsWindowSize = @(bridge.delegate.shouldUseRootViewSizeAsWindowSizeInDimensions);
+        } else {
+            // make default value YES.
+            bridge.shouldUseRootSizeAsWindowSize = @(YES);
+        }
+    }
+    BOOL useRootSizeAsWindowSize = [bridge.shouldUseRootSizeAsWindowSize boolValue];
+    
+    // Update RootView size
+    if (rootSizeValue) {
+        bridge.lastRootSizeForDimensions = rootSizeValue;
+    }
+    
+    // Get a default value of the RootView's size from the host app,
+    // instead of directly using the key window size,
+    // since key window size may not be accurate in some cases.
+    if (useRootSizeAsWindowSize && !bridge.lastRootSizeForDimensions) {
+        if ([bridge.delegate respondsToSelector:@selector(defaultWindowSizeInDimensionsBeforeRootViewMount)]) {
+            bridge.lastRootSizeForDimensions = @(bridge.delegate.defaultWindowSizeInDimensionsBeforeRootViewMount);
+        }
+    }
+    
+    // Get final RootSize
+    CGSize rootSize = bridge.lastRootSizeForDimensions ? bridge.lastRootSizeForDimensions.CGSizeValue : windowSize;
+    
     // To be replace by HippyKeyWindow().windowScene.statusBarManager.statusBarFrame;
     CGFloat statusBarHeight = [[UIApplication sharedApplication] statusBarFrame].size.height;
     if (statusBarHeight == 0) {
@@ -42,15 +75,16 @@ NSDictionary *hippyExportedDimensions(HippyBridge *bridge) {
             statusBarHeight = bridge.delegate.defaultStatusBarHeightNoMatterHiddenOrNot ?: 0.0;
         }
     }
-    static NSNumber *screenScale = nil;
-    static dispatch_once_t onceToken;
-    dispatch_once(&onceToken, ^{
-        screenScale = @([UIScreen mainScreen].scale);
-    });
+    
+    // FontSize Scale
+    HippyUIManager *uiManager = bridge.uiManager;
+    NSNumber *fontScale = uiManager.globalFontSizeMultiplier ?: @(1);
+    
+    NSNumber *screenScale = @(HippyScreenScale());
     NSDictionary *dimensions = @{
         @"window" : @{
-            @"width": @(windowSize.width),
-            @"height": @(windowSize.height),
+            @"width": useRootSizeAsWindowSize ? @(rootSize.width) : @(windowSize.width),
+            @"height": useRootSizeAsWindowSize ? @(rootSize.height) : @(windowSize.height),
             @"scale": screenScale,
             @"statusBarHeight": @(statusBarHeight)
         },
@@ -58,9 +92,15 @@ NSDictionary *hippyExportedDimensions(HippyBridge *bridge) {
             @"width": @(screenSize.width),
             @"height": @(screenSize.height),
             @"scale": screenScale,
-            @"fontScale": @(1),
+            @"fontScale": fontScale,
             @"statusBarHeight": @(statusBarHeight)
-        }
+        },
+        @"appwindow" : @{
+            @"width": @(windowSize.width),
+            @"height": @(windowSize.height),
+            @"scale": screenScale,
+            @"statusBarHeight": @(statusBarHeight)
+        },
     };
     return dimensions;
 }
@@ -92,6 +132,7 @@ static UIInterfaceOrientation getStatusBarOrientation(void) {
 - (instancetype)init {
     self = [super init];
     if (self) {
+        self->_currentInterfaceOrientation = getStatusBarOrientation();
         __weak HippyDeviceBaseInfo *devInfo = self;
         NSString *notificationName;
         if ([_bridge.delegate respondsToSelector:@selector(shouldUseViewWillTransitionMethodToMonitorOrientation)]
@@ -110,8 +151,8 @@ static UIInterfaceOrientation getStatusBarOrientation(void) {
                 UIInterfaceOrientation previousInterfaceOrientation = strongSelf->_currentInterfaceOrientation;
                 UIInterfaceOrientation currentInterfaceOrientation = getStatusBarOrientation();
                 if (previousInterfaceOrientation != currentInterfaceOrientation) {
-                    NSDictionary *dim = hippyExportedDimensions(strongSelf->_bridge);
-                    [strongSelf->_bridge.eventDispatcher dispatchEvent:@"Dimensions" methodName:@"set" args:dim];
+                    NSDictionary *dim = hippyExportedDimensions(strongSelf->_bridge, nil);
+                    [strongSelf->_bridge.eventDispatcher dispatchDimensionsUpdateEvent:dim];
                 }
                 strongSelf->_currentInterfaceOrientation = currentInterfaceOrientation;
             }
@@ -127,8 +168,8 @@ static UIInterfaceOrientation getStatusBarOrientation(void) {
                 UIInterfaceOrientation currentInterfaceOrientation = strongSelf->_currentInterfaceOrientation;
                 UIInterfaceOrientation activeStatusBarOrientation = getStatusBarOrientation();
                 if (currentInterfaceOrientation != activeStatusBarOrientation) {
-                    NSDictionary *dim = hippyExportedDimensions(strongSelf->_bridge);
-                    [strongSelf->_bridge.eventDispatcher dispatchEvent:@"Dimensions" methodName:@"set" args:dim];
+                    NSDictionary *dim = hippyExportedDimensions(strongSelf->_bridge, nil);
+                    [strongSelf->_bridge.eventDispatcher dispatchDimensionsUpdateEvent:dim];
                 }
                 strongSelf->_currentInterfaceOrientation = activeStatusBarOrientation;
             }

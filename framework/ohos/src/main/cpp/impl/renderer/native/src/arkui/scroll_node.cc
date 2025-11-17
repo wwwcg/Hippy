@@ -32,6 +32,8 @@ static constexpr ArkUI_NodeEventType SCROLL_NODE_EVENT_TYPES[] = {
   NODE_SCROLL_EVENT_ON_SCROLL,
   NODE_SCROLL_EVENT_ON_SCROLL_START,
   NODE_SCROLL_EVENT_ON_SCROLL_STOP,
+  NODE_SCROLL_EVENT_ON_REACH_START,
+  NODE_SCROLL_EVENT_ON_REACH_END
 };
 
 ScrollNode::ScrollNode()
@@ -134,7 +136,7 @@ ScrollNode &ScrollNode::SetScrollMinOffset(float scrollMinOffset) {
   return *this;
 }
 
-ScrollNode &ScrollNode::SetNestedScroll(ArkUI_ScrollNestedMode forward, ArkUI_ScrollNestedMode backward){
+ScrollNode &ScrollNode::SetScrollNestedScroll(ArkUI_ScrollNestedMode forward, ArkUI_ScrollNestedMode backward){
   ArkUI_NumberValue value[] = {{.i32 = forward},{.i32 = backward}}; 
   ArkUI_AttributeItem item = {value, sizeof(value) / sizeof(ArkUI_NumberValue), nullptr, nullptr};
   MaybeThrow(NativeNodeApi::GetInstance()->setAttribute(nodeHandle_, NODE_SCROLL_NESTED_SCROLL, &item));
@@ -156,7 +158,7 @@ void ScrollNode::OnNodeEvent(ArkUI_NodeEvent *event) {
     return;
   }
   auto eventType = OH_ArkUI_NodeEvent_GetEventType(event);
-  auto nodeComponentEvent = OH_ArkUI_NodeEvent_GetNodeComponentEvent(event);
+  // auto nodeComponentEvent = OH_ArkUI_NodeEvent_GetNodeComponentEvent(event);
   if (eventType == ArkUI_NodeEventType::NODE_EVENT_ON_APPEAR) {
     ScrollToContentOffset(initialContentOffset_);
   } else if (eventType == ArkUI_NodeEventType::NODE_SCROLL_EVENT_ON_SCROLL_STOP) {
@@ -164,9 +166,12 @@ void ScrollNode::OnNodeEvent(ArkUI_NodeEvent *event) {
   } else if (eventType == ArkUI_NodeEventType::NODE_SCROLL_EVENT_ON_SCROLL_START) {
     scrollNodeDelegate_->OnScrollStart();
   } else if (eventType == ArkUI_NodeEventType::NODE_SCROLL_EVENT_ON_SCROLL) {
-    float x = nodeComponentEvent->data[0].f32;
-    float y = nodeComponentEvent->data[1].f32;
-    scrollNodeDelegate_->OnScroll(x, y);
+    HRPoint contentOffset = GetScrollContentOffset();
+    scrollNodeDelegate_->OnScroll(contentOffset.x, contentOffset.y);
+  } else if (eventType == ArkUI_NodeEventType::NODE_SCROLL_EVENT_ON_REACH_START) {
+    scrollNodeDelegate_->OnReachStart();
+  } else if (eventType == ArkUI_NodeEventType::NODE_SCROLL_EVENT_ON_REACH_END) {
+    scrollNodeDelegate_->OnReachEnd();
   }
 }
 

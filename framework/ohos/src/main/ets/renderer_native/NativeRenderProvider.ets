@@ -31,6 +31,7 @@ import { HRRenderViewCreator } from './components/HippyRenderRegisterMap';
 import {
   CallRenderViewMethodParamsForCApi,
   CreateRenderViewParamsForCApi,
+  CreateRenderViewResultForCApi,
   OnChildInsertedParamsForCApi,
   OnChildRemovedParamsForCApi,
   RemoveRenderViewParamsForCApi,
@@ -301,7 +302,7 @@ export class NativeRenderProvider {
   }
 
   // for c-api
-  createRenderViewForCApi(params: CreateRenderViewParamsForCApi): FrameNode | null {
+  createRenderViewForCApi(params: CreateRenderViewParamsForCApi): CreateRenderViewResultForCApi | null {
     return this.renderImpl.createRenderViewForCApi(params)
   }
 
@@ -350,4 +351,8 @@ export class NativeRenderProvider {
     this.renderImpl.onChildRemovedForCApi(params)
   }
 
+  // for c-interface
+  destroyRootForCInterface(rootId: number): void {
+    this.renderImpl.destroyRootForCInterface(rootId)
+  }
 }

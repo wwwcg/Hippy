@@ -1,6 +1,6 @@
 # Hippy Cross Platform Framework
 
-[Homepage](https://openhippy.com)
+[Homepage](https://framework.tds.qq.com)
 
 ## 💡 Introduction
 
@@ -52,8 +52,17 @@ Install latest DevEco Studio.
   })
   ```
 
-  > More details for [ohos SDK integration](https://github.com/sohotz/Hippy/blob/main/docs/development/native-integration.md).
+#### 3. Release code
+
+ ```TypeScript
+  hippyEngine?.destroyModule(rootId, () => {
+    hippyEngine?.destroyEngine();
+  });
+  ```
+
+  > More details for [ohos SDK integration](https://github.com/Tencent/Hippy/blob/main/docs/development/native-integration.md).
 
 ## 📁 Documentation
 
-To check out [hippy examples](https://github.com/sohotz/Hippy/tree/main/framework/examples/ohos-har-demo) and visit [openhippy.com](https://openhippy.com).
+To check out [hippy examples](https://github.com/Tencent/Hippy/tree/main/framework/examples/ohos-har-demo) and visit [framework.tds.qq.com](https://framework.tds.qq.com/).
+

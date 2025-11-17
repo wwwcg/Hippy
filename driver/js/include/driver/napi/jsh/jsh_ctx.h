@@ -61,7 +61,7 @@ constexpr static int kJSHWeakCallbackWrapperInvalidIndex = 2;
 constexpr static int KJSHTurboFunctionGetIndex = 3;
 constexpr static int kJSHExternalDataNum = 4;
 
-extern void* GetPointerInInstanceData(JSVM_Env env, int index);
+extern void* GetPointerInInstanceData(JSVM_Env env, int index, bool *error = nullptr);
 
 class JSHCtx : public Ctx {
  public:
@@ -70,24 +70,10 @@ class JSHCtx : public Ctx {
 
   explicit JSHCtx(JSVM_VM vm, ExceptionMessageCallback exception_cb, void *external_data);
 
-  ~JSHCtx() {
-    for (auto st : callback_structs_) {
-      delete st;
-    }
-    for (auto arr : prop_descriptor_arrays_) {
-      delete []arr;
-    }
-    for (auto property_st : property_structs_) {
-      delete property_st;
-    }
-    template_map_.clear();
-    OH_JSVM_CloseEnvScope(env_, env_scope_);
-    env_scope_ = nullptr;
-    OH_JSVM_DestroyEnv(env_);
-    env_ = nullptr;
-  }
+  ~JSHCtx();
 
   virtual std::shared_ptr<CtxValue> DefineProxy(const std::unique_ptr<FunctionWrapper>& constructor_wrapper) override;
+  virtual std::shared_ptr<CtxValue> DefineProxyHandler(const std::unique_ptr<FunctionWrapper>& proxy_handler) override;
 
   virtual std::shared_ptr<CtxValue> DefineClass(const unicode_string_view& name,
                                                 const std::shared_ptr<ClassDefinition>& parent,
@@ -203,9 +189,13 @@ class JSHCtx : public Ctx {
   
   virtual void ThrowException(const std::shared_ptr<CtxValue>& exception) override;
   virtual void ThrowException(const unicode_string_view& exception) override;
+  virtual std::shared_ptr<TryCatch> CreateTryCatchScope(bool enable, std::shared_ptr<Ctx> ctx) override;
+    
   virtual std::shared_ptr<CtxValue> CreateFunction(const std::unique_ptr<FunctionWrapper>& wrapper) override;
   virtual void SetWeak(std::shared_ptr<CtxValue> value,
                        const std::unique_ptr<WeakCallbackWrapper>& wrapper) override;
+  virtual void SetWeak(std::shared_ptr<CtxValue> value, 
+                       std::unique_ptr<WeakCallbackWrapper>&& wrapper) override;
   virtual void InvalidWeakCallbackWrapper() override;
   virtual void SetReceiverData(std::shared_ptr<CtxValue> value, void* data) override;
 
@@ -234,6 +224,9 @@ class JSHCtx : public Ctx {
   std::vector<JSVM_CallbackStruct*> callback_structs_;
   std::vector<JSVM_PropertyDescriptor*> prop_descriptor_arrays_;
   std::vector<JSVM_PropertyHandlerConfigurationStruct*> property_structs_;
+
+  // Get platform-specific internal embedded code
+  std::unique_ptr<NativeSourceCodeProvider> GetNativeSourceCodeProvider() const override;
 
  private:
   std::shared_ptr<CtxValue> CreateTemplate(const std::unique_ptr<FunctionWrapper>& wrapper);

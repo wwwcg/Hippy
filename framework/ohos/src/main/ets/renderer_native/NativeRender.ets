@@ -17,7 +17,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { HippyRootView } from '.';
+import { HippyRootView } from './HippyRootView';
+import { HippyLayoutEngineType } from '../hippy_framework/HippyEngine';
 import { CallResultCallback,
   EventListenerCallback,
   HippyRenderViewInfo } from '../hippy_library/HippyLibrary';
@@ -28,7 +29,6 @@ import { VfsManager } from '../vfs/VfsManager';
 import HippyRenderBaseView from './components/base/HippyRenderBaseView';
 import { ImageDecoderAdapter } from './components/image/ImageDecoderAdapter';
 import { ImageLoaderAdapter } from './components/image/ImageLoaderAdapter';
-import { FontAdapter } from './components/richtext/FontAdapter';
 import { FrameworkProxy } from './FrameworkProxy'
 import { WrappedHippyBizViewBuilder } from './HippyBizViewBuilder';
 import {
@@ -38,7 +38,9 @@ import { HippyEndBatchCallback } from './uimanager/HRViewManager';
 import { HRPosition, HRRect } from './utils/HRTypes';
 
 export interface NativeRender {
-  createRootView(pageName: string, pageData: HippyRecord, wrappedCustomRenderViewBuilder: WrappedHippyCustomRenderViewBuilder | null): HippyRootView
+  createRootView(pageName: string, pageData: HippyRecord,
+    wrappedCustomRenderViewBuilder: WrappedHippyCustomRenderViewBuilder | null,
+    layoutEngineType: HippyLayoutEngineType): HippyRootView
 
   destroyRoot(rootId: number): void
 
@@ -56,9 +58,6 @@ export interface NativeRender {
   getVfsManager(): VfsManager | null
 
   // TODO(eksea)
-  // getFontAdapter(): FontAdapter | null
-
-  // TODO(eksea)
   // getBackgroundExecutor(): HippyExecutor | null
 
   getEngineId(): number
@@ -67,7 +66,7 @@ export interface NativeRender {
 
   onSizeChanged2(rootId: number, nodeId: number, width: number, height: number, isSync: boolean): void
 
-  updateDimension(width: number, height: number, shouldUseScreenDisplay: boolean, systemUiVisibilityChanged: boolean): void
+  updateDimension(width: number, height: number): Promise<void>
 
   handleRenderException(exception: HippyException): void
 

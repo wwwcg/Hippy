@@ -29,6 +29,7 @@ import com.openhippy.connector.JsDriver;
 import com.openhippy.connector.JsDriver.V8InitParams;
 import com.openhippy.connector.NativeCallback;
 import com.openhippy.framework.BuildConfig;
+import com.tencent.mtt.hippy.HippyEngine;
 import com.tencent.mtt.hippy.HippyEngine.ModuleLoadStatus;
 import com.tencent.mtt.hippy.HippyEngineContext;
 import com.tencent.mtt.hippy.adapter.thirdparty.HippyThirdPartyAdapter;
@@ -53,6 +54,7 @@ import com.tencent.mtt.hippy.utils.TimeMonitor;
 import java.lang.ref.WeakReference;
 import java.util.HashMap;
 import org.json.JSONObject;
+import org.json.JSONException;
 
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
@@ -159,14 +161,21 @@ public class HippyBridgeManagerImpl implements HippyBridgeManager, HippyBridge.B
                 serializer.writeValue(msg.obj);
                 buffer = safeDirectWriter.chunked();
             } else {
-                mStringBuilder.setLength(0);
-                byte[] bytes = ArgumentUtils.objectToJsonOpt(msg.obj, mStringBuilder).getBytes(
+                if (msg.obj instanceof JSValue) {
+                    try {
+                        String str = ((JSValue) msg.obj).dump().toString();
+                        byte[] bytes = str.getBytes(StandardCharsets.UTF_16LE);
+                        mHippyBridge.callFunction(functionId, mCallFunctionCallback, bytes);
+                    } catch (JSONException e) {
+                        e.printStackTrace();
+                    }
+                } else {
+                    mStringBuilder.setLength(0);
+                    byte[] bytes = ArgumentUtils.objectToJsonOpt(msg.obj, mStringBuilder).getBytes(
                         StandardCharsets.UTF_16LE);
-                buffer = ByteBuffer.allocateDirect(bytes.length);
-                buffer.put(bytes);
+                    mHippyBridge.callFunction(functionId, mCallFunctionCallback, bytes);
+                }
             }
-
-            mHippyBridge.callFunction(functionId, mCallFunctionCallback, buffer);
         } else {
             if (mEnableV8Serialization) {
                 if (safeHeapWriter == null) {
@@ -279,8 +288,8 @@ public class HippyBridgeManagerImpl implements HippyBridgeManager, HippyBridge.B
                                                                 "load coreJsBundle failed, check your core jsBundle:"
                                                                         + reason);
                                                     }
-                                                    callback.callback((result == 0), exception);
                                                     timeMonitor.endGroup(TimeMonitor.MONITOR_GROUP_INIT_ENGINE);
+                                                    callback.callback((result == 0), exception);
                                                 }
                                             });
                                 } else {
@@ -324,6 +333,9 @@ public class HippyBridgeManagerImpl implements HippyBridgeManager, HippyBridge.B
                             @Override
                             public void Call(long result, Message message, String action,
                                     String reason) {
+                                timeMonitor.endGroup(TimeMonitor.MONITOR_GROUP_RUN_BUNDLE);
+                                timeMonitor.beginGroup(TimeMonitor.MONITOR_GROUP_PAINT);
+                                timeMonitor.addPoint(TimeMonitor.MONITOR_GROUP_PAINT, TimeMonitor.MONITOR_POINT_FIRST_PAINT);
                                 if (result == 0) {
                                     if (contextWeakRef.get() != null) {
                                         contextWeakRef.get().onLoadModuleCompleted(ModuleLoadStatus.STATUS_OK,
@@ -336,9 +348,6 @@ public class HippyBridgeManagerImpl implements HippyBridgeManager, HippyBridge.B
                                                 "load module error. loader.load failed. check the file!!");
                                     }
                                 }
-                                timeMonitor.endGroup(TimeMonitor.MONITOR_GROUP_RUN_BUNDLE);
-                                timeMonitor.beginGroup(TimeMonitor.MONITOR_GROUP_PAINT);
-                                timeMonitor.addPoint(TimeMonitor.MONITOR_GROUP_PAINT, TimeMonitor.MONITOR_POINT_FIRST_PAINT);
                             }
                         });
                     } else {

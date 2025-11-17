@@ -59,15 +59,15 @@ public:
   
   bool IsLazyCreate() { return isLazyCreate_; }
 
-  virtual ArkUINode *GetLocalRootArkUINode() = 0;
+  virtual ArkUINode *GetLocalRootArkUINode() { return nullptr; }
   void CreateArkUINode(bool isFromLazy, int index = -1);
   virtual void CreateArkUINodeImpl() = 0;
   void DestroyArkUINode();
   virtual void DestroyArkUINodeImpl() = 0;
   
-  std::shared_ptr<RecycleView> RecycleArkUINode();
+  virtual std::shared_ptr<RecycleView> RecycleArkUINode();
   virtual bool RecycleArkUINodeImpl(std::shared_ptr<RecycleView> &recycleView) { return false; }
-  bool ReuseArkUINode(std::shared_ptr<RecycleView> &recycleView, int32_t index);
+  virtual bool ReuseArkUINode(std::shared_ptr<RecycleView> &recycleView, int32_t index);
   virtual bool ReuseArkUINodeImpl(std::shared_ptr<RecycleView> &recycleView) { return false; }
   
   bool SetProp(const std::string &propKey, const HippyValue &propValue);
@@ -85,7 +85,7 @@ public:
 
   void SetRenderViewFrame(const HRRect &frame, const HRPadding &padding = HRPadding(0, 0, 0, 0));
   void UpdateEventListener(HippyValueObjectType &newEvents);
-  bool CheckRegisteredEvent(std::string &eventName);
+  bool CheckRegisteredEvent(const std::string &eventName);
 
   void SetTsRenderProvider(napi_env ts_env, napi_ref ts_render_provider_ref);
   void SetTsEventCallback(napi_ref ts_event_callback_ref);
@@ -93,10 +93,13 @@ public:
   void SetPosition(const HRPosition &position);
 
   virtual void OnClick(const HRPosition &position) override;
+  virtual void OnLongClick(const HRPosition &position) override;
   virtual void OnTouch(int32_t actionType, const HRPosition &screenPosition) override;
   virtual void OnAppear() override;
   virtual void OnDisappear() override;
   virtual void OnAreaChange(ArkUI_NumberValue* data) override;
+  virtual void OnAttach() override;
+  virtual void OnDetach() override;
 
 protected:
   virtual void OnChildInserted(std::shared_ptr<BaseView> const &childView, int index);
@@ -181,7 +184,7 @@ protected:
   bool toSetShadow = false;
 
   std::function<void()> eventClick_;
-  std::function<void()> eventLongPress_;
+  std::function<void()> eventLongClick_;
   std::function<void()> eventPressIn_;
   std::function<void()> eventPressOut_;
   std::function<void(const HRPosition &screenPosition)> eventTouchDown_;

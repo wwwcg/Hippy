@@ -59,11 +59,35 @@ void NativeRenderImpl::UnbindNativeRoot(uint32_t root_id, uint32_t node_id) {
   view_manager->UnbindNativeRoot(node_id);
 }
 
+void NativeRenderImpl::BindNativeRootToParent(ArkUI_NodeHandle parentNodeHandle, uint32_t root_id, uint32_t node_id) {
+  auto view_manager = hr_manager_->GetViewManager(root_id);
+  if (!view_manager) {
+    return;
+  }
+
+  view_manager->BindNativeRootToParent(parentNodeHandle, node_id);
+}
+
+void NativeRenderImpl::UnbindNativeRootFromParent(uint32_t root_id, uint32_t node_id) {
+  auto view_manager = hr_manager_->GetViewManager(root_id);
+  if (!view_manager) {
+    return;
+  }
+
+  view_manager->UnbindNativeRootFromParent(node_id);
+}
+
 void NativeRenderImpl::RegisterCustomTsRenderViews(napi_env ts_env, napi_ref ts_render_provider_ref, std::set<std::string> &custom_views, std::map<std::string, std::string> &mapping_views) {
   hr_manager_->RegisterCustomTsRenderViews(ts_env, ts_render_provider_ref, custom_views, mapping_views);
 }
 
-void NativeRenderImpl::DestroyRoot(uint32_t root_id) {
+void NativeRenderImpl::DestroyRoot(uint32_t root_id, bool is_c_inteface) {
+  if (is_c_inteface) {
+    auto view_manager = hr_manager_->GetViewManager(root_id);
+    if (view_manager) {
+      view_manager->CheckAndDestroyTsRootForCInterface();
+    }
+  }
   hr_manager_->RemoveViewManager(root_id);
   hr_manager_->RemoveVirtualNodeManager(root_id);
 }
@@ -97,7 +121,11 @@ void NativeRenderImpl::PreCreateNode(uint32_t root_id, const std::vector<std::sh
 
   for (uint32_t i = 0; i < mutations.size(); i++) {
     auto &m = mutations[i];
-    view_manager->PreCreateRenderView(m->tag_, m->view_name_, m->is_parent_text_);
+    bool is_nine_img = false;
+    if (m->view_name_ == "Image" && m->props_.find("capInsets") != m->props_.end()) {
+      is_nine_img = true;
+    }
+    view_manager->PreCreateRenderView(m->tag_, m->view_name_, m->is_parent_text_, m->is_parent_waterfall_, is_nine_img);
     view_manager->PreUpdateProps(m->tag_, m->props_);
   }
 }
@@ -347,6 +375,19 @@ void NativeRenderImpl::RemoveBizViewInRoot(uint32_t root_id, uint32_t biz_view_i
     return;
   }
   view_manager->RemoveBizViewInRoot(biz_view_id);
+}
+
+void NativeRenderImpl::SetImageLoaderAdapter(napi_ref local_loader, napi_ref remote_loader) {
+  ts_local_loader_ref_ = local_loader;
+  ts_remote_loader_ref_ = remote_loader;
+}
+
+void NativeRenderImpl::DoCallbackForFetchLocalPathAsync(uint32_t root_id, uint32_t node_id, bool success, const std::string &path) {
+  auto view_manager = hr_manager_->GetViewManager(root_id);
+  if (!view_manager) {
+    return;
+  }
+  view_manager->DoCallbackForFetchLocalPathAsync(node_id, success, path);
 }
 
 } // namespace native

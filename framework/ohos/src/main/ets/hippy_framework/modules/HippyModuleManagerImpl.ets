@@ -19,21 +19,18 @@
  */
 import { HippyException } from '../../support/common/HippyException'
 import { HippyEngineContext } from '../HippyEngineContext'
-import {
-  HippyNativeModuleBase,
-  AudioPlayerModule,
-  ConsoleModule,
-  StorageModule,
-  DevMenuModule,
-  DeviceEventModule,
-  ExceptionModule,
-  ImageLoaderModule,
-  NetInfoModule,
-  NetworkModule,
-  WebSocketModule,
-  UtilsModule
-} from "./native"
-import util from '@ohos.util'
+import { HippyNativeModuleBase } from "./native/HippyNativeModuleBase"
+import { AudioPlayerModule } from "./native/audio/AudioPlayerModule"
+import { ConsoleModule } from "./native/console/ConsoleModule"
+import { StorageModule } from "./native/storage/StorageModule"
+import { DevMenuModule } from "./native/debug/DevMenuModule"
+import { DeviceEventModule } from "./native/deviceevent/DeviceEventModule"
+import { ExceptionModule } from "./native/exception/ExceptionModule"
+import { ImageLoaderModule } from "./native/image/ImageLoaderModule"
+import { NetInfoModule } from "./native/netinfo/NetInfoModule"
+import { NetworkModule } from "./native/network/NetworkModule"
+import { WebSocketModule } from "./native/network/WebSocketModule"
+import { UtilsModule } from "./native/utils/UtilsModule"
 import { HippyModuleManager } from './HippyModuleManager'
 import { HippyCallNativeParams } from '../bridge/HippyCallNativeParams'
 import { LogUtils } from '../../support/utils/LogUtils'
@@ -47,6 +44,7 @@ import { HippyModulePromiseImpl } from './HippyModulePromiseImpl'
 import { BinaryReader } from '../../serialization/reader/BinaryReader'
 import { Deserializer } from '../serialization/Deserializer'
 import { ViewManagerModule } from './native/viewmanager/ViewManagerModule'
+import { HippyModuleUtils } from './HippyModuleUtils'
 
 export type HippyNativeModuleCreator = (ctx: HippyEngineContext) => HippyNativeModuleBase
 
@@ -112,7 +110,7 @@ export class HippyModuleManagerImpl implements HippyModuleManager {
     const moduleFunc = params.moduleFunc;
 
     // callNative 参数反序列化
-    let moduleParam = this.bytesToArgument(buffer);
+    let moduleParam = HippyModuleUtils.bytesToArgument(buffer, this.mEnableV8Serialization);
     LogUtils.i('hippy', 'JsDriver callNatives moduleParam: ' + moduleParam);
     let module = this.getNativeModule(moduleName, false)
     if (module) {
@@ -162,61 +160,6 @@ export class HippyModuleManagerImpl implements HippyModuleManager {
     }
   }
 
-  public bytesToArgument(buffer: ArrayBuffer): Array<HippyAny> {
-    let result = new Array<HippyAny>();
-    if (buffer) {
-      try {
-        if (this.mEnableV8Serialization) {
-          result = this.parseV8SerializeData(buffer);
-        } else {
-          result = this.parseJsonData(buffer);
-        }
-      } catch (e) {
-        throw new HippyException("parse bytesToArgument error");
-      }
-    }
-    return result;
-  }
 
-  public parseV8SerializeData(buffer: ArrayBuffer): Array<HippyAny> {
-      const bytes = new Uint8Array(buffer);
-      const reader = new BinaryReader(bytes);
-      const serializer = new Deserializer(reader, null);
-      serializer.reset();
-      serializer.readHeader();
-      return serializer.readValue() as Array<HippyAny>;
-  }
-
-  public parseJsonData(buffer: ArrayBuffer): Array<HippyAny> {
-    const bytes = new Uint8Array(buffer);
-    const textDecoder = TextUtils.getUtf8Decoder()
-    const str = textDecoder.decodeWithStream(bytes)
-    if (!str) {
-      return new Array<HippyAny>()
-    }
-    const paramArray = JSON.parse(str) as Array<HippyAny>;
-    return this.convertObjectToMap(paramArray as HippyAny) as Array<HippyAny>
-  }
-
-  private convertObjectToMap(value: HippyAny): HippyAny {
-    if(value instanceof Array) {
-      return (value as Array<HippyAny>).map(item => this.convertObjectToMap(item))
-    } else if (value instanceof Map) {
-      let map = value as Map<string, HippyAny>
-      let map2 = new Map<string, HippyAny>()
-      map.forEach((v: HippyAny, k: string) => {
-        map2.set(k, this.convertObjectToMap(v))
-      })
-      return map2
-    } else if (typeof value === 'object' && value !== null) {
-      let map: Map<string, HippyAny> = new Map(Object.entries(value))
-      let map2 = new Map<string, HippyAny>()
-      map.forEach((v: HippyAny, k: string) => {
-        map2.set(k, this.convertObjectToMap(v))
-      })
-      return map2
-    }
-    return value
-  }
 
 }

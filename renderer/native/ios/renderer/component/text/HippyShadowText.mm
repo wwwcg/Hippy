@@ -46,6 +46,11 @@ NSAttributedStringKey const HippyTextVerticalAlignAttributeName = @"HippyTextVer
 // Distance to the bottom of the baseline, for text attachment baseline layout, NSNumber value
 NSAttributedStringKey const HippyVerticalAlignBaselineOffsetAttributeName = @"HippyVerticalAlignBaselineOffsetAttributeName";
 
+// Keys for pending attributes collection (avoid string hardcode)
+static NSString *const HippyPendingRangeKey = @"HippyPendingRangeKey";
+static NSString *const HippyPendingOffsetKey = @"HippyPendingOffsetKey";
+static NSString *const HippyPendingValueKey = @"HippyPendingValueKey";
+
 
 CGFloat const HippyTextAutoSizeWidthErrorMargin = 0.05;
 CGFloat const HippyTextAutoSizeHeightErrorMargin = 0.025;
@@ -91,6 +96,9 @@ static BOOL DirtyTextEqual(NSObject *v1, NSObject *v2) {
     BOOL _isNestedText; // Indicates whether Text is nested, for speeding up typesetting calculations
     BOOL _needRelayoutText; // special styles require two layouts, eg. verticalAlign etc
     hippy::LayoutMeasureMode _cachedTextStorageWidthMode; // cached width mode when building text storage
+    // Collect pending edits to avoid mutating textStorage during layout callbacks
+    NSMutableArray<NSDictionary *> *_pendingBaselineOffsets; // entries: { range:NSValue(NSRange), offset:NSNumber }
+    NSMutableArray<NSDictionary *> *_pendingAttachmentBaselineBottoms; // entries: { range:NSValue(NSRange), value:NSNumber }
 }
 
 @end
@@ -165,12 +173,15 @@ static void resetFontAttribute(NSTextStorage *textStorage) {
         _ellipsizeMode = NSLineBreakByTruncatingTail;
         _cachedTextStorageWidth = -1;
         _cachedTextStorageWidthMode = hippy::LayoutMeasureMode::Undefined;
+        _allowFontScaling = YES;
         _fontSizeMultiplier = 1.0;
-        _lineHeightMultiple = 1.0f;
+        _lineHeightMultiple = 1.0;
         _textAlign = NSTextAlignmentLeft;
         if (NSWritingDirectionRightToLeft ==  [[HippyI18nUtils sharedInstance] writingDirectionForCurrentAppLanguage]) {
             self.textAlign = NSTextAlignmentRight;
         }
+        _pendingBaselineOffsets = [NSMutableArray array];
+        _pendingAttachmentBaselineBottoms = [NSMutableArray array];
     }
     return self;
 }
@@ -201,7 +212,7 @@ static void resetFontAttribute(NSTextStorage *textStorage) {
     CGFloat width = self.frame.size.width - (padding.left + padding.right);
 
     NSNumber *parentTag = [[self parent] hippyTag];
-    // MTTlayout
+    // Layout
     NSTextStorage *textStorage = [self buildTextStorageForWidth:width widthMode:hippy::LayoutMeasureMode::Exactly];
     CGRect textFrame = [self calculateTextFrame:textStorage];
     UIColor *color = self.color ?: [UIColor blackColor];
@@ -245,7 +256,10 @@ static void resetFontAttribute(NSTextStorage *textStorage) {
                                 options:0
                              usingBlock:^(HippyShadowView *child, NSRange range, __unused BOOL *_) {
             if (child) {
-                float width = child.width, height = child.height;
+                // Get width and height from layout style
+                CGSize styleSize = [child getStyleSize];
+                float width = styleSize.width;
+                float height = styleSize.height;
                 if (isnan(width) || isnan(height)) {
                     HippyLogError(@"Views nested within a <Text> must have a width and height");
                 }
@@ -332,8 +346,8 @@ static void resetFontAttribute(NSTextStorage *textStorage) {
         
         // Nested <Text> inside <Text> should not call amendLayoutBeforeMount again,
         // so only call amendXxx when subcomponent is not a <Text>.
-        if (NativeRenderUpdateLifecycleComputed != _propagationLifecycle) {
-            _propagationLifecycle = NativeRenderUpdateLifecycleComputed;
+        if (!_isLayoutComputed) {
+            _isLayoutComputed = YES;
             for (HippyShadowView *shadowView in self.hippySubviews) {
                 if (![shadowView isKindOfClass:HippyShadowText.class]) {
                     [shadowView amendLayoutBeforeMount:blocks];
@@ -362,62 +376,100 @@ static void resetFontAttribute(NSTextStorage *textStorage) {
 }
 
 - (NSTextStorage *)buildTextStorageForWidth:(CGFloat)width widthMode:(hippy::LayoutMeasureMode)widthMode {
-    if (isnan(width)) {
-        width = 0;
-    }
+    @synchronized (self) {
+        if (isnan(width)) {
+            width = 0;
+        }
 
-    if (_cachedTextStorage && width == _cachedTextStorageWidth && widthMode == _cachedTextStorageWidthMode) {
-        return _cachedTextStorage;
-    }
+        if (_cachedTextStorage && width == _cachedTextStorageWidth && widthMode == _cachedTextStorageWidthMode) {
+            return _cachedTextStorage;
+        }
 
-    // textContainer
-    NSTextContainer *textContainer = [NSTextContainer new];
-    textContainer.lineFragmentPadding = 0.0;
+        // textContainer
+        NSTextContainer *textContainer = [NSTextContainer new];
+        textContainer.lineFragmentPadding = 0.0;
 
-    if (_numberOfLines > 0) {
-        textContainer.lineBreakMode = _ellipsizeMode;
-    } else {
-        textContainer.lineBreakMode = NSLineBreakByClipping;
-    }
+        if (_numberOfLines > 0) {
+            textContainer.lineBreakMode = _ellipsizeMode;
+        } else {
+            textContainer.lineBreakMode = NSLineBreakByClipping;
+        }
 
-    textContainer.maximumNumberOfLines = _numberOfLines;
-    textContainer.size = (CGSize) { widthMode == hippy::LayoutMeasureMode::Undefined ? CGFLOAT_MAX : width, CGFLOAT_MAX };
-    
-    // layoutManager && textStorage
-    NSLayoutManager *layoutManager = [NSLayoutManager new];
-    NSTextStorage *textStorage = [[NSTextStorage alloc] initWithAttributedString:self.attributedString];
-    [textStorage addLayoutManager:layoutManager];
-    
-    layoutManager.delegate = self;
-    [layoutManager addTextContainer:textContainer];
-    [layoutManager ensureLayoutForTextContainer:textContainer];
-    
-    // for better perf, only do relayout when MeasureMode is MeasureModeExactly
-    if (_needRelayoutText && hippy::LayoutMeasureMode::Exactly == widthMode) {
-        // relayout text
-        [layoutManager invalidateLayoutForCharacterRange:NSMakeRange(0, textStorage.length) actualCharacterRange:nil];
-        [layoutManager removeTextContainerAtIndex:0];
+        textContainer.maximumNumberOfLines = _numberOfLines;
+        textContainer.size = (CGSize) { widthMode == hippy::LayoutMeasureMode::Undefined ? CGFLOAT_MAX : width, CGFLOAT_MAX };
+        
+        // layoutManager && textStorage
+        NSLayoutManager *layoutManager = [NSLayoutManager new];
+        NSTextStorage *textStorage = [[NSTextStorage alloc] initWithAttributedString:self.attributedString];
+        [textStorage addLayoutManager:layoutManager];
+        
+        layoutManager.delegate = self;
         [layoutManager addTextContainer:textContainer];
+        // start clean collection for this layout build
+        [_pendingBaselineOffsets removeAllObjects];
+        [_pendingAttachmentBaselineBottoms removeAllObjects];
         [layoutManager ensureLayoutForTextContainer:textContainer];
-        _needRelayoutText = NO;
+
+        // Apply pending attributes collected during the first layout pass.
+        if (_pendingBaselineOffsets.count > 0 || _pendingAttachmentBaselineBottoms.count > 0) {
+            [textStorage beginEditing];
+            NSUInteger const storageLength = textStorage.length;
+            for (NSDictionary *entry in _pendingBaselineOffsets) {
+                NSValue *rangeValue = entry[HippyPendingRangeKey];
+                NSNumber *offsetValue = entry[HippyPendingOffsetKey];
+                if (!rangeValue || !offsetValue) { continue; }
+                NSRange r = rangeValue.rangeValue;
+                if (r.location == NSNotFound || r.length == 0) { continue; }
+                if (NSMaxRange(r) > storageLength) { continue; }
+                [textStorage addAttribute:NSBaselineOffsetAttributeName value:offsetValue range:r];
+            }
+            for (NSDictionary *entry in _pendingAttachmentBaselineBottoms) {
+                NSValue *rangeValue = entry[HippyPendingRangeKey];
+                NSNumber *value = entry[HippyPendingValueKey];
+                if (!rangeValue || !value) { continue; }
+                NSRange r = rangeValue.rangeValue;
+                if (r.location == NSNotFound || r.length == 0) { continue; }
+                if (NSMaxRange(r) > storageLength) { continue; }
+                [textStorage addAttribute:HippyVerticalAlignBaselineOffsetAttributeName value:value range:r];
+            }
+            [textStorage endEditing];
+            [_pendingBaselineOffsets removeAllObjects];
+            [_pendingAttachmentBaselineBottoms removeAllObjects];
+            _needRelayoutText = YES;
+        }
+        
+        // for better perf, only do relayout when MeasureMode is MeasureModeExactly
+        if (_needRelayoutText && hippy::LayoutMeasureMode::Exactly == widthMode) {
+            // relayout text after applying pending attributes from first pass
+            [layoutManager invalidateLayoutForCharacterRange:NSMakeRange(0, textStorage.length) actualCharacterRange:nil];
+            [layoutManager removeTextContainerAtIndex:0];
+            [layoutManager addTextContainer:textContainer];
+            [layoutManager ensureLayoutForTextContainer:textContainer];
+            // clear any collections from the relayout pass
+            [_pendingBaselineOffsets removeAllObjects];
+            [_pendingAttachmentBaselineBottoms removeAllObjects];
+            _needRelayoutText = NO;
+        }
+
+        if (_autoLetterSpacing) {
+            resetFontAttribute(textStorage);
+            _cachedAttributedString = [[NSAttributedString alloc] initWithAttributedString:textStorage];
+        }
+
+        _cachedTextStorageWidth = width;
+        _cachedTextStorageWidthMode = widthMode;
+        _cachedTextStorage = textStorage;
+
+        return textStorage;
     }
-
-    if (_autoLetterSpacing) {
-        resetFontAttribute(textStorage);
-        _cachedAttributedString = [[NSAttributedString alloc] initWithAttributedString:textStorage];
-    }
-
-    _cachedTextStorageWidth = width;
-    _cachedTextStorageWidthMode = widthMode;
-    _cachedTextStorage = textStorage;
-
-    return textStorage;
 }
 
 - (void)dirtyText:(BOOL)needToDoLayout {
     [super dirtyText:needToDoLayout];
     _isTextDirty = YES;
-    _cachedTextStorage = nil;
+    @synchronized (self) {
+        _cachedTextStorage = nil;
+    }
     auto domManager = self.domManager.lock();
     auto weakDomManager = self.domManager;
     if (domManager) {
@@ -457,8 +509,7 @@ static void resetFontAttribute(NSTextStorage *textStorage) {
 
 - (void)recomputeText {
     [self attributedString];
-    [self setTextComputed];
-    [self dirtyPropagation:NativeRenderUpdateLifecycleAllDirtied];
+    [self markLayoutDirty];
 }
 
 #pragma mark - AttributeString
@@ -482,8 +533,10 @@ static void resetFontAttribute(NSTextStorage *textStorage) {
         }
     }
 
-    if (![self isTextDirty] && _cachedAttributedString) {
-        return _cachedAttributedString;
+    @synchronized (self) {
+        if (![self isTextDirty] && _cachedAttributedString) {
+            return _cachedAttributedString;
+        }
     }
 
     if (_fontSize && !isnan(_fontSize)) {
@@ -540,23 +593,19 @@ static void resetFontAttribute(NSTextStorage *textStorage) {
             childInfo.isNestedText = styleInfo.isNestedText;
             NSAttributedString *subStr = [childShadowText _attributedStringWithStyleInfo:childInfo];
             [attributedString appendAttributedString:subStr];
-            [child setTextComputed];
         } else {
-            float width = 0, height = 0;
-            auto domManager = [child domManager].lock();
-            if (domManager) {
-                int32_t componentTag = [child.hippyTag intValue];
-                auto domNode = domManager->GetNode(child.rootNode, componentTag);
-                if (domNode) {
-                    width = domNode->GetLayoutNode()->GetStyleWidth();
-                    height = domNode->GetLayoutNode()->GetStyleHeight();
-                    CGRect frame = child.frame;
-                    frame.size.width = width;
-                    frame.size.height = height;
-                    child.frame = frame;
-                }
-            }
-            if (isnan(width) || isnan(height)) {
+            // Get width and height from layout style
+            CGSize styleSize = [child getStyleSize];
+            float width = styleSize.width;
+            float height = styleSize.height;
+            
+            // Update child's frame with the style size
+            if (!isnan(width) && !isnan(height)) {
+                CGRect frame = child.frame;
+                frame.size.width = width;
+                frame.size.height = height;
+                child.frame = frame;
+            } else {
                 HippyLogError(@"Views nested within a <Text> must have a width and height");
             }
             // take margin into account
@@ -593,8 +642,7 @@ static void resetFontAttribute(NSTextStorage *textStorage) {
                 heightOfTallestSubview = height;
             }
             _hasAttachment = YES;
-            // Don't call setTextComputed on this child. HippyTextManager takes care of
-            // processing inline UIViews.
+            // Note: HippyTextManager takes care of processing inline UIViews.
         }
     }
 
@@ -635,9 +683,11 @@ static void resetFontAttribute(NSTextStorage *textStorage) {
     }
 
     // create a non-mutable attributedString for use by the Text system which avoids copies down the line
-    _cachedAttributedString = [[NSAttributedString alloc] initWithAttributedString:attributedString];
-    _isTextDirty = NO;
-    return _cachedAttributedString;
+    @synchronized (self) {
+        _cachedAttributedString = [[NSAttributedString alloc] initWithAttributedString:attributedString];
+        _isTextDirty = NO;
+        return _cachedAttributedString;
+    }
 }
 
 - (void)_addAttribute:(NSString *)attribute withValue:(id)attributeValue toAttributedString:(NSMutableAttributedString *)attributedString {
@@ -793,7 +843,11 @@ static void resetFontAttribute(NSTextStorage *textStorage) {
     BOOL fits = [self attemptScale:1.0f inStorage:textStorage forFrame:frame];
     CGSize requiredSize;
     if (!fits) {
-        requiredSize = [self calculateOptimumScaleInFrame:frame forStorage:textStorage minScale:self.minimumFontScale maxScale:1.0 prevMid:INT_MAX];
+        requiredSize = [self calculateOptimumScaleInFrame:frame
+                                               forStorage:textStorage
+                                                 minScale:self.minimumFontScale
+                                                 maxScale:1.0
+                                                  prevMid:INT_MAX];
     } else {
         requiredSize = [self calculateSize:textStorage];
     }
@@ -978,10 +1032,6 @@ NATIVE_RENDER_TEXT_PROPERTY(TextShadowColor, _textShadowColor, UIColor *);
 }
 
 - (void)setText:(NSString *)text {
-    double version = UIDevice.currentDevice.systemVersion.doubleValue;
-    if (version >= 10.0 && version < 12.0) {
-        text = [text stringByReplacingOccurrencesOfString:@"జ్ఞ‌ా" withString:@" "];
-    }
     if (_text != text && ![_text isEqualToString:text]) {
         _text = [text copy];
         _needDirtyText = YES;
@@ -1093,9 +1143,9 @@ NATIVE_RENDER_TEXT_PROPERTY(TextShadowColor, _textShadowColor, UIColor *);
             CGFloat maxTotalHeight = MAX((maxAttachmentHeight + textBaselineToBottom), maxFont.lineHeight);
             realBaselineOffset = (CGRectGetHeight(*lineFragmentUsedRect) - maxTotalHeight) / 2.f;
             if (hasAttachment) {
-                [textStorage addAttribute:HippyVerticalAlignBaselineOffsetAttributeName
-                                    value:@(realBaselineOffset + textBaselineToBottom)
-                                    range:storageRange];
+                // Defer writing attribute to avoid mutating storage during layout
+                [_pendingAttachmentBaselineBottoms addObject:@{ HippyPendingRangeKey: [NSValue valueWithRange:storageRange],
+                                                               HippyPendingValueKey: @(realBaselineOffset + textBaselineToBottom) }];
             }
         }
         
@@ -1137,9 +1187,9 @@ NATIVE_RENDER_TEXT_PROPERTY(TextShadowColor, _textShadowColor, UIColor *);
                         break;
                 }
                 if (abs(offset) > .0f && !attrs[HippyShadowViewAttributeName]) {
-                    // only set for Text
-                    [textStorage addAttribute:NSBaselineOffsetAttributeName value:@(offset) range:range];
-                    _needRelayoutText = YES;
+                    // only set for Text; defer to avoid mutation during layout
+                    [_pendingBaselineOffsets addObject:@{ HippyPendingRangeKey: [NSValue valueWithRange:range],
+                                                          HippyPendingOffsetKey: @(offset) }];
                 }
             }
         }];

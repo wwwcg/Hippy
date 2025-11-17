@@ -17,13 +17,26 @@ Demo的Native工程代码位于framework/examples目录，前端工程代码位�
 
 ### macOS开发环境
 
-可以在macOS上开发iOS，Android应用，请求根据需要进行环境配置。
+可以在macOS上开发iOS、Android、Ohos应用，请求根据需要进行环境配置。
 
 首先，通过Homebrew包管理工具安装git, git-lfs, node(v16) and npm(v7)
 
 ```shell
 brew install git git-lfs node@16 cmake
 ```
+
+### Windows开发环境
+
+可以Windows上开发Android和Ohos应用，请安装以下依赖。
+
+1. Git for Windows
+
+    通过(https://gitforwindows.org)下载安装Git for Windows
+
+2. Node和NPM
+
+    通过指引安装[nodejs和npm](https://docs.npmjs.com/downloading-and-installing-node-js-and-npm)，建议使用Node v16，NPM v7版本
+
 
 #### 编译iOS Demo环境准备
 
@@ -42,29 +55,12 @@ brew install git git-lfs node@16 cmake
 
     通过android开发者平台下载安装[Android Studio](https://developer.android.com/studio)
     
-2. Android NDK
+2. Android Studio环境配置参考[3.0集成指引章节](development/android-3.0-integration-guidelines)
 
-    通过android开发者平台下载安装[NDK](https://developer.android.com/ndk?hl=en)
+#### 编译Ohos Demo环境准备
 
-### Windows开发环境
-
-可以Windows上开发Android应用，请安装以下依赖。
-
-1. Android Studio
-
-    通过android开发者平台下载安装[Android Studio](https://developer.android.com/studio)
-    
-2. Android NDK
-
-    通过android开发者平台下载安装[NDK](https://developer.android.com/ndk?hl=en)
-
-3. Git for Windows
-
-    通过(https://gitforwindows.org)下载安装Git for Windows
-
-4. Node和NPM
-
-    通过指引安装[nodejs和npm](https://docs.npmjs.com/downloading-and-installing-node-js-and-npm)，建议使用Node v16，NPM v7版本
+1. DevEco Studio
+   通过Ohos开发者平台下载安装[DevEco Studio](https://developer.huawei.com/consumer/cn/download/)
 
 
 ## 代码拉取
@@ -93,6 +89,12 @@ open HippyDemo.xcworkspace
 1. 使用 Android Studio 打开根目录 `Android Project` 项目。
 2. 使用 USB 线连接 Android 设备，并确保设备 USB 调试模式已经开启（电脑 Terminal 执行 `adb devices` 检查手机连接状态）。
 3. Android Studio 执行项目构建，并安装 APK运行。
+
+### 编译运行Ohos Demo
+
+1. 使用 DevEco Studio 打开根目录 `Ohos Project` 项目。
+2. 使用 USB 线连接 Ohos 设备，并确保设备 USB 调试模式已经开启。
+3. DevEco Studio 选择 Application `entry` 执行项目构建，并安装到手机运行。
 
 ### 效果预览
 
@@ -228,4 +230,3 @@ cp -R driver/js/examples/hippy-react-demo/dist/android/*  framework/examples/and
 
 <img src="../assets/img/3.0-demo-helloworld.png" alt= "Demo效果" width="200" height="433" />
 
-恭喜你完成了Hippy的初步体验，下一步参考[Native工程集成章节](development/native-integration)将Hippy接入到你现有的工程吧。

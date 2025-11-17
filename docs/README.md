@@ -1,16 +1,16 @@
 # Hippy 简介
 
-版本：3.3.3
+版本：3.3.7
 
-更新时间：2025-2-14
+更新时间：2025-09-25
 
-SDK介绍：Hippy 是 TDF 腾讯端框架（Tencent Device-oriented Framework）下的开源跨平台应用开发解决方案。Hippy 可以理解为一个精简版的浏览器，从底层做了大量工作，抹平了 iOS 和 Android 双端差异，提供了接近 Web 的开发体验，目前上层支持了 React 和 Vue 两套界面框架，前端开发人员可以通过它，将前端代码转换为终端的原生指令，进行原生终端 App 的开发。同时，Hippy 从底层进行了大量优化，在启动速度、渲染性能、动画速度、内存占用、包体积等方面都提供了业内顶尖的性能表现。
+SDK介绍：Hippy 是腾讯端框架（Tencent Device-oriented Service Framework）下的开源跨平台应用开发解决方案。Hippy 可以理解为一个精简版的浏览器，从底层做了大量工作，抹平了 iOS、Android、Ohos 三端差异，提供了接近 Web 的开发体验，目前上层支持了 React 和 Vue 两套界面框架，前端开发人员可以通过它，将前端代码转换为终端的原生指令，进行原生终端 App 的开发。同时，Hippy 从底层进行了大量优化，在启动速度、渲染性能、动画速度、内存占用、包体积等方面都提供了业内顶尖的性能表现。
 
 更新日志：[Change log](https://github.com/Tencent/Hippy/releases)
 
 服务提供方：深圳市腾讯计算机系统有限公司
 
-[接入指引](development/react-vue-integration-guidelines.md)
+[接入指引](development/react-vue-3.0-integration-guidelines.md)
 
 [Hippy SDK隐私保护指引](development/privacy.md)
 
@@ -27,7 +27,7 @@ SDK介绍：Hippy 是 TDF 腾讯端框架（Tencent Device-oriented Framework）
 
 ## 一次开发，多端运行
 
-使用 Hippy 框架开发后，代码可以同时运行在 Android、iOS、 Web等多个平台。
+使用 Hippy 框架开发后，代码可以同时运行在 Android、iOS、Ohos、Web等多个平台。
 
 ## 出色的性能表现
 
@@ -72,7 +72,7 @@ DOM Manager 从 Java/OC 抽离到 C++，作为中间枢纽，除了接收处理�
 
 ### 渲染层
 
-* Native Renderer：使用 Android/iOS 原生组件进行渲染, 详见 [Android](architecture/render/android/native-render)、[iOS](architecture/render/ios/native-render)。
+* Native Renderer：使用 Android/iOS/Ohos 原生组件进行渲染, 详见 [Android](architecture/render/android/native-render)、[iOS](architecture/render/ios/native-render)、[Ohos](architecture/render/ohos/native-render)。
 * Voltron Renderer：使用 Flutter 渲染, 详见 [Voltron](architecture/render/voltron/voltron-render)。
 * Web Renderer：使用 WebView 渲染（Web 同构）, 详见 [Web](architecture/render/web/web-render)。
 

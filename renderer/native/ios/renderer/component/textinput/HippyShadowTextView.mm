@@ -188,7 +188,7 @@ static hippy::LayoutSize x5MeasureFunc(
 }
 
 - (void)amendLayoutBeforeMount:(NSMutableSet<NativeRenderApplierBlock> *)blocks {
-    if (NativeRenderUpdateLifecycleComputed != _propagationLifecycle) {
+    if (!_isLayoutComputed) {
         //Set needs layout for font change event, etc.
         NSNumber *currentTag = self.hippyTag;
         [blocks addObject:^(NSDictionary<NSNumber *, UIView *> *viewRegistry, UIView * _Nullable lazyCreatedView) {
@@ -224,7 +224,7 @@ static hippy::LayoutSize x5MeasureFunc(
 
 - (void)rebuildAndUpdateFont {
     // Convert fontName to fontFamily if needed
-    CGFloat scaleMultiplier = 1.0; // scale not supported
+    CGFloat scaleMultiplier = self.fontSizeMultiplier;
     NSString *familyName = [HippyFont familyNameWithCSSNameMatching:self.fontFamily];
     UIFont *font = [HippyFont updateFont:self.font
                               withFamily:familyName

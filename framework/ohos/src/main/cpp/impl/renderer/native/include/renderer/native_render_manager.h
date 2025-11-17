@@ -69,8 +69,10 @@ class NativeRenderManager : public RenderManager, public std::enable_shared_from
                          std::set<std::string> &custom_views, std::set<std::string> &custom_measure_views, std::map<std::string, std::string> &mapping_views,
                          std::string &bundle_path, bool is_rawfile, const std::string &res_module_name);
   void SetBundlePath(const std::string &bundle_path);
-  void InitDensity(double density, double density_scale, double font_size_scale);
+  void InitDensity(double density, double density_scale, double font_size_scale, double font_weight_scale);
   void AddCustomFontPath(const std::string &fontFamilyName, const std::string &fontPath);
+  
+  void SetUriLoader(std::weak_ptr<UriLoader> loader);
 
   void CreateRenderNode(std::weak_ptr<RootNode> root_node, std::vector<std::shared_ptr<DomNode>>&& nodes) override;
   void UpdateRenderNode(std::weak_ptr<RootNode> root_node, std::vector<std::shared_ptr<DomNode>>&& nodes) override;
@@ -109,7 +111,10 @@ class NativeRenderManager : public RenderManager, public std::enable_shared_from
   void BindNativeRoot(ArkUI_NodeContentHandle contentHandle, uint32_t root_id, uint32_t node_id);
   void UnbindNativeRoot(uint32_t root_id, uint32_t node_id);
 
-  void DestroyRoot(uint32_t root_id);
+  void BindNativeRootToParent(ArkUI_NodeHandle parentNodeHandle, uint32_t root_id, uint32_t node_id);
+  void UnbindNativeRootFromParent(uint32_t root_id, uint32_t node_id);
+
+  void DestroyRoot(uint32_t root_id, bool is_c_inteface = false);
 
   void DoCallbackForCallCustomTsView(uint32_t root_id, uint32_t node_id, uint32_t callback_id, const HippyValue &result);
 
@@ -120,6 +125,10 @@ class NativeRenderManager : public RenderManager, public std::enable_shared_from
   HRRect GetViewFrameInRoot(uint32_t root_id, uint32_t node_id);
   void AddBizViewInRoot(uint32_t root_id, uint32_t biz_view_id, ArkUI_NodeHandle node_handle, const HRPosition &position);
   void RemoveBizViewInRoot(uint32_t root_id, uint32_t biz_view_id);
+  
+  void SetImageLoaderAdapter(napi_ref local_loader, napi_ref remote_loader);
+  void DoCallbackForFetchLocalPathAsync(uint32_t root_id, uint32_t node_id, bool success, const std::string &path);
+  
   std::shared_ptr<NativeRenderProvider> &GetNativeRenderProvider() { return c_render_provider_; }
 
 private:
@@ -141,7 +150,7 @@ private:
 
   void DoMeasureText(const std::weak_ptr<RootNode> root_node, const std::weak_ptr<hippy::dom::DomNode> dom_node,
                      const float width, const int32_t width_mode,
-                     const float height, const int32_t height_mode, int64_t &result);
+                     const float height, const int32_t height_mode, bool isSizeIncludePadding, int64_t &result);
 
   bool IsCustomMeasureNode(const std::string &name);
   bool IsCustomMeasureCNode(const std::string &name);

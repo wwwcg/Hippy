@@ -65,7 +65,7 @@ using StringViewUtils = footstone::stringview::StringViewUtils;
 DomNode::DomNode(uint32_t id, uint32_t pid, int32_t index, std::string tag_name, std::string view_name,
                  std::shared_ptr<std::unordered_map<std::string, std::shared_ptr<HippyValue>>> style_map,
                  std::shared_ptr<std::unordered_map<std::string, std::shared_ptr<HippyValue>>> dom_ext_map,
-                 std::weak_ptr<RootNode> weak_root_node)
+                 std::weak_ptr<RootNode> weak_root_node, LayoutEngineType layout_engine_type, void* layout_config)
     : id_(id),
       pid_(pid),
       index_(index),
@@ -78,13 +78,13 @@ DomNode::DomNode(uint32_t id, uint32_t pid, int32_t index, std::string tag_name,
       current_callback_id_(0),
       func_cb_map_(nullptr),
       event_listener_map_(nullptr) {
-  layout_node_ = hippy::dom::CreateLayoutNode();
+  layout_node_ = hippy::dom::CreateLayoutNode(layout_engine_type, layout_config);
 }
 
-DomNode::DomNode(uint32_t id, uint32_t pid, std::weak_ptr<RootNode> weak_root_node)
-    : DomNode(id, pid, 0, "", "", nullptr, nullptr, std::move(weak_root_node)) {}
+DomNode::DomNode(uint32_t id, uint32_t pid, std::weak_ptr<RootNode> weak_root_node, LayoutEngineType layout_engine_type, void* layout_config)
+    : DomNode(id, pid, 0, "", "", nullptr, nullptr, std::move(weak_root_node), layout_engine_type, layout_config) {}
 
-DomNode::DomNode() : DomNode(0, 0, {}) {}
+DomNode::DomNode() : DomNode(0, 0, {}, LayoutEngineDefault, nullptr) {}
 
 DomNode::~DomNode() = default;
 
@@ -225,7 +225,7 @@ std::tuple<float, float> DomNode::GetLayoutSize() {
 void DomNode::SetLayoutSize(float width, float height) {
   is_layout_width_nan_ = std::isnan(width) ? true : false;
   is_layout_height_nan_ = std::isnan(height) ? true : false;
-  
+
   layout_node_->SetWidth(width);
   layout_node_->SetHeight(height);
 }
@@ -266,7 +266,7 @@ void DomNode::RemoveEventListener(const std::string& name, uint64_t listener_id)
   if (it == event_listener_map_->end()) {
     return;
   }
-  auto capture_listeners = it->second[kCapture];
+  auto& capture_listeners = it->second[kCapture];
   auto capture_it = std::find_if(capture_listeners.begin(), capture_listeners.end(),
                                  [listener_id](const std::shared_ptr<DomEventListenerInfo>& item) {
                                    if (item->id == listener_id) {
@@ -279,7 +279,7 @@ void DomNode::RemoveEventListener(const std::string& name, uint64_t listener_id)
   }
 
   // remove dom node bubble function
-  auto bubble_listeners = it->second[kBubble];
+  auto& bubble_listeners = it->second[kBubble];
   auto bubble_it = std::find_if(bubble_listeners.begin(), bubble_listeners.end(),
                                 [listener_id](const std::shared_ptr<DomEventListenerInfo>& item) {
                                   if (item->id == listener_id) {
@@ -437,7 +437,7 @@ CallFunctionCallback DomNode::GetCallback(const std::string& name, uint32_t id) 
   }
   auto it = func_cb_map_->find(name);
   if (it != func_cb_map_->end()) {
-    auto cb_map = it->second;
+    auto& cb_map = it->second;
     auto cb_it = cb_map.find(id);
     if (cb_it != cb_map.end()) {
       auto ret = std::move(cb_it->second);

@@ -25,6 +25,7 @@
 #include "oh_napi/oh_napi_register.h"
 #include "oh_napi/ark_ts.h"
 #include "renderer/native_render_manager.h"
+#include "renderer/uimanager/hr_keyboard_manager.h"
 #include "dom/render_manager.h"
 #include "dom/root_node.h"
 #include "dom/scene.h"
@@ -35,6 +36,7 @@ using DomEvent = hippy::dom::DomEvent;
 using DomManager = hippy::dom::DomManager;
 using HippyValue = footstone::value::HippyValue;
 using NativeRenderManager = hippy::NativeRenderManager;
+using HRKeyboardManager = hippy::HRKeyboardManager;
 using RenderManager = hippy::dom::RenderManager;
 using RootNode = hippy::dom::RootNode;
 using Scene = hippy::dom::Scene;
@@ -100,21 +102,31 @@ static napi_value CreateNativeRenderManager(napi_env env, napi_callback_info inf
     }
   }
   
-  auto bundle_path = arkTs.GetString(args[5]);
-  auto density = arkTs.GetDouble(args[6]);
-  auto density_scale = arkTs.GetDouble(args[7]);
-  auto font_size_scale = arkTs.GetDouble(args[8]);
-  auto is_rawfile = arkTs.GetBoolean(args[9]);
-  auto res_module_name = arkTs.GetString(args[10]);
+  uint32_t arg_index = 5;
+  auto bundle_path = arkTs.GetString(args[arg_index++]);
+  auto density = arkTs.GetDouble(args[arg_index++]);
+  auto density_scale = arkTs.GetDouble(args[arg_index++]);
+  auto font_size_scale = arkTs.GetDouble(args[arg_index++]);
+  auto font_weight_scale = arkTs.GetDouble(args[arg_index++]);
+  auto is_rawfile = arkTs.GetBoolean(args[arg_index++]);
+  auto res_module_name = arkTs.GetString(args[arg_index++]);
+  auto vfs_id = static_cast<uint32_t>(arkTs.GetInteger(args[arg_index++]));
   
   auto render_manager = std::make_shared<NativeRenderManager>();
 
   render_manager->SetRenderDelegate(env, enable_ark_c_api, ts_render_provider_ref, custom_views, custom_measure_views, mapping_views, bundle_path, is_rawfile, res_module_name);
-  render_manager->InitDensity(density, density_scale, font_size_scale);
+  render_manager->InitDensity(density, density_scale, font_size_scale, font_weight_scale);
   auto render_id = hippy::global_data_holder_key.fetch_add(1);
   auto flag = hippy::global_data_holder.Insert(render_id,
                                                std::static_pointer_cast<RenderManager>(render_manager));
   FOOTSTONE_CHECK(flag);
+  
+  std::any vfs_instance;
+  flag = hippy::global_data_holder.Find(vfs_id, vfs_instance);
+  FOOTSTONE_CHECK(flag);
+  auto loader = std::any_cast<std::shared_ptr<UriLoader>>(vfs_instance);
+  render_manager->SetUriLoader(loader);
+  
   return arkTs.CreateInt(static_cast<int>(render_id));
 }
 
@@ -190,11 +202,20 @@ static napi_value RegisterCustomFontWithPaths(napi_env env, napi_callback_info i
   return arkTs.GetUndefined();
 }
 
+static napi_value KeyboardHeightChange(napi_env env, napi_callback_info info) {
+  ArkTS arkTs(env);
+  auto args = arkTs.GetCallbackArgs(info);
+  auto keyboardHeight = (float)arkTs.GetDouble(args[0]);
+  HRKeyboardManager::GetInstance().NotifyKeyboardHeightChanged(keyboardHeight);
+  return arkTs.GetUndefined();
+}
+
 REGISTER_OH_NAPI("NativeRenderer", "NativeRenderer_CreateNativeRenderManager", CreateNativeRenderManager)
 REGISTER_OH_NAPI("NativeRenderer", "NativeRenderer_DestroyNativeRenderManager", DestroyNativeRenderManager)
 REGISTER_OH_NAPI("NativeRenderer", "NativeRenderer_SetBundlePath", SetBundlePath)
 REGISTER_OH_NAPI("NativeRenderer", "NativeRenderer_InitRendererParams", InitRendererParams)
 REGISTER_OH_NAPI("NativeRenderer", "NativeRenderer_RegisterFontPaths", RegisterCustomFontWithPaths)
+REGISTER_OH_NAPI("NativeRenderer", "NativeRenderer_KeyboardHeightChange", KeyboardHeightChange)
 
 }
 }

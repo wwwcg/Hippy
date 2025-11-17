@@ -10,7 +10,10 @@ import { HippyBridgeManagerImpl } from './bridge/HippyBridgeManagerImpl';
 import { DomManager } from './connector/DomManager';
 import { JsDriver } from './connector/JsDriver';
 import { NativeRenderer } from './connector/NativeRenderer';
-import { EngineInitParams, ModuleLoadParams } from './HippyEngine';
+import { EngineInitParams, HippyLayoutEngineType,
+  ModuleListener,
+  ModuleLoadParams,
+  ModuleLoadStatus} from './HippyEngine';
 import { HippyEngineContext } from './HippyEngineContext';
 import { HippyGlobalConfigs } from './HippyGlobalConfigs';
 import { HippyModuleManagerImpl, HippyNativeModuleCreator } from './modules/HippyModuleManagerImpl';
@@ -25,6 +28,9 @@ import { LogUtils } from '../support/utils/LogUtils';
 import { HippyRootView } from '../renderer_native/HippyRootView';
 import { NativeRender } from '../renderer_native/NativeRender';
 import { HippyRootViewManager } from '../renderer_native/HippyRootViewManager';
+import { PerformanceProcessor } from './PerformanceProcessor';
+import { HippyEngineLifecycleEventListener } from './HippyEngineLifecycleEventListener';
+import { ImageRemoteLoaderInnerAdapter } from './adapter/image/inner/ImageRemoteLoaderInnerAdapter';
 
 export class HippyEngineContextImpl implements HippyEngineContext {
   public vfsManager: VfsManager
@@ -32,9 +38,11 @@ export class HippyEngineContextImpl implements HippyEngineContext {
   public mCoreBundleLoader: HippyBundleLoader | null = null;
   public nativeRenderProvider: NativeRenderProvider | null = null
   public nativeRenderer: NativeRenderer | null = null
+  public mEngineLifecycleEventListeners: Set<HippyEngineLifecycleEventListener> | null = null;
   private mEngineInitParams: EngineInitParams;
   private mGlobalConfigs: HippyGlobalConfigs;
   private mDomManager: DomManager;
+  private mInitStartTime: number = 0;
   private mMonitor: TimeMonitor;
   private mModuleManager: HippyModuleManager;
   private mBridgeManager: HippyBridgeManager | null = null;
@@ -44,15 +52,18 @@ export class HippyEngineContextImpl implements HippyEngineContext {
   private mDevSupportManager: DevSupportManager | null = null;
   private mDevtoolsManager: DevtoolsManager | null = null;
   private mDebugMode: boolean;
-  private loadModuleCallback: Function | null = null;
+  private mModuleListener: ModuleListener | null = null;
   private reloadEngineCallback: Function | null = null;
   private component: string = '';
   private rootView: HippyRootView | null = null;
+
+  private imageRemoteLoaderInner: ImageRemoteLoaderInnerAdapter | null = null;
 
   public constructor(
     params: EngineInitParams,
     domManager: DomManager | null,
     globalConfigs: HippyGlobalConfigs,
+    initStartTime: number,
     monitor: TimeMonitor,
     coreBundleLoader: HippyBundleLoader | null,
     devSupportManager: DevSupportManager| null,
@@ -63,8 +74,10 @@ export class HippyEngineContextImpl implements HippyEngineContext {
     this.mGlobalConfigs = globalConfigs;
     const resourceLoader = new HippyResourceLoader(this)
     this.vfsManager = new VfsManager(this.libHippy)
+    this.vfsManager.addProcessorAtFirst(new PerformanceProcessor(this))
     this.vfsManager.addProcessorAtLast(new DefaultProcessor(resourceLoader))
     this.mDomManager = domManager ? domManager : new DomManager(this.libHippy, this.mGlobalConfigs.getDomManagerConcurrentNum());
+    this.mInitStartTime = initStartTime;
     this.mMonitor = monitor;
     this.mCoreBundleLoader = coreBundleLoader;
     this.mDebugMode = params.debugMode;
@@ -77,14 +90,12 @@ export class HippyEngineContextImpl implements HippyEngineContext {
     let customMeasureRenderViews: Array<string> | null = null;
     let mappingRenderViews: Array<string> | null = null;
     let customNativeModules: Map<string, HippyNativeModuleCreator> | null = null;
-    let customFontPathMap: Map<string, string> | null = null;
     if (this.providers) {
       customRenderViewCreatorMap = new Map();
       customRenderViews = new Array();
       customMeasureRenderViews = new Array();
       mappingRenderViews = new Array();
       customNativeModules = new Map();
-      customFontPathMap = new Map();
       for (let provider of this.providers) {
         let apiProviderRenderMap = provider.getCustomRenderViewCreatorMap()
         if (apiProviderRenderMap) {
@@ -112,13 +123,13 @@ export class HippyEngineContextImpl implements HippyEngineContext {
             customNativeModules?.set(key, value)
           })
         }
-        let apiProviderFontPaths = provider.getCustomFontPathMap();
-        if (apiProviderFontPaths) {
-          apiProviderFontPaths.forEach((value, key) => {
-            customFontPathMap?.set(key, value)
-          })
-        }
       }
+    }
+
+    let customFontPathMap: Map<string, string> | null = null
+    let fontAdapter = this.mEngineInitParams.fontAdapter
+    if (fontAdapter) {
+      customFontPathMap = fontAdapter.getCustomFontPathMap()
     }
 
     let bundlePath = ""
@@ -133,7 +144,7 @@ export class HippyEngineContextImpl implements HippyEngineContext {
       let resModuleName = globalConfigs.getResModuleName()
       this.nativeRenderProvider = new NativeRenderProvider(this.libHippy, enableArkCApi, customRenderViewCreatorMap, customMeasureRenderViews)
       this.nativeRenderer = new NativeRenderer(this.libHippy, enableArkCApi, this.nativeRenderProvider,
-        customRenderViews, customMeasureRenderViews, mappingRenderViews, bundlePath, isRawfile, resModuleName)
+      customRenderViews, customMeasureRenderViews, mappingRenderViews, bundlePath, isRawfile, resModuleName, this.getVfsId())
       this.nativeRenderer.registerCustomFontPaths(customFontPathMap)
       // DomManager挂载
       this.mDomManager.attachToRenderer(this.nativeRenderer.instanceId)
@@ -141,6 +152,19 @@ export class HippyEngineContextImpl implements HippyEngineContext {
     // ModuleManager注册
     this.mModuleManager = new HippyModuleManagerImpl(this, params.enableV8Serialization);
     this.mModuleManager.addModules(customNativeModules);
+    // C层需要的adapter
+    if (params.imageLocalLoader || params.imageRemoteLoader) {
+      if (params.imageRemoteLoader) {
+        this.imageRemoteLoaderInner = new ImageRemoteLoaderInnerAdapter(
+          this.libHippy,
+          this.nativeRenderProvider.getInstanceId(),
+          params.imageRemoteLoader);
+      }
+      this.libHippy.NativeRenderProvider_SetImageLoaderAdapter(
+        this.nativeRenderProvider.getInstanceId(),
+        params.imageLocalLoader,
+        this.imageRemoteLoaderInner);
+    }
 
     if (params.integrateJSEngine) {
       // JsDriver注册
@@ -156,7 +180,9 @@ export class HippyEngineContextImpl implements HippyEngineContext {
         params.groupId,
         params.thirdPartyAdapter,
         params.v8InitParams,
-        this.mJsDriver);
+        this.mJsDriver,
+        this.mInitStartTime
+      );
       this.mBridgeManager = bridgeManagerImpl;
       this.mJsDriver.setBridgeCallback(bridgeManagerImpl);
       this.mDevSupportManager = devSupportManager;
@@ -179,8 +205,8 @@ export class HippyEngineContextImpl implements HippyEngineContext {
     }
   }
 
-  setLoadModuleCallback(loadModuleCallback: Function | null) {
-    this.loadModuleCallback = loadModuleCallback;
+  setLoadModuleListener(moduleListener: ModuleListener | null) {
+    this.mModuleListener = moduleListener;
   }
 
   setRootView(rootView: HippyRootView) {
@@ -188,9 +214,8 @@ export class HippyEngineContextImpl implements HippyEngineContext {
   }
 
   onLoadModuleCompleted(statusCode: number, msg: string): void {
-    if (this.loadModuleCallback) {
-        this.loadModuleCallback(statusCode, msg);
-    }
+    this.mModuleListener?.onLoadCompleted(statusCode, msg);
+    this.mGlobalConfigs.getEngineMonitorAdapter()?.onLoadModuleCompleted(statusCode, this.getComponentName());
   }
 
   public setComponentName(component: string) {
@@ -227,7 +252,7 @@ export class HippyEngineContextImpl implements HippyEngineContext {
 
   attachRootView(rootView: HippyRootView) {
     if (this.mJsDriver && this.nativeRenderer) {
-      this.attachDomToRootView(rootView.getRootId(), true)
+      this.attachDomToRootView(rootView.getRootId(), rootView.getLayoutEngineType())
       this.attachJsToRootView(rootView.getRootId())
       if (this.mDevtoolsManager != null) {
         this.mDevtoolsManager.attachToRoot(rootView.getRootId());
@@ -244,15 +269,16 @@ export class HippyEngineContextImpl implements HippyEngineContext {
       this.attachJsToRootView(rootId);
       return null;
     }
-    const rootView = this.nativeRenderProvider!.getNativeRenderImpl().createRootView(loadParams.componentName, {}, loadParams.wrappedCustomRenderViewBuilder)
+    const rootView = this.nativeRenderProvider!.getNativeRenderImpl().createRootView(loadParams.componentName, {},
+      loadParams.wrappedCustomRenderViewBuilder, loadParams.layoutEngineType)
     if (rootView != null) {
       this.attachRootView(rootView);
     }
     return rootView;
   }
 
-  attachDomToRootView(rootId: number, animation: boolean): void {
-    this.mDomManager.createRootNode(rootId, PixelUtil.getDensity(), animation)
+  attachDomToRootView(rootId: number, layoutEngineType: HippyLayoutEngineType): void {
+    this.mDomManager.createRootNode(rootId, PixelUtil.getDensity(), layoutEngineType)
     this.mDomManager.attachToRoot(rootId)
   }
 
@@ -279,10 +305,14 @@ export class HippyEngineContextImpl implements HippyEngineContext {
     this.nativeRenderer?.destroyNativeRenderManager();
     this.mModuleManager.destroy();
     this.vfsManager.destroy();
-    this.loadModuleCallback = null;
+    this.mModuleListener = null;
     this.reloadEngineCallback = null;
     // this.onDestroyVfs(this.vfsManager.getVfsId());
-}
+
+    if (this.mEngineLifecycleEventListeners) {
+      this.mEngineLifecycleEventListeners.clear();
+    }
+  }
 
   getDomManagerId(): number {
     return this.mDomManager.getDomManagerId();
@@ -343,6 +373,7 @@ export class HippyEngineContextImpl implements HippyEngineContext {
     } else {
       if (error instanceof HippyJsException) {
         this.mGlobalConfigs.getExceptionHandler()?.handleJsException(error);
+        this.mModuleListener?.onJsException(error);
       } else {
         // TODO Native Exception
         this.mGlobalConfigs.getExceptionHandler()?.handleNativeException(new HippyJsException('', ''), true);
@@ -354,4 +385,37 @@ export class HippyEngineContextImpl implements HippyEngineContext {
     let view = HippyRootViewManager.getRootView(rootId)
     return view ? view : null
   }
+
+  addEngineLifecycleEventListener(listener: HippyEngineLifecycleEventListener): void {
+    if (!this.mEngineLifecycleEventListeners) {
+      this.mEngineLifecycleEventListeners = new Set();
+    }
+    this.mEngineLifecycleEventListeners.add(listener);
+  }
+
+  removeEngineLifecycleEventListener(listener: HippyEngineLifecycleEventListener): void {
+    if (this.mEngineLifecycleEventListeners) {
+      this.mEngineLifecycleEventListeners.delete(listener);
+    }
+  }
+
+  onInstanceLoad(rootId: number): void {
+  }
+
+  onInstanceResume(): void {
+    if (this.rootView) {
+      this.getBridgeManager()?.resumeInstance(this.rootView.getRootId())
+    }
+  }
+
+  onInstancePause(): void {
+    if (this.rootView) {
+      this.getBridgeManager()?.pauseInstance(this.rootView.getRootId())
+    }
+  }
+
+  onInstanceDestroy(rootId: number): void {
+
+  }
+
 }

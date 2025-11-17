@@ -41,7 +41,7 @@
 @implementation HippyCtxValueConvertTest
 
 - (void)setUp {
-    _vm = hippy::CreateVM(std::make_shared<hippy::VM::VMInitParam>());
+    _vm = hippy::VM::CreateVM(std::make_shared<hippy::VM::VMInitParam>());
     _context = _vm->CreateContext();
 }
 
@@ -71,6 +71,17 @@
     CtxValuePtr ctxValue = [testOCString convertToCtxValue:_context];
     XCTAssert(_context->IsString(ctxValue));
     XCTAssert([ObjectFromCtxValue(_context, ctxValue) isEqualToString:testOCString]);
+}
+
+- (void)testNullContainStringToCtxValue {
+    // Create a string which contains a null("\0") character
+    unichar chars[] = { 'A', 0x0000, 'B' };
+    NSString *stringWithNull = [NSString stringWithCharacters:chars length:3];
+    
+    CtxValuePtr ctxValue = [stringWithNull convertToCtxValue:_context];
+    XCTAssert(_context->IsString(ctxValue));
+    NSString *outStr = ObjectFromCtxValue(_context, ctxValue);
+    XCTAssert([outStr isEqualToString:stringWithNull]);
 }
 
 // NSNumber

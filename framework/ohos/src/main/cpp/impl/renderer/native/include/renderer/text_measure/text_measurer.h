@@ -85,19 +85,28 @@ public:
   void StartMeasure(HippyValueObjectType &propMap, const std::set<std::string> &fontFamilyNames, const std::shared_ptr<FontCollectionCache> fontCache);
   void AddText(HippyValueObjectType &propMap, float density, bool isTextInput = false);
   void AddImage(HippyValueObjectType &propMap, float density);
-  OhMeasureResult EndMeasure(int width, int widthMode, int height, int heightMode, float density);
+  OhMeasureResult EndMeasure(int width, int widthMode, int height, int heightMode, bool isSizeIncludePadding, float density);
   
   void Destroy();
   
   ArkUI_StyledString *GetStyledString() {
     return styled_string_;
   }
+    
+  OH_Drawing_Typography *GetTypography() {
+    return typography_;
+  }
   
   bool IsRedraw(float maxWidth) {
-    return text_align_ != TEXT_ALIGN_START && fabs(measureWidth_ - maxWidth) >= HRPixelUtils::DpToPx(1.0);
+    return (text_align_ != TEXT_ALIGN_START && fabs(measureWidth_ - maxWidth) >= HRPixelUtils::DpToPx(1.0))
+      || (text_align_ == TEXT_ALIGN_START && resultWidth_ > maxWidth);
   }
 
   void DoRedraw(float maxWidth);
+  
+  float GetCorrectPxOffsetY() {
+    return correctPxOffsetY_;
+  }
 
   int SpanIndexAt(float spanX, float spanY, float density);
   
@@ -112,12 +121,18 @@ private:
 #endif
   
 private:
-  OH_Drawing_FontWeight FontWeightToDrawing(std::string &str);
+  // 测量Text和组件显示Text是鸿蒙的两套系统，测量的时候需要感知和对应系统设置“字体大小和界面缩放”里的字体粗细值。
+  // 但是，App不重启这个值总是不变，所以为了最大情况下字体能显示完全，每次App启动scale值大于1会放大测量。
+  // 该方法用来判断是否放大测量。
+  bool NeedFontWeightScale(float weightScale);
+  OH_Drawing_FontWeight FontWeightToDrawing(const std::string &str, float weightScale = 1.f);
+  OH_Drawing_FontWeight FontWeightValueToDrawing(int w);
   bool GetPropValue(HippyValueObjectType &propMap, const char *prop, HippyValue &propValue);
-  double CalcSpanPostion(OH_Drawing_Typography *typography, OhMeasureResult &ret);
+  double CalcSpanPostion(OH_Drawing_Typography *typography, OhMeasureResult &ret, float density);
   
-  std::string HippyValue2String(HippyValue &value);
+  const std::string& HippyValue2String(HippyValue &value);
   double HippyValue2Double(HippyValue &value);
+  float HippyValue2Float(HippyValue &value);
   int32_t HippyValue2Int(HippyValue &value);
   uint32_t HippyValue2Uint(HippyValue &value);
   
@@ -128,6 +143,8 @@ private:
   ArkUI_StyledString *styled_string_ = nullptr;
   int text_align_ = TEXT_ALIGN_START;
   double measureWidth_ = 0;
+  double resultWidth_ = 0;
+  float correctPxOffsetY_ = 0;
   
   std::vector<OhImageSpanHolder> imageSpans_;
   std::vector<std::tuple<int, int>> spanOffsets_; // begin, end
@@ -140,6 +157,10 @@ private:
   double paddingBottom_ = 0;
   double paddingLeft_ = 0;
   double paddingRight_ = 0;
+  float borderTopWidth_ = 0;
+  float borderRightWidth_ = 0;
+  float borderBottomWidth_ = 0;
+  float borderLeftWidth_ = 0;
 };
 
 } // namespace native

@@ -28,11 +28,13 @@
 
 #define HIPPY_NESTEDSCROLL_PROTOCOL_PROPERTY_IMP \
 @synthesize lastContentOffset; \
+@synthesize shouldHaveActiveInner; \
 @synthesize activeInnerScrollView; \
 @synthesize activeOuterScrollView; \
 @synthesize nestedGestureDelegate; \
 @synthesize cascadeLockForNestedScroll; \
 @synthesize isLockedInNestedScroll; \
+@synthesize tempLastContentOffsetForMultiLayerNested;
 
 
 /// Delegate for handling nested scrolls' gesture conflict
@@ -52,6 +54,11 @@
 /// Record the last content offset for scroll lock.
 @property (nonatomic, assign) CGPoint lastContentOffset;
 
+/// A flag indicates that outer should have activeInner,
+/// which is set during shouldRecognizeSimultaneously and reset during EndDragging.
+/// Use it for unrelated rolling event filtering
+@property (nonatomic, assign) BOOL shouldHaveActiveInner;
+
 /// Record the current active inner scrollable view.
 /// Used to judge the responder when outer has more than one inner scrollview.
 @property (nonatomic, weak) UIScrollView<HippyNestedScrollProtocol> *activeInnerScrollView;
@@ -69,6 +76,10 @@
 /// Whether is temporarily locked in current DidScroll callback.
 /// It is used to determine whether to block the sending of onScroll events.
 @property (nonatomic, assign) BOOL isLockedInNestedScroll;
+
+/// lastContentOffset value recorded for multi-level nested scenarios
+/// Use only once, set to nil after use.
+@property (nonatomic, strong) NSValue *tempLastContentOffsetForMultiLayerNested;
 
 @end
 

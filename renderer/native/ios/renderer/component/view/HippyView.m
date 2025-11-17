@@ -71,6 +71,10 @@ static NSString *NativeRenderRecursiveAccessibilityLabel(UIView *view) {
 
 @implementation HippyView {
     UIColor *_backgroundColor;
+#if __IPHONE_OS_VERSION_MAX_ALLOWED >= 260000
+    // iOS 26+ Liquid Glass EffectView
+    UIVisualEffectView *_effectView;
+#endif
 }
 
 @synthesize hippyZIndex = _hippyZIndex;
@@ -90,6 +94,9 @@ static NSString *NativeRenderRecursiveAccessibilityLabel(UIView *view) {
         _backgroundColor = super.backgroundColor;
         self.layer.shadowOffset = CGSizeZero;
         self.layer.shadowRadius = 0.f;
+#if __IPHONE_OS_VERSION_MAX_ALLOWED >= 260000
+        _glassEffectInteractive = YES;
+#endif
     }
     return self;
 }
@@ -106,6 +113,17 @@ static NSString *NativeRenderRecursiveAccessibilityLabel(UIView *view) {
     NSRange semicolonRange = [superDescription rangeOfString:@";"];
     NSString *replacement = [NSString stringWithFormat:@"; hippyTag: %@;", self.hippyTag];
     return [superDescription stringByReplacingCharactersInRange:semicolonRange withString:replacement];
+}
+
+#pragma mark - Hippy Lifecycle override
+
+- (void)didUpdateHippySubviews {
+    [super didUpdateHippySubviews];
+#if __IPHONE_OS_VERSION_MAX_ALLOWED >= 260000
+    if (@available(iOS 26.0, *)) {
+        [self moveSubviewsToEffectView];
+    }
+#endif
 }
 
 #pragma mark - Borders
@@ -178,6 +196,25 @@ static NSString *NativeRenderRecursiveAccessibilityLabel(UIView *view) {
 
 - (void)setFrame:(CGRect)frame {
     [super setFrame:frame];
+    
+    // Update effect view frame if it exists
+#if __IPHONE_OS_VERSION_MAX_ALLOWED >= 260000
+    if (_effectView) {
+        _effectView.frame = self.bounds;
+    }
+#endif
+}
+
+- (void)layoutSubviews {
+    [super layoutSubviews];
+    
+    // Update effect view frame and corner radius
+#if __IPHONE_OS_VERSION_MAX_ALLOWED >= 260000
+    if (_effectView) {
+        _effectView.frame = self.bounds;
+        _effectView.layer.cornerRadius = self.layer.cornerRadius;
+    }
+#endif
 }
 
 - (HippyBorderColors)borderColors {
@@ -187,36 +224,6 @@ static NSString *NativeRenderRecursiveAccessibilityLabel(UIView *view) {
         _borderBottomColor ?: _borderColor,
         _borderRightColor ?: _borderColor,
     };
-}
-
-void NativeRenderBoarderColorsRetain(HippyBorderColors c) {
-    if (c.top) {
-        CGColorRetain(c.top);
-    }
-    if (c.bottom) {
-        CGColorRetain(c.bottom);
-    }
-    if (c.left) {
-        CGColorRetain(c.left);
-    }
-    if (c.right) {
-        CGColorRetain(c.right);
-    }
-}
-
-void NativeRenderBoarderColorsRelease(HippyBorderColors c) {
-    if (c.top) {
-        CGColorRelease(c.top);
-    }
-    if (c.bottom) {
-        CGColorRelease(c.bottom);
-    }
-    if (c.left) {
-        CGColorRelease(c.left);
-    }
-    if (c.right) {
-        CGColorRelease(c.right);
-    }
 }
 
 - (void)drawShadowForLayer:(HippyCornerRadii)cornerRadii {
@@ -316,7 +323,7 @@ void NativeRenderBoarderColorsRelease(HippyBorderColors c) {
     // iOS draws borders in front of the content whereas CSS draws them behind
     // the content. For this reason, only use iOS border drawing when clipping
     // or when the border is hidden.
-    BOOL borderColorCheck = (borderInsets.top == 0 || (borderColors.top && CGColorGetAlpha(borderColors.top) == 0) || self.clipsToBounds);
+    BOOL borderColorCheck = (borderInsets.top == 0 || (borderColors.top && CGColorGetAlpha(borderColors.top.CGColor) == 0) || self.clipsToBounds);
 
     BOOL useIOSBorderRendering = !isRunningInTest && isCornerEqual && isBorderInsetsEqual && isBorderColorsEqual && borderStyle && borderColorCheck;
 
@@ -326,12 +333,19 @@ void NativeRenderBoarderColorsRelease(HippyBorderColors c) {
 
     if (useIOSBorderRendering && !self.backgroundImage && !self.gradientObject) {
         layer.cornerRadius = cornerRadii.topLeft;
-        layer.borderColor = borderColors.left;
+        layer.borderColor = borderColors.left.CGColor;
         layer.borderWidth = borderInsets.left;
         layer.backgroundColor = backgroundColor.CGColor;
         layer.contents = nil;
         layer.needsDisplayOnBoundsChange = NO;
         layer.mask = nil;
+        
+#if __IPHONE_OS_VERSION_MAX_ALLOWED >= 260000
+        if (_effectView) {
+            _effectView.layer.cornerRadius = cornerRadii.topLeft;
+        }
+#endif
+        
         return;
     }
 
@@ -384,7 +398,12 @@ void NativeRenderBoarderColorsRelease(HippyBorderColors c) {
     const HippyBorderColors borderColors = [self borderColors];
     UIColor *backgroundColor = color?:self.backgroundColor;
 
-    CGRect theFrame = self.frame;
+    // make sure frame is proportional to device pixel
+    CGRect theFrame = CGRectMake(HippyRoundPixelValue(self.frame.origin.x),
+                                 HippyRoundPixelValue(self.frame.origin.y),
+                                 HippyRoundPixelValue(self.frame.size.width),
+                                 HippyRoundPixelValue(self.frame.size.height));
+    
     /**
      * If view has already applied a 3d transform,
      * to get its origin frame ,we have to revert 3d transform to its frame
@@ -396,7 +415,7 @@ void NativeRenderBoarderColorsRelease(HippyBorderColors c) {
     NSInteger clipToBounds = self.clipsToBounds;
     NSString *backgroundSize = self.backgroundSize;
     UIImage *borderImage = HippyGetBorderImage(self.borderStyle, theFrame.size, cornerRadii, borderInsets,
-                                               borderColors, backgroundColor.CGColor, clipToBounds, !self.gradientObject);
+                                               borderColors, backgroundColor, clipToBounds, !self.gradientObject);
     if (!self.backgroundImage && !self.gradientObject) {
         contentBlock(borderImage);
         return YES;
@@ -438,11 +457,16 @@ void NativeRenderBoarderColorsRelease(HippyBorderColors c) {
             CanvasInfo info = {size, {0,0,0,0}, {{0,0},{0,0},{0,0},{0,0}}};
             info.size = size;
             info.cornerRadii = cornerRadii;
-            UIGraphicsBeginImageContextWithOptions(size, NO, 0);
-            [gradientObject drawInContext:UIGraphicsGetCurrentContext() canvasInfo:info];
-            [borderImage drawInRect:(CGRect) { CGPointZero, size }];
-            UIImage *resultingImage = UIGraphicsGetImageFromCurrentImageContext();
-            UIGraphicsEndImageContext();
+            
+            UIGraphicsImageRendererFormat *rendererFormat = [UIGraphicsImageRendererFormat preferredFormat];
+            UIGraphicsImageRenderer *renderer = [[UIGraphicsImageRenderer alloc] initWithSize:size format:rendererFormat];
+            UIImage *resultingImage = [renderer imageWithActions:^(UIGraphicsImageRendererContext * _Nonnull rendererContext) {
+                CGContextRef context = rendererContext.CGContext;
+                // Draw gradient
+                [gradientObject drawInContext:context canvasInfo:info];
+                // Draw border image
+                [borderImage drawInRect:CGRectMake(0, 0, size.width, size.height)];
+            }];
             contentBlock(resultingImage);
         });
         return NO;
@@ -474,14 +498,13 @@ void NativeRenderBoarderColorsRelease(HippyBorderColors c) {
 
 #pragma mark Border Color
 
-#define setBorderColor(side)                                    \
-    -(void)setBorder##side##Color : (CGColorRef)color {         \
-        if (CGColorEqualToColor(_border##side##Color, color)) { \
-            return;                                             \
-        }                                                       \
-        CGColorRelease(_border##side##Color);                   \
-        _border##side##Color = CGColorRetain(color);            \
-        [self.layer setNeedsDisplay];                           \
+#define setBorderColor(side)                                                    \
+    -(void)setBorder##side##Color : (UIColor *)color {                          \
+        if (CGColorEqualToColor(_border##side##Color.CGColor, color.CGColor)) { \
+            return;                                                             \
+        }                                                                       \
+        _border##side##Color = color;                                           \
+        [self.layer setNeedsDisplay];                                           \
     }
 
 setBorderColor()
@@ -537,12 +560,170 @@ setBorderRadius(BottomRight)
 
 setBorderStyle()
 
-- (void)dealloc {
-    CGColorRelease(_borderColor);
-    CGColorRelease(_borderTopColor);
-    CGColorRelease(_borderRightColor);
-    CGColorRelease(_borderBottomColor);
-    CGColorRelease(_borderLeftColor);
+
+#pragma mark - Liquid Glass Effect
+
+#if __IPHONE_OS_VERSION_MAX_ALLOWED >= 260000
+
+- (void)setGlassEffectEnabled:(BOOL)glassEffectEnabled {
+    if (_glassEffectEnabled == glassEffectEnabled) {
+        return;
+    }
+    _glassEffectEnabled = glassEffectEnabled;
+    
+    if (@available(iOS 26.0, *)) {
+        if (glassEffectEnabled) {
+            [self setupGlassEffect];
+        } else {
+            [self removeGlassEffect];
+        }
+    }
 }
+
+- (void)setGlassEffectTintColor:(UIColor *)glassEffectTintColor {
+    if ([_glassEffectTintColor isEqual:glassEffectTintColor]) {
+        return;
+    }
+    _glassEffectTintColor = glassEffectTintColor;
+    
+    if (@available(iOS 26.0, *)) {
+        if (_glassEffectEnabled && _effectView) {
+            UIGlassEffectStyle style = [self glassEffectStyleFromString:_glassEffectStyle];
+            UIGlassEffect *glassEffect = [UIGlassEffect effectWithStyle:style];
+            glassEffect.tintColor = glassEffectTintColor;
+            glassEffect.interactive = _glassEffectInteractive;
+            _effectView.effect = glassEffect;
+        }
+    }
+}
+
+- (void)setGlassEffectInteractive:(BOOL)glassEffectInteractive {
+    if (_glassEffectInteractive == glassEffectInteractive) {
+        return;
+    }
+    _glassEffectInteractive = glassEffectInteractive;
+    
+    if (@available(iOS 26.0, *)) {
+        if (_glassEffectEnabled && _effectView) {
+            [self setupGlassEffect];
+        }
+    }
+}
+
+- (void)setGlassEffectContainerSpacing:(NSNumber *)glassEffectContainerSpacing {
+    if ([_glassEffectContainerSpacing isEqual:glassEffectContainerSpacing]) {
+        return;
+    }
+    _glassEffectContainerSpacing = glassEffectContainerSpacing;
+    
+    if (@available(iOS 26.0, *)) {
+        if (glassEffectContainerSpacing && glassEffectContainerSpacing.doubleValue > 0) {
+            [self setupGlassContainerEffect];
+        } else {
+            [self removeGlassEffect];
+        }
+    }
+}
+
+- (void)setGlassEffectStyle:(NSString *)glassEffectStyle {
+    if ([_glassEffectStyle isEqualToString:glassEffectStyle]) {
+        return;
+    }
+    _glassEffectStyle = glassEffectStyle;
+    
+    if (@available(iOS 26.0, *)) {
+        if (_glassEffectEnabled && _effectView) {
+            [self setupGlassEffect];
+        }
+    }
+}
+
+#endif // __IPHONE_OS_VERSION_MAX_ALLOWED >= 260000
+
+#pragma mark - Private Liquid Glass Methods
+
+#if __IPHONE_OS_VERSION_MAX_ALLOWED >= 260000
+
+- (UIGlassEffectStyle)glassEffectStyleFromString:(NSString *)styleString API_AVAILABLE(ios(26.0)) {
+    if (@available(iOS 26.0, *)) {
+        if ([styleString isEqualToString:@"clear"]) {
+            return UIGlassEffectStyleClear;
+        }
+    }
+    return UIGlassEffectStyleRegular; // Default to Regular
+}
+
+- (void)setupGlassEffect {
+    if (@available(iOS 26.0, *)) {
+        [self removeGlassEffect];
+        
+        // Create glass effect with specified style
+        UIGlassEffectStyle style = [self glassEffectStyleFromString:_glassEffectStyle];
+        UIGlassEffect *glassEffect = [UIGlassEffect effectWithStyle:style];
+        glassEffect.tintColor = _glassEffectTintColor;
+        glassEffect.interactive = _glassEffectInteractive;
+        
+        _effectView = [[UIVisualEffectView alloc] initWithEffect:glassEffect];
+        _effectView.frame = self.bounds;
+        _effectView.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
+        _effectView.layer.cornerRadius = self.layer.cornerRadius;
+        
+        [self addSubview:_effectView];
+        [self sendSubviewToBack:_effectView];
+    }
+}
+
+- (void)setupGlassContainerEffect {
+    if (@available(iOS 26.0, *)) {
+        [self removeGlassEffect];
+        
+        UIGlassContainerEffect *glassContainerEffect = [[UIGlassContainerEffect alloc] init];
+        glassContainerEffect.spacing = _glassEffectContainerSpacing.doubleValue;
+        
+        _effectView = [[UIVisualEffectView alloc] initWithEffect:glassContainerEffect];
+        _effectView.frame = self.bounds;
+        _effectView.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
+        _effectView.layer.cornerRadius = self.layer.cornerRadius;
+        
+        [self addSubview:_effectView];
+        [self sendSubviewToBack:_effectView];
+        
+        // Move existing subviews to the effect view's content view
+        [self moveSubviewsToEffectView];
+    }
+}
+
+- (void)removeGlassEffect API_AVAILABLE(ios(26.0)) {
+    if (_effectView) {
+        // Move subviews back to self before removing effect view
+        [self moveSubviewsFromEffectView];
+        [_effectView removeFromSuperview];
+        _effectView = nil;
+    }
+}
+
+- (void)moveSubviewsToEffectView API_AVAILABLE(ios(26.0)) {
+    if (_effectView && _effectView.contentView) {
+        NSArray *subviews = [self.subviews copy];
+        for (UIView *subview in subviews) {
+            if (subview != _effectView && subview.superview != _effectView.contentView) {
+                [subview removeFromSuperview];
+                [_effectView.contentView addSubview:subview];
+            }
+        }
+    }
+}
+
+- (void)moveSubviewsFromEffectView API_AVAILABLE(ios(26.0)) {
+    if (_effectView && _effectView.contentView) {
+        NSArray *subviews = [_effectView.contentView.subviews copy];
+        for (UIView *subview in subviews) {
+            [subview removeFromSuperview];
+            [self addSubview:subview];
+        }
+    }
+}
+
+#endif // __IPHONE_OS_VERSION_MAX_ALLOWED >= 260000
 
 @end

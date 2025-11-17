@@ -43,9 +43,6 @@ export class HippyRenderView extends HippyRenderBaseView {
     this.pagerName = pageName
     this.pagerData = pageData
     this.renderViewSize = initViewSize
-
-    let renderManger = ctx.getNativeRender().getRenderManager()
-    renderManger.initViewManager(this)
   }
 
   onDestroy(): void {
@@ -73,10 +70,10 @@ export class HippyRenderView extends HippyRenderBaseView {
 
   onSizeChanged(width: number, height: number) {
     let nativeRender = this.ctx.getNativeRender()
-    nativeRender.updateDimension(width, height, false, false)
-    nativeRender.onSizeChanged(this.tag, width, height, this.renderViewSize.width, this.renderViewSize.height)
-
-    this.renderViewSize = new HRSize(width, height)
+    nativeRender.updateDimension(width, height).then(() => {
+      nativeRender.onSizeChanged(this.tag, width, height, this.renderViewSize.width, this.renderViewSize.height)
+      this.renderViewSize = new HRSize(width, height)
+    })
   }
 
   pageDidAppear(): void {

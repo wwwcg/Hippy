@@ -21,6 +21,8 @@
  */
 
 #include "renderer/components/scroll_view.h"
+#include "renderer/dom_node/hr_node_props.h"
+#include "renderer/utils/hr_convert_utils.h"
 #include "renderer/utils/hr_event_utils.h"
 #include "renderer/utils/hr_pixel_utils.h"
 #include "renderer/utils/hr_value_utils.h"
@@ -70,7 +72,29 @@ void ScrollView::DestroyArkUINodeImpl() {
 }
 
 bool ScrollView::SetPropImpl(const std::string &propKey, const HippyValue &propValue) {
-  if (propKey == "showScrollIndicator") {
+  if (propKey == HRNodeProps::PROP_PRIORITY) {
+    auto mode = HRConvertUtils::ScrollNestedModeToArk(propValue);
+    scrollForward_ = mode;
+    scrollBackward_ = mode;
+    toSetScrollNestedMode_ = true;
+    return true;
+  } else if (propKey == HRNodeProps::PROP_LEFT_PRIORITY) {
+    scrollForward_ = HRConvertUtils::ScrollNestedModeToArk(propValue);
+    toSetScrollNestedMode_ = true;
+    return true;
+  } else if (propKey == HRNodeProps::PROP_TOP_PRIORITY) {
+    scrollForward_ = HRConvertUtils::ScrollNestedModeToArk(propValue);
+    toSetScrollNestedMode_ = true;
+    return true;
+  } else if (propKey == HRNodeProps::PROP_RIGHT_PRIORITY) {
+    scrollBackward_ = HRConvertUtils::ScrollNestedModeToArk(propValue);
+    toSetScrollNestedMode_ = true;
+    return true;
+  } else if (propKey == HRNodeProps::PROP_BOTTOM_PRIORITY) {
+    scrollBackward_ = HRConvertUtils::ScrollNestedModeToArk(propValue);
+    toSetScrollNestedMode_ = true;
+    return true;
+  } else if (propKey == "showScrollIndicator") {
     auto value = HRValueUtils::GetBool(propValue, false);
     GetLocalRootArkUINode()->SetShowScrollIndicator(value);
     return true;
@@ -117,6 +141,14 @@ bool ScrollView::SetPropImpl(const std::string &propKey, const HippyValue &propV
   return BaseView::SetPropImpl(propKey, propValue);
 }
 
+void ScrollView::OnSetPropsEndImpl() {
+  if (toSetScrollNestedMode_) {
+    toSetScrollNestedMode_ = false;
+    scrollNode_->SetScrollNestedScroll(scrollForward_, scrollBackward_);
+  }
+  BaseView::OnSetPropsEndImpl();
+}
+
 void ScrollView::OnChildInsertedImpl(std::shared_ptr<BaseView> const &childView, int32_t index) {
   BaseView::OnChildInsertedImpl(childView, index);
   stackNode_->InsertChild(childView->GetLocalRootArkUINode(), index);
@@ -141,21 +173,25 @@ void ScrollView::CheckFireBeginDragEvent() {
   if (!isDragging_) {
     isDragging_ = true;
     std::string eventName = HREventUtils::EVENT_SCROLLER_BEGIN_DRAG;
-    this->EmitScrollEvent(eventName);
+    EmitScrollEvent(eventName);
+    EmitScrollEvent(HREventUtils::EVENT_SCROLLER_ON_SCROLL);
   }
 }
 
 void ScrollView::CheckFireEndDragEvent() {
   if (isDragging_) {
     isDragging_ = false;
+    EmitScrollEvent(HREventUtils::EVENT_SCROLLER_ON_SCROLL);
     std::string endDragEventName = HREventUtils::EVENT_SCROLLER_END_DRAG;
-    std::string momentumBeginEventName = HREventUtils::EVENT_SCROLLER_MOMENTUM_BEGIN;
-    this->EmitScrollEvent(endDragEventName);
-    this->EmitScrollEvent(momentumBeginEventName);
+    EmitScrollEvent(endDragEventName);
+    if (isScrollStarted_) {
+      std::string momentumBeginEventName = HREventUtils::EVENT_SCROLLER_MOMENTUM_BEGIN;
+      EmitScrollEvent(momentumBeginEventName);
+    }
   }
 }
 
-void ScrollView::EmitScrollEvent(std::string &eventName) {
+void ScrollView::EmitScrollEvent(const std::string &eventName) {
   if (!CheckRegisteredEvent(eventName)) {
     return;
   }
@@ -214,13 +250,25 @@ void ScrollView::OnScroll(float xOffset, float yOffset) {
   }
 }
 
-void ScrollView::OnScrollStart() {}
+void ScrollView::OnScrollStart() {
+  isScrollStarted_ = true;
+}
 
 void ScrollView::OnScrollStop() {
+  isScrollStarted_ = false;
   lastScrollTime_ = 0;
   lastScrollOffset_ = 0;
+  EmitScrollEvent(HREventUtils::EVENT_SCROLLER_ON_SCROLL);
   std::string eventName = std::string(HREventUtils::EVENT_SCROLLER_MOMENTUM_END);
-  this->EmitScrollEvent(eventName);
+  EmitScrollEvent(eventName);
+}
+
+void ScrollView::OnReachStart() {
+  EmitScrollEvent(HREventUtils::EVENT_SCROLLER_ON_SCROLL);
+}
+  
+void ScrollView::OnReachEnd() {
+  EmitScrollEvent(HREventUtils::EVENT_SCROLLER_ON_SCROLL);
 }
 
 void ScrollView::CallImpl(const std::string &method, const std::vector<HippyValue> params,

@@ -70,13 +70,25 @@ export class NativeRenderSerializer extends PrimitiveValueSerializer {
       this.writeValue(key)
       this.writeValue(value)
     })
+    Object.keys(map).forEach(key => {
+      count++
+      if (key == null) {
+        this.writeString("null")
+      } else {
+        this.writeString(key)
+      }
+      let value: HippySerValue = Reflect.get(map, key)
+      this.writeValue(value)
+    });
     this.writeTag(NativeRenderSerializationTag.END_MAP)
     this.writer_.putVarint(2 * count)
   }
 
   writeObject(map: Map<string, HippyAny>) {
     this.writeTag(NativeRenderSerializationTag.BEGIN_OBJECT)
+    let count = 0
     map.forEach((value: HippyAny, key: string) => {
+      count++
       if (key == null) {
         this.writeString("null")
       } else {
@@ -84,8 +96,18 @@ export class NativeRenderSerializer extends PrimitiveValueSerializer {
       }
       this.writeValue(value)
     })
+    Object.keys(map).forEach(key => {
+      count++
+      if (key == null) {
+        this.writeString("null")
+      } else {
+        this.writeString(key)
+      }
+      let value: HippySerValue = Reflect.get(map, key)
+      this.writeValue(value)
+    });
     this.writeTag(NativeRenderSerializationTag.END_OBJECT)
-    this.writer_.putVarint(map.size)
+    this.writer_.putVarint(count)
   }
 
   writeList(list: Array<HippyAny>) {

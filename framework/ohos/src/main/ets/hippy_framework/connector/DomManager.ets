@@ -17,6 +17,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+import { HippyLayoutEngineType } from '../HippyEngine';
 import { HippyLibrary } from '../../hippy_library/HippyLibrary';
 
 export class DomManager {
@@ -51,9 +52,9 @@ export class DomManager {
   createRootNode(
     rootId: number,
     density: number,
-    animation: boolean
+    layoutEngineType: HippyLayoutEngineType
   ) {
-    this.libHippy?.DomManager_CreateRoot(rootId, density, animation)
+    this.libHippy?.DomManager_CreateRoot(rootId, density, layoutEngineType)
   }
 
   destroyRootNode(

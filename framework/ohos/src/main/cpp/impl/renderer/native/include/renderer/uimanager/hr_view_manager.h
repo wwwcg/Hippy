@@ -23,6 +23,7 @@
 #pragma once
 
 #include <ace/xcomponent/native_interface_xcomponent.h>
+#include <cstdint>
 #include <js_native_api.h>
 #include <js_native_api_types.h>
 #include <map>
@@ -53,6 +54,9 @@ public:
 
   void BindNativeRoot(ArkUI_NodeContentHandle contentHandle, uint32_t node_id);
   void UnbindNativeRoot(uint32_t node_id);
+  
+  void BindNativeRootToParent(ArkUI_NodeHandle parentNodeHandle, uint32_t node_id);
+  void UnbindNativeRootFromParent(uint32_t node_id);
 
   int GetRootTag() {
     return (int)root_id_;
@@ -72,8 +76,8 @@ public:
   void ApplyMutation(std::shared_ptr<HRMutation> &m);
 
   std::shared_ptr<BaseView> FindRenderView(uint32_t tag);
-  std::shared_ptr<BaseView> CreateRenderView(uint32_t tag, std::string &view_name, bool is_parent_text);
-  std::shared_ptr<BaseView> PreCreateRenderView(uint32_t tag, std::string &view_name, bool is_parent_text);
+  std::shared_ptr<BaseView> CreateRenderView(uint32_t tag, std::string &view_name, bool is_parent_text, bool is_parent_waterfall, bool is_nine_img);
+  std::shared_ptr<BaseView> PreCreateRenderView(uint32_t tag, std::string &view_name, bool is_parent_text, bool is_parent_waterfall, bool is_nine_img);
   void RemoveRenderView(uint32_t tag);
   void RemoveFromRegistry(std::shared_ptr<BaseView> &renderView);
   void InsertSubRenderView(uint32_t parentTag, std::shared_ptr<BaseView> &childView, int32_t index);
@@ -107,7 +111,12 @@ public:
   HRRect GetViewFrameInRoot(uint32_t node_id);
   void AddBizViewInRoot(uint32_t biz_view_id, ArkUI_NodeHandle node_handle, const HRPosition &position);
   void RemoveBizViewInRoot(uint32_t biz_view_id);
+  
+  void DoCallbackForFetchLocalPathAsync(uint32_t node_id, bool success, const std::string &path);
+  
   std::shared_ptr<BaseView> GetViewFromRegistry(uint32_t node_id);
+
+  void CheckAndDestroyTsRootForCInterface();
 
 private:
   bool IsCustomTsRenderView(std::string &view_name);
@@ -123,10 +132,11 @@ private:
   void prepareReportFirstContentViewAdd(std::shared_ptr<HRMutation> &m);
 
   std::shared_ptr<BaseView> CreateCustomRenderView(uint32_t tag, std::string &view_name, bool is_parent_text);
-
+  
   std::shared_ptr<NativeRenderContext> ctx_;
   uint32_t root_id_;
   std::unordered_map<uint32_t, ArkUI_NodeContentHandle> nodeContentMap_;
+  std::unordered_map<uint32_t, ArkUI_NodeHandle> parentNodeMap_;
   std::shared_ptr<RootView> root_view_;
   std::map<uint32_t, std::shared_ptr<BaseView>> view_registry_;
   
@@ -148,6 +158,8 @@ private:
 
   bool isFirstViewAdd = false;
   FCPType isFirstContentViewAdd = FCPType::NONE;
+  
+  bool hasCustomTsView_ = false;
 };
 
 } // namespace native

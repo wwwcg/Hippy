@@ -26,7 +26,7 @@
 @import hippy;
 
 
-@interface HippyDemoViewController () <HippyMethodInterceptorProtocol, HippyBridgeDelegate, HippyRootViewDelegate> {
+@interface HippyDemoViewController () <HippyBridgeDelegate, HippyRootViewDelegate> {
     HippyBridge *_hippyBridge;
     HippyRootView *_hippyRootView;
     BOOL _fromCache;
@@ -38,12 +38,14 @@
 
 - (instancetype)initWithDriverType:(DriverType)driverType
                         renderType:(RenderType)renderType
+                   useHermesEngine:(BOOL)usingHermes
                           debugURL:(NSURL *)debugURL
                        isDebugMode:(BOOL)isDebugMode {
     self = [super init];
     if (self) {
         _driverType = driverType;
         _renderType = renderType;
+        _useHermesEngine = usingHermes;
         _debugURL = debugURL;
         _debugMode = isDebugMode;
     }
@@ -88,18 +90,36 @@
     [self.contentAreaView addSubview:_hippyRootView];
 }
 
+
 #pragma mark - Hippy Setup
 
 - (void)registerLogFunction {
     // Register your custom log function for Hippy,
     // use HippyDefaultLogFunction as an example, it outputs logs to stderr.
-    HippySetLogFunction(HippyDefaultLogFunction);
+    HippySetLogFunction(^(HippyLogLevel level, HippyLogSource source, NSString *fileName, NSNumber *lineNumber, NSString *message) {
+        // output hippy sdk's log to your App log
+        // this is a demo imp, output to console:
+        HippyDefaultLogFunction(level, source, fileName, lineNumber, message);
+    });
+    
+    HippySetFatalHandler(^(NSError * _Nonnull error) {
+        // do error report or something else...
+        // fatal error will also output by HippySetLogFunction above.
+        NSLog(@"Hippy Fatal Error occurred! msg:%@", error.description);
+    });
 }
 
 - (void)runHippyDemo {
     // Necessary configuration:
+    // `moduleName` corresponds to the Hippy App name on the JS side
     NSString *moduleName = @"Demo";
-    NSDictionary *launchOptions = @{ @"DebugMode": @(_debugMode) };
+    
+    // Set launch options for hippy bridge
+    HippyLaunchOptions *launchOptions = [HippyLaunchOptions new];
+    launchOptions.debugMode = _debugMode;
+    launchOptions.useHermesEngine = _useHermesEngine;
+    
+    // Prepare initial properties for js side
     NSDictionary *initialProperties = @{ @"isSimulator": @(TARGET_OS_SIMULATOR) };
     
     HippyBridge *bridge = nil;
@@ -131,20 +151,58 @@
     
     // Config whether jsc is inspectable, Highly recommended setting,
     // since inspectable of JSC is disabled by default since iOS 16.4
+#if DEBUG
+    // Note: Open it only in non-release versions.
     [bridge setInspectable:YES];
+#endif
+    
     _hippyBridge = bridge;
     rootView.frame = self.contentAreaView.bounds;
     rootView.autoresizingMask = UIViewAutoresizingFlexibleHeight | UIViewAutoresizingFlexibleWidth;
     [self.contentAreaView addSubview:rootView];
     _hippyRootView = rootView;
-    
-    
-    // Optional configs:
-    bridge.methodInterceptor = self; // see HippyMethodInterceptorProtocol
 }
 
 
-#pragma mark - Helpers
+#pragma mark - HippyBridgeDelegate
+
+- (BOOL)shouldStartInspector:(HippyBridge *)bridge {
+    return bridge.debugMode;
+}
+
+- (NSURL *)inspectorSourceURLForBridge:(HippyBridge *)bridge {
+    // You can customize to any url.
+    // By default, we resolve the devtools address from the debug url passed to the bridge.
+    return bridge.debugURL;
+}
+
+- (CGFloat)fontSizeMultiplierForHippy:(HippyBridge *)bridge {
+    // This is a demo implementation, you can customize it.
+    // The default value is 1.0.
+    // The font size multiplier is used to scale the font size of the text in the Hippy view.
+    // For example, if you set it to 2.0, the font size will be twice as large as the default size.
+    return 1.0;
+}
+
+- (BOOL)shouldUseRootViewSizeAsWindowSizeInDimensions {
+    // 可选设置，3.4版本后默认值为YES
+    // 用于设置是否将Dimensions中的window尺寸信息绑定为RootView尺寸。
+    return YES;
+}
+
+- (CGSize)defaultWindowSizeInDimensionsBeforeRootViewMount {
+    // 可选设置，仅在shouldUseRootViewSizeAsWindowSizeInDimensions为YES时生效。
+    // 用于设置在RootView挂载前Dimensions中window信息的默认值。
+    // 适用于一些特殊场景，例如在iPad上以分屏模式启动时，js可能会在入口函数执行前获取Dimensions信息。
+    return self.view.bounds.size;
+}
+
+#pragma mark - HippyRootViewDelegate
+
+// Some imp of HippyRootViewDelegate methods, optional...
+
+
+#pragma mark - Others
 
 - (NSString *)currentJSBundleDir {
     NSString *dir = nil;
@@ -180,10 +238,14 @@
     pageCache.renderType = _renderType;
     pageCache.debugURL = _debugURL;
     pageCache.debugMode = _debugMode;
-    UIGraphicsBeginImageContextWithOptions(_hippyRootView.bounds.size, NO, [UIScreen mainScreen].scale);
-    [_hippyRootView drawViewHierarchyInRect:_hippyRootView.bounds afterScreenUpdates:YES];
-    UIImage *image = UIGraphicsGetImageFromCurrentImageContext();
-    UIGraphicsEndImageContext();
+    
+    // Render view hierarchy into image context
+    UIGraphicsImageRendererFormat *format = [UIGraphicsImageRendererFormat preferredFormat];
+    UIGraphicsImageRenderer *renderer = [[UIGraphicsImageRenderer alloc] initWithSize:_hippyRootView.bounds.size format:format];
+    UIImage *image = [renderer imageWithActions:^(UIGraphicsImageRendererContext * _Nonnull context) {
+        [_hippyRootView drawViewHierarchyInRect:_hippyRootView.bounds afterScreenUpdates:YES];
+    }];
+
     pageCache.snapshot = image;
     return pageCache;
 }
@@ -194,41 +256,6 @@
 
 - (UIInterfaceOrientationMask)supportedInterfaceOrientations {
     return UIInterfaceOrientationMaskAllButUpsideDown;
-}
-
-
-#pragma mark - HippyBridgeDelegate
-
-- (BOOL)shouldStartInspector:(HippyBridge *)bridge {
-    return bridge.debugMode;
-}
-
-- (NSURL *)inspectorSourceURLForBridge:(HippyBridge *)bridge {
-    // You can customize to any url.
-    // By default, we resolve the devtools address from the debug url passed to the bridge.
-    return bridge.debugURL;
-}
-
-
-#pragma mark - Optional - HippyMethodInterceptorProtocol
-
-- (BOOL)shouldInvokeWithModuleName:(NSString *)moduleName
-                        methodName:(NSString *)methodName
-                         arguments:(NSArray<id<HippyBridgeArgument>> *)arguments
-                   argumentsValues:(NSArray *)argumentsValue
-                   containCallback:(BOOL)containCallback {
-    HippyAssert(moduleName, @"module name must not be null");
-    HippyAssert(methodName, @"method name must not be null");
-    return YES;
-}
-
-- (BOOL)shouldCallbackBeInvokedWithModuleName:(NSString *)moduleName
-                                   methodName:(NSString *)methodName
-                                   callbackId:(NSNumber *)cbId
-                                    arguments:(id)arguments {
-    HippyAssert(moduleName, @"module name must not be null");
-    HippyAssert(methodName, @"method name must not be null");
-    return YES;
 }
 
 @end

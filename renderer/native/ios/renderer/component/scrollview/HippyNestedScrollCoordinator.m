@@ -25,8 +25,17 @@
 #import "HippyLog.h"
 
 
+#ifdef OPEN_NESTED_SCROLL_TRACE_LOG
 static NSString *const kHippyNestedScrollLog= @"NestedScroll";
-#define HippyNSLogTrace(...) HippyLogTrace(@"%@ %p %@", kHippyNestedScrollLog, self, [NSString stringWithFormat:__VA_ARGS__])
+#define HippyNSLogTrace(...) HippyLogTrace(@"%@ %p(%@) %@", \
+kHippyNestedScrollLog, self, isOuter ? @"Outer" : @"Inner", [NSString stringWithFormat:__VA_ARGS__])
+#define HippyNSLogTrace2(isOuter, ...) HippyLogTrace(@"%@ %p(%@) %@", \
+kHippyNestedScrollLog, self, isOuter ? @"Outer" : @"Inner", [NSString stringWithFormat:__VA_ARGS__])
+#else
+#define HippyNSLogTrace(...)
+#define HippyNSLogTrace2(isOuter, ...)
+#endif
+
 #define HIPPY_NESTED_OPEN_BOUNCES 0 // Turn off the outer bounces feature for now
 
 
@@ -141,10 +150,24 @@ static inline BOOL isScrollInSpringbackState(const UIScrollView *scrollview,
     return NO;
 }
 
-static inline void lockScrollView(const UIScrollView<HippyNestedScrollProtocol> *scrollView) {
-    scrollView.contentOffset = scrollView.lastContentOffset;
+static inline bool isIntersect(const UIScrollView *outerScrollView, const UIScrollView *innerScrollView) {
+    CALayer *outerPresentation = outerScrollView.layer.presentationLayer;
+    CALayer *innerPresentation = innerScrollView.layer.presentationLayer;
+    CGRect actualOuter = [outerPresentation convertRect:outerPresentation.bounds toLayer:nil];
+    CGRect actualInner = [innerPresentation convertRect:innerPresentation.bounds toLayer:nil];
+    return CGRectIntersectsRect(actualOuter, actualInner);
+}
+
+static inline void lockScrollView(const UIScrollView<HippyNestedScrollProtocol> *scrollView,
+                                  const CGPoint lastContentOffset) {
+    // The value of lastContentOffset may experience redundant repeated updates,
+    // primarily to avoid an infinite loop of contentOffset updates
+    // caused by inconsistencies in lastContentOffset in multi-layer nested scenarios.
+    scrollView.lastContentOffset = lastContentOffset;
+    scrollView.contentOffset = lastContentOffset;
     scrollView.isLockedInNestedScroll = YES;
 }
+
 
 #pragma mark - ScrollEvents Delegate
 
@@ -155,34 +178,65 @@ static inline void lockScrollView(const UIScrollView<HippyNestedScrollProtocol> 
     BOOL isOuter = (sv == outerScrollView);
     BOOL isInner = (sv == innerScrollView);
     
-    HippyNSLogTrace(@"%@(%p) did scroll: %@",
-                    isOuter ? @"Outer" : @"Inner", sv,
-                    isOuter ?
-                    NSStringFromCGPoint(outerScrollView.contentOffset) :
-                    NSStringFromCGPoint(innerScrollView.contentOffset));
-    
     // 0. Exclude irrelevant scroll events using `activeInnerScrollView`
-    if (outerScrollView.activeInnerScrollView &&
-        outerScrollView.activeInnerScrollView != innerScrollView) {
+    if (outerScrollView.activeInnerScrollView && outerScrollView.activeInnerScrollView != innerScrollView) {
         HippyNSLogTrace(@"Not active inner return.");
         return;
+    } else if (isOuter && !outerScrollView.activeInnerScrollView) {
+        if (outerScrollView.shouldHaveActiveInner) {
+            // 0.1 If outer should have an active innder but not, ignore.
+            HippyNSLogTrace(@"Not active inner return 2.");
+            return;
+        } else if (!isIntersect(outerScrollView, innerScrollView)) {
+            // 0.2 If the two ScrollViews do not intersect at all, ignore.
+            HippyNSLogTrace(@"Not Intersect return. %p", sv);
+            return;
+        }
     }
     
     // 1. Determine direction of scrolling
     HippyNestedScrollDirection direction = HippyNestedScrollDirectionNone;
-    if (sv.lastContentOffset.y > sv.contentOffset.y) {
+    
+    // 1.1 Find the right lastContentOffset
+    // In multi-layer nested scenarios, the scrollable object may have more than two coordinator listeners.
+    // In this case, if the first coordinator listener has already updated the lastContentOffset,
+    // the subsequent coordinator listeners will not be able to process normally because the direction judgment has become invalid.
+    // To handle this, our strategy is to record the original lastContentOffset through tempLastContentOffsetForMultiLayerNested,
+    // thereby establishing the connection between multiple coordinators.
+    BOOL shouldRecordLastContentOffsetForMultiLayerNested = YES;
+    CGPoint lastContentOffset;
+    if (sv.tempLastContentOffsetForMultiLayerNested) {
+        lastContentOffset = [sv.tempLastContentOffsetForMultiLayerNested CGPointValue];
+        sv.tempLastContentOffsetForMultiLayerNested = nil;
+        shouldRecordLastContentOffsetForMultiLayerNested = NO;
+    } else {
+        lastContentOffset = sv.lastContentOffset;
+    }
+    
+    // 1.2 Do the judge to get direction
+    if (lastContentOffset.y > sv.contentOffset.y) {
         direction = HippyNestedScrollDirectionUp;
-    } else if (sv.lastContentOffset.y < sv.contentOffset.y) {
+    } else if (lastContentOffset.y < sv.contentOffset.y) {
         direction = HippyNestedScrollDirectionDown;
-    } else if (sv.lastContentOffset.x > sv.contentOffset.x) {
+    } else if (lastContentOffset.x > sv.contentOffset.x) {
         direction = HippyNestedScrollDirectionLeft;
-    } else if (sv.lastContentOffset.x < sv.contentOffset.x) {
+    } else if (lastContentOffset.x < sv.contentOffset.x) {
         direction = HippyNestedScrollDirectionRight;
     }
     if (direction == HippyNestedScrollDirectionNone) {
         HippyNSLogTrace(@"No direction return. %p", sv);
         return;
     }
+    
+    // 1.3 If it is a multi-layer nested scroll
+    // and the `lastContentOffset` of the current refresh frame has not been recorded,
+    // record it for the next coordinator to use.
+    if (((isInner && sv.activeInnerScrollView) || (isOuter && sv.activeOuterScrollView)) &&
+        !sv.tempLastContentOffsetForMultiLayerNested && shouldRecordLastContentOffsetForMultiLayerNested) {
+        sv.tempLastContentOffsetForMultiLayerNested = @(sv.lastContentOffset);
+    }
+    
+    HippyNSLogTrace(@"start handle (%p) did scroll: %@", sv, NSStringFromCGPoint(sv.contentOffset));
     
     // 2. Lock inner scrollview if necessary
     if ([self isDirection:direction hasPriority:HippyNestedScrollPriorityParent]) {
@@ -206,7 +260,7 @@ static inline void lockScrollView(const UIScrollView<HippyNestedScrollProtocol> 
         // Do lock inner action!
         if (isInner && !self.shouldUnlockInnerScrollView) {
             HippyNSLogTrace(@"lock inner (%p) !!!!", sv);
-            lockScrollView(innerScrollView);
+            lockScrollView(innerScrollView, lastContentOffset);
         }
         
         // Handle the scenario where the Inner can slide when the Outer's bounces on.
@@ -218,8 +272,8 @@ static inline void lockScrollView(const UIScrollView<HippyNestedScrollProtocol> 
             // When the finger is dragging, the Outer has slipped to the edge and is ready to bounce,
             // but the Inner can still slide.
             // At this time, the sliding of the Outer needs to be locked.
-            lockScrollView(outerScrollView);
-            HippyNSLogTrace(@"lock outer due to inner scroll");
+            lockScrollView(outerScrollView, lastContentOffset);
+            HippyNSLogTrace(@"lock outer due to inner scroll !!!");
         }
         
         // Deal with the multi-level nesting (greater than or equal to three layers).
@@ -246,12 +300,12 @@ static inline void lockScrollView(const UIScrollView<HippyNestedScrollProtocol> 
         
         // Do cascade lock action!
         if (isOuter && outerScrollView.cascadeLockForNestedScroll) {
-            lockScrollView(outerScrollView);
-            HippyNSLogTrace(@"lock outer due to cascadeLock");
+            lockScrollView(outerScrollView, lastContentOffset);
+            HippyNSLogTrace(@"lock outer due to cascadeLock !!!");
             outerScrollView.cascadeLockForNestedScroll = NO;
         } else if (isInner && innerScrollView.cascadeLockForNestedScroll) {
-            lockScrollView(innerScrollView);
-            HippyNSLogTrace(@"lock outer due to cascadeLock");
+            lockScrollView(innerScrollView, lastContentOffset);
+            HippyNSLogTrace(@"lock outer due to cascadeLock !!!");
             innerScrollView.cascadeLockForNestedScroll = NO;
         }
     }
@@ -262,7 +316,7 @@ static inline void lockScrollView(const UIScrollView<HippyNestedScrollProtocol> 
             if (hasScrollToTheDirectionEdge(innerScrollView, direction)) {
                 self.shouldUnlockOuterScrollView = YES;
                 HippyNSLogTrace(@"set unlock outer ~");
-            } else {
+            } else if (outerScrollView.activeInnerScrollView) {
                 self.shouldUnlockOuterScrollView = NO;
                 HippyNSLogTrace(@"set lock outer !");
             }
@@ -281,7 +335,7 @@ static inline void lockScrollView(const UIScrollView<HippyNestedScrollProtocol> 
         if (self.dragType != HippyNestedScrollDragTypeOuterOnly &&
             isOuter && !self.shouldUnlockOuterScrollView) {
             HippyNSLogTrace(@"lock outer (%p) !!!!", sv);
-            lockScrollView(outerScrollView);
+            lockScrollView(outerScrollView, lastContentOffset);
         }
         
         // Deal with the multi-level nesting (greater than or equal to three layers).
@@ -291,35 +345,41 @@ static inline void lockScrollView(const UIScrollView<HippyNestedScrollProtocol> 
             outerScrollView.activeOuterScrollView) {
             outerScrollView.cascadeLockForNestedScroll = YES;
             outerScrollView.activeOuterScrollView.cascadeLockForNestedScroll = YES;
-            HippyNSLogTrace(@"set cascadeLock to %p", innerScrollView);
+            HippyNSLogTrace(@"set cascadeLock to %p", outerScrollView);
         }
         
         // Do cascade lock action!
         if (isInner && innerScrollView.cascadeLockForNestedScroll) {
-            lockScrollView(innerScrollView);
-            HippyNSLogTrace(@"lock outer due to cascadeLock");
+            lockScrollView(innerScrollView, lastContentOffset);
+            HippyNSLogTrace(@"lock inner due to cascadeLock !!!");
             innerScrollView.cascadeLockForNestedScroll = NO;
         } else if (isOuter && outerScrollView.cascadeLockForNestedScroll) {
-            lockScrollView(outerScrollView);
-            HippyNSLogTrace(@"lock outer due to cascadeLock");
+            lockScrollView(outerScrollView, lastContentOffset);
+            HippyNSLogTrace(@"lock outer due to cascadeLock !!!");
             outerScrollView.cascadeLockForNestedScroll = NO;
         }
     }
     
     // 4. Update the lastContentOffset record
     sv.lastContentOffset = sv.contentOffset;
-    HippyNSLogTrace(@"end handle %@(%p) scroll -------------",
-                    isOuter ? @"Outer" : @"Inner", sv);
+    HippyNSLogTrace(@"end handle (%p) scroll -------------", sv);
 }
 
 
 - (void)scrollViewWillBeginDragging:(UIScrollView *)scrollView {
+    if (!self.outerScrollView.shouldHaveActiveInner) {
+        // Clear any recorded activeInner or activeOuter if shouldHaveActiveInner is NO,
+        // this code is executed only if the scrollView is an outer.
+        self.outerScrollView.activeInnerScrollView = nil;
+        self.innerScrollView.activeOuterScrollView = nil;
+    }
+    
     if (scrollView == self.outerScrollView) {
         self.shouldUnlockOuterScrollView = NO;
-        HippyNSLogTrace(@"reset outer scroll lock");
+        HippyNSLogTrace2(YES, @"reset outer scroll lock");
     } else if (scrollView == self.innerScrollView) {
         self.shouldUnlockInnerScrollView = NO;
-        HippyNSLogTrace(@"reset inner scroll lock");
+        HippyNSLogTrace2(NO, @"reset inner scroll lock");
     }
     
     dispatch_async(dispatch_get_main_queue(), ^{
@@ -337,6 +397,11 @@ static inline void lockScrollView(const UIScrollView<HippyNestedScrollProtocol> 
 
 - (void)scrollViewDidEndDragging:(UIScrollView *)scrollView willDecelerate:(BOOL)decelerate {
     self.dragType = HippyNestedScrollDragTypeUndefined;
+    
+    // Reset shouldHaveActiveInner flag when user end dragging.
+    if (self.outerScrollView.shouldHaveActiveInner) {
+        self.outerScrollView.shouldHaveActiveInner = NO;
+    }
 }
 
 
@@ -358,6 +423,7 @@ static inline void lockScrollView(const UIScrollView<HippyNestedScrollProtocol> 
             self.nestedScrollBottomPriority > HippyNestedScrollPriorityNone ||
             self.nestedScrollLeftPriority > HippyNestedScrollPriorityNone ||
             self.nestedScrollRightPriority > HippyNestedScrollPriorityNone) {
+            self.outerScrollView.shouldHaveActiveInner = YES;
             return YES;
         }
     } else if (self.outerScrollView.nestedGestureDelegate) {

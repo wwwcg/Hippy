@@ -663,7 +663,21 @@ public class RenderNode {
     }
 
     public void updateEventListener(@NonNull Map<String, Object> newEvents) {
-        mEvents = newEvents;
+        if (mEvents == null) {
+            mEvents = new HashMap<>();
+        }
+        for (Map.Entry<String, Object> entry : newEvents.entrySet()) {
+            String key = entry.getKey();
+            Object value = entry.getValue();
+            if (!(value instanceof Boolean)) {
+                continue;
+            }
+            if ((Boolean) value) {
+                mEvents.put(key, value);
+            } else {
+                mEvents.remove(key);
+            }
+        }
         setNodeFlag(FLAG_UPDATE_EVENT);
     }
 
@@ -725,7 +739,11 @@ public class RenderNode {
 
     public void requireUpdateDrawingOrder(@NonNull RenderNode child) {
         setNodeFlag(FLAG_UPDATE_DRAWING_ORDER);
-        addChildToPendingList(child);
+        if (!mControllerManager.checkFlatten(child.mClassName)
+                || !mClassName.equals(HippyViewGroupController.CLASS_NAME)
+                || child.getChildCount() > 0 || child.checkGestureEnable()) {
+            addChildToPendingList(child);
+        }
     }
 
     public void onZIndexChanged() {
@@ -772,9 +790,7 @@ public class RenderNode {
     public void batchComplete() {
         if (!isDeleted() && !isLazyLoad()) {
             mControllerManager.onBatchComplete(mRootId, mId, mClassName);
-            if (mHostViewRef == null || mHostViewRef.get() == null) {
-                invalidate();
-            }
+            invalidate();
         }
     }
 

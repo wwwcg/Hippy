@@ -21,7 +21,7 @@
  */
 
 #include "driver/modules/performance/performance_measure_module.h"
-
+#include "driver/modules/performance/performance_entry_module.h"
 #include "driver/performance/performance_entry.h"
 #include "footstone/time_point.h"
 #include "footstone/string_view.h"
@@ -71,6 +71,11 @@ std::shared_ptr<ClassTemplate<PerformanceMeasure>> RegisterPerformanceMeasure(co
     return std::static_pointer_cast<PerformanceMeasure>(entries.back());
   };
 
+#ifdef JS_JSH
+  auto entry_properties = hippy::RegisterPerformanceEntryPropertyDefine<PerformanceMeasure>(weak_scope);
+  class_template.properties.insert(class_template.properties.end(), entry_properties.begin(), entry_properties.end());
+#endif
+
   PropertyDefine<PerformanceMeasure> name_property_define;
   name_property_define.name = "detail";
   name_property_define.getter = [weak_scope](
@@ -85,7 +90,9 @@ std::shared_ptr<ClassTemplate<PerformanceMeasure>> RegisterPerformanceMeasure(co
     if (!detail.has_value()) {
       return context->CreateNull();
     }
-    return std::any_cast<std::shared_ptr<CtxValue>>(detail);
+    auto any_pointer = std::any_cast<std::shared_ptr<CtxValue>>(&detail);
+    auto detail_ctx = static_cast<std::shared_ptr<CtxValue>>(*any_pointer);
+    return detail_ctx;
   };
   class_template.properties.push_back(std::move(name_property_define));
 

@@ -48,6 +48,8 @@
 #include "driver/modules/timer_module.h"
 #include "driver/modules/ui_manager_module.h"
 #include "driver/modules/ui_layout_module.h"
+#include "driver/vm/js_vm.h"
+#include "driver/napi/js_try_catch.h"
 #include "driver/vm/native_source_code.h"
 #include "footstone/logging.h"
 #include "footstone/string_view_utils.h"
@@ -55,17 +57,25 @@
 #include "footstone/task_runner.h"
 
 #ifdef JS_V8
-#include "driver/vm/v8/memory_module.h"
+#include "driver/vm/v8/memory_module_v8.h"
 #include "driver/napi/v8/v8_ctx.h"
 #include "driver/vm/v8/v8_vm.h"
-#elif JS_JSH
+#endif /* JS_V8 */
+
+#ifdef JS_HERMES
+#include "driver/vm/hermes/hermes_vm.h"
+#include "driver/napi/hermes/hermes_ctx.h"
+#endif /* JS_HERMES */
+
+#ifdef JS_JSH
+#include "driver/vm/jsh/memory_module_jsh.h"
 #include "driver/napi/jsh/jsh_ctx.h"
 #include "driver/vm/jsh/jsh_vm.h"
-#endif
+#endif /* JS_JSH */
 
 #ifdef ENABLE_INSPECTOR
 #include "devtools/devtools_data_source.h"
-#endif
+#endif /* ENABLE_INSPECTOR */
 
 using string_view = footstone::stringview::string_view;
 using StringViewUtils = footstone::stringview::StringViewUtils;
@@ -96,7 +106,9 @@ inline namespace driver {
 
 
 static void InternalBindingCallback(hippy::napi::CallbackInfo& info, void* data) {
-  auto scope_wrapper = reinterpret_cast<ScopeWrapper*>(std::any_cast<void*>(info.GetSlot()));
+  std::any slot_any = info.GetSlot();
+  auto any_pointer = std::any_cast<void*>(&slot_any);
+  auto scope_wrapper = reinterpret_cast<ScopeWrapper*>(static_cast<void *>(*any_pointer));
   auto scope = scope_wrapper->scope.lock();
   FOOTSTONE_CHECK(scope);
   auto context = scope->GetContext();
@@ -126,7 +138,8 @@ static void InternalBindingCallback(hippy::napi::CallbackInfo& info, void* data)
 
 Scope::Scope(std::weak_ptr<Engine> engine,
              std::string name)
-    : engine_(std::move(engine)),
+    : is_valid_(true),
+      engine_(std::move(engine)),
       context_(nullptr),
       name_(std::move(name)),
       extra_function_map_(std::make_unique<RegisterMap>()),
@@ -134,12 +147,14 @@ Scope::Scope(std::weak_ptr<Engine> engine,
       performance_(std::make_shared<Performance>()) {}
 
 Scope::~Scope() {
+  setValid(false);
   FOOTSTONE_DLOG(INFO) << "~Scope";
 #ifdef JS_JSH
   context_->InvalidWeakCallbackWrapper();
 #else
-  context_ = nullptr;
+  context_->InvalidFinalizeCallback();
 #endif
+
   auto engine = engine_.lock();
   FOOTSTONE_DCHECK(engine);
   if (engine) {
@@ -204,7 +219,7 @@ void Scope::BindModule() {
   module_object_map_["ContextifyModule"] = std::make_shared<ContextifyModule>();
   module_object_map_["UIManagerModule"] = std::make_shared<UIManagerModule>();
   module_object_map_["AnimationFrameModule"] = std::make_shared<AnimationFrameModule>();
-#ifdef JS_V8
+#if defined(JS_V8) || defined(JS_JSH)
   module_object_map_["MemoryModule"] = std::make_shared<MemoryModule>();
 #endif
   module_object_map_["LayoutModule"] = std::make_shared<LayoutModule>();
@@ -212,7 +227,8 @@ void Scope::BindModule() {
 
 void Scope::Bootstrap() {
   FOOTSTONE_LOG(INFO) << "Bootstrap begin";
-  auto source_code = hippy::GetNativeSourceCode(kBootstrapJSName);
+  auto source_code_provider = context_->GetNativeSourceCodeProvider();
+  const auto &source_code = source_code_provider->GetNativeSourceCode(kBootstrapJSName);
   FOOTSTONE_DCHECK(source_code.data_ && source_code.length_);
   string_view str_view(source_code.data_, source_code.length_);
   auto function = context_->RunScript(str_view, kBootstrapJSName);
@@ -393,7 +409,7 @@ hippy::dom::EventListenerInfo Scope::AddListener(const EventListenerInfo& event_
       if (callback == nullptr) return;
       scope->SetCurrentEvent(std::make_any<std::shared_ptr<hippy::dom::DomEvent>>(event));
       auto event_class = scope->GetJavascriptClass(kEventName);
-      auto event_instance = context->NewInstance(event_class, 0, nullptr, nullptr);
+      auto event_instance = context->NewInstance(event_class, 0, nullptr, event.get());
       FOOTSTONE_DCHECK(callback) << "callback is nullptr";
       if (!callback) {
         return;
@@ -493,23 +509,35 @@ void Scope::RunJS(const string_view& data,
                   const string_view& name,
                   bool is_copy) {
   std::weak_ptr<Ctx> weak_context = context_;
+#ifdef JS_V8
   auto callback = [WEAK_THIS, data, uri, name, is_copy, weak_context] {
     DEFINE_AND_CHECK_SELF(Scope)
     // perfromance start time
     auto entry = self->GetPerformance()->PerformanceNavigation(kPerfNavigationHippyInit);
     entry->BundleInfoOfUrl(uri).execute_source_start_ = footstone::TimePoint::SystemNow();
-
-#ifdef JS_V8
+    
     auto context = std::static_pointer_cast<hippy::napi::V8Ctx>(weak_context.lock());
     if (context) {
       context->RunScript(data, name, false, nullptr, is_copy);
     }
 #elif JS_JSH
+  auto callback = [WEAK_THIS, data, uri, name, is_copy, weak_context] {
+    DEFINE_AND_CHECK_SELF(Scope)
+    // perfromance start time
+    auto entry = self->GetPerformance()->PerformanceNavigation(kPerfNavigationHippyInit);
+    entry->BundleInfoOfUrl(uri).execute_source_start_ = footstone::TimePoint::SystemNow();
+            
     auto context = std::static_pointer_cast<hippy::napi::JSHCtx>(weak_context.lock());
     if (context) {
       context->RunScript(data, name, false, nullptr, is_copy);
     }
 #else
+  auto callback = [WEAK_THIS, data, uri, name, weak_context] {
+    DEFINE_AND_CHECK_SELF(Scope)
+    // perfromance start time
+    auto entry = self->GetPerformance()->PerformanceNavigation("hippyInit");
+    entry->BundleInfoOfUrl(uri).execute_source_start_ = footstone::TimePoint::SystemNow();
+
     auto context = weak_context.lock();
     if (context) {
       context->RunScript(data, name);
@@ -565,8 +593,12 @@ void Scope::LoadInstance(const std::shared_ptr<HippyValue>& value) {
           }
         }
 #endif
+        auto tryCatch = hippy::TryCatch::CreateTryCatchScope(true, context);
         std::shared_ptr<CtxValue> argv[] = {param};
         context->CallFunction(fn, context->GetGlobalObject(), 1, argv);
+        if (tryCatch->HasCaught()) {
+          FOOTSTONE_LOG(ERROR) << tryCatch->GetExceptionMessage();
+        }
       } else {
         context->ThrowException("Application entry not found");
       }
@@ -615,6 +647,11 @@ void Scope::SetCallbackForUriLoader() {
         const TimePoint& start, const TimePoint& end,
         const int32_t ret_code, const string_view& error_msg) {
       DEFINE_AND_CHECK_SELF(Scope)
+      // 该函数可能在非主线程非dom线程产生scope的持有，当hippy engine销毁时，有可能scope在，engine已经被释放，
+      // 所以，这里判断到scope在engine不在时,没有必要再走下去。
+      if (!self->engine_.lock()) {
+        return;
+      }
       auto runner = self->GetTaskRunner();
       if (runner) {
         auto task = [weak_this, uri, start, end, ret_code, error_msg]() {

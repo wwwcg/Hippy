@@ -22,12 +22,13 @@
 
 #include "renderer/utils/hr_convert_utils.h"
 #include "footstone/logging.h"
+#include "renderer/utils/hr_value_utils.h"
 
 namespace hippy {
 inline namespace render {
 inline namespace native {
 
-ArkUI_BorderStyle HRConvertUtils::BorderStyleToArk(std::string &str) {
+ArkUI_BorderStyle HRConvertUtils::BorderStyleToArk(const std::string &str) {
   if (str == "solid") {
     return ArkUI_BorderStyle::ARKUI_BORDER_STYLE_SOLID;
   } else if (str == "dotted") {
@@ -38,7 +39,7 @@ ArkUI_BorderStyle HRConvertUtils::BorderStyleToArk(std::string &str) {
   return ArkUI_BorderStyle::ARKUI_BORDER_STYLE_SOLID;
 }
 
-ArkUI_ImageSize HRConvertUtils::BackgroundImageSizeToArk(std::string &str) {
+ArkUI_ImageSize HRConvertUtils::BackgroundImageSizeToArk(const std::string &str) {
   if (str == "contain") {
     return ARKUI_IMAGE_SIZE_CONTAIN;
   } else if (str == "cover") {
@@ -68,17 +69,22 @@ float HRConvertUtils::ToDegrees(const HippyValue &value) {
   return inRadians ? static_cast<float>(180 / M_PI * ret) : ret;
 }
 
-bool HRConvertUtils::TransformToArk(HippyValueArrayType &valueArray, HRTransform &transform) {
+bool HRConvertUtils::TransformToArk(const HippyValueArrayType &valueArray, HRTransform &transform) {
   for (uint32_t i = 0; i < valueArray.size(); i++) {
-    HippyValueObjectType transformObj;
-    if (!valueArray[i].ToObject(transformObj) || transformObj.size() == 0) {
+    if (!valueArray[i].IsObject()) {
       continue;
     }
-    
+    auto& transformObj = valueArray[i].ToObjectChecked();
+    if (transformObj.size() == 0) {
+      continue;
+    }
     for (auto it : transformObj) {
       if (it.first == "matrix") {
-        HippyValueArrayType value;
-        if (!it.second.IsArray() || !it.second.ToArray(value) || value.size() < 16) {
+        if (!it.second.IsArray()) {
+          continue;
+        }
+        auto& value = it.second.ToArrayChecked();
+        if (value.size() < 16) {
           continue;
         }
         HRMatrix matrix;
@@ -153,10 +159,10 @@ bool HRConvertUtils::TransformToArk(HippyValueArrayType &valueArray, HRTransform
           transform.scale = scale;
         }
       } else if (it.first == "translate") {
-        HippyValueArrayType array;
-        if (!it.second.IsArray() || !it.second.ToArray(array)) {
+        if (!it.second.IsArray()) {
           continue;
         }
+        auto& array = it.second.ToArrayChecked();
         HRTranslate translate;
         if (array.size() > 0) {
           double value = 0;
@@ -209,6 +215,40 @@ bool HRConvertUtils::TransformToArk(HippyValueArrayType &valueArray, HRTransform
     }
   }
   return true;
+}
+
+ArkUI_ScrollAlignment HRConvertUtils::ScrollAlignmentToArk(const HippyValue &value) {
+  if (value.IsNumber()) {
+    auto ret = HRValueUtils::GetInt32(value);
+    if (ret >= ARKUI_SCROLL_ALIGNMENT_START && ret <= ARKUI_SCROLL_ALIGNMENT_AUTO) {
+      return (ArkUI_ScrollAlignment)ret;
+    }
+  } else if (value.IsString()) {
+    std::string str = value.ToStringChecked();
+    if (str == "start") {
+      return ARKUI_SCROLL_ALIGNMENT_START;
+    } else if (str == "center") {
+      return ARKUI_SCROLL_ALIGNMENT_CENTER;
+    } else if (str == "end") {
+      return ARKUI_SCROLL_ALIGNMENT_END;
+    } else if (str == "auto") {
+      return ARKUI_SCROLL_ALIGNMENT_AUTO;
+    }
+  }
+  return ARKUI_SCROLL_ALIGNMENT_START;
+}
+
+ArkUI_ScrollNestedMode HRConvertUtils::ScrollNestedModeToArk(const HippyValue &value) {
+  ArkUI_ScrollNestedMode mode = ARKUI_SCROLL_NESTED_MODE_SELF_FIRST;
+  auto& str = HRValueUtils::GetString(value);
+  if (str == "parent") {
+    mode = ARKUI_SCROLL_NESTED_MODE_PARENT_FIRST;
+  } else if (str == "self") {
+    mode = ARKUI_SCROLL_NESTED_MODE_SELF_FIRST;
+  } else if (str == "none") {
+    mode = ARKUI_SCROLL_NESTED_MODE_SELF_ONLY;
+  }
+  return mode;
 }
 
 } // namespace native

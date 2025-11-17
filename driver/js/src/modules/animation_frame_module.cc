@@ -45,7 +45,9 @@ GEN_INVOKE_CB(AnimationFrameModule, RequestAnimationFrame) // NOLINT(cert-err58-
 GEN_INVOKE_CB(AnimationFrameModule, CancelAnimationFrame) // NOLINT(cert-err58-cpp)
 
 void AnimationFrameModule::RequestAnimationFrame(hippy::napi::CallbackInfo &info, void* data) { // NOLINT(readability-convert-member-functions-to-static)
-  auto scope_wrapper = reinterpret_cast<ScopeWrapper*>(std::any_cast<void*>(info.GetSlot()));
+  std::any slot_any = info.GetSlot();
+  auto any_pointer = std::any_cast<void*>(&slot_any);
+  auto scope_wrapper = reinterpret_cast<ScopeWrapper*>(static_cast<void *>(*any_pointer));
   auto scope = scope_wrapper->scope.lock();
   FOOTSTONE_CHECK(scope);
   auto context = scope->GetContext();
@@ -73,6 +75,7 @@ void AnimationFrameModule::RequestAnimationFrame(hippy::napi::CallbackInfo &info
   }
   has_event_listener_ = true;
 
+  root_node->SetVSyncEventNeedSource(VSyncEventNeedByFrame);
   listener_id_ = hippy::dom::FetchListenerId();
   auto weak_this = weak_from_this();
   std::weak_ptr<Scope> weak_scope = scope;
@@ -96,7 +99,9 @@ void AnimationFrameModule::RequestAnimationFrame(hippy::napi::CallbackInfo &info
 }
 
 void AnimationFrameModule::CancelAnimationFrame(hippy::napi::CallbackInfo &info, void* data) { // NOLINT(readability-convert-member-functions-to-static)
-  auto scope_wrapper = reinterpret_cast<ScopeWrapper*>(std::any_cast<void*>(info.GetSlot()));
+  std::any slot_any = info.GetSlot();
+  auto any_pointer = std::any_cast<void*>(&slot_any);
+  auto scope_wrapper = reinterpret_cast<ScopeWrapper*>(static_cast<void *>(*any_pointer));
   auto scope = scope_wrapper->scope.lock();
   FOOTSTONE_CHECK(scope);
   auto context = scope->GetContext();
@@ -112,6 +117,7 @@ void AnimationFrameModule::CancelAnimationFrame(hippy::napi::CallbackInfo &info,
     return;
   }
 
+  root_node->UnsetVSyncEventNeedSource(VSyncEventNeedByFrame);
   dom_manager->RemoveEventListener(root_node, root_node->GetId(), kVSyncKey, listener_id_);
   dom_manager->EndBatch(root_node);
 
@@ -150,7 +156,7 @@ void AnimationFrameModule::UpdateFrame(const std::shared_ptr<Scope>& scope) {
 
   std::shared_ptr<hippy::napi::Ctx> context = scope->GetContext();
 
-#ifdef ANDROID
+#if defined(ANDROID) || defined(__OHOS__)
   std::shared_ptr<CtxValue> action_value = context->CreateString("callBack");
   auto param = context->CreateObject();
   auto result_key = context->CreateString("result");

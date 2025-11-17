@@ -27,6 +27,8 @@
 
 该组件映射到 View 组件，容器里面可以放图片、也可以放文本。但是因为 View 不能包裹文本，所以需要在 `<button>` 里包裹其它文本组件才能显示文字，这个跟浏览器不一样，浏览器的 `<button>` 也可以包裹 `<span>` 组件，开发时注意一下。一切同 [div](api/hippy-vue/components.md?id=div)。
 
+> **新特性**：现已支持 iOS 26+ Liquid Glass（液态玻璃）效果，API详见 [div](api/hippy-vue/components.md?id=div)。
+
 ## 事件
 
 | 事件名称          | 描述                                                         | 类型                                      | 支持平台 |
@@ -45,6 +47,8 @@
 [[范例：demo-div.vue]](//github.com/Tencent/Hippy/blob/master/examples/hippy-vue-demo/src/components/demos/demo-div.vue)
 
 > div 组件容器，默认不可以滚动。可以通过增加样式参数 `overflow-y: scroll` 切换为可以纵向滚动容器，或者增加样式参数 `overflow-x: scroll` 切换为水平滚动容器。在终端侧会被映射成 [ScrollView](api/hippy-react/components.md?id=ScrollView)，因此具备 [ScrollView](hippy-react/components.md?id=ScrollView) 通用的能力。
+
+> **新特性**：现已支持 iOS 26+ Liquid Glass（液态玻璃）效果，详见`glassEffect` 相关API说明。
 
 !> Android 具有节点优化的特性，请注意 `collapsable` 属性的使用
 
@@ -68,11 +72,16 @@
 | showsVerticalScrollIndicator   | 当此值设为 `false` 的时候，`ScrollView` 会隐藏垂直的滚动条。 `default: true` `（仅在 overflow-y/x: scroll 时适用）`| `boolean`  | `iOS、Voltron`   |
 | nativeBackgroundAndroid        | 配置水波纹效果，`最低支持版本 2.13.1`；配置项为 `{ borderless: boolean, color: Color, rippleRadius: number }`； `borderless` 表示波纹是否有边界，默认false；`color` 波纹颜色；`rippleRadius` 波纹半径，若不设置，默认容器边框为边界； `注意：设置水波纹后默认不显示，需要在对应触摸事件中调用 setPressed 和 setHotspot 方法进行水波纹展示，详情参考相关`[demo](//github.com/Tencent/Hippy/tree/master/examples/hippy-vue-demo/src/components/demos/demo-div.vue) | `Object`| `Android`    |
 | pointerEvents | 用于控制视图是否可以成为触摸事件的目标。 | `enum('box-none', 'none', 'box-only', 'auto')` | `iOS` |
-| nestedScrollPriority* | 嵌套滚动事件处理优先级，`default:self`。相当于同时设置 `nestedScrollLeftPriority`、 `nestedScrollTopPriority`、 `nestedScrollRightPriority`、 `nestedScrollBottomPriority`。 `Android最低支持版本 2.16.0，iOS最低支持版本3.3.3` | `enum(self,parent,none)`    | `Android、iOS` |
-| nestedScrollLeftPriority | 嵌套时**从右往左**滚动事件的处理优先级，会覆盖 `nestedScrollPriority` 对应方向的值。`最低支持版本 2.16.0，iOS最低支持版本3.3.3` | `enum(self,parent,none)` | `Android、iOS` |
-| nestedScrollTopPriority | 嵌套时**从下往上**滚动事件的处理优先级，会覆盖 `nestedScrollPriority` 对应方向的值。`最低支持版本 2.16.0，iOS最低支持版本3.3.3` | `enum(self,parent,none)` | `Android、iOS` |
-| nestedScrollRightPriority | 嵌套时**从左往右**滚动事件的处理优先级，会覆盖 `nestedScrollPriority` 对应方向的值。`最低支持版本 2.16.0，iOS最低支持版本3.3.3` | `enum(self,parent,none)` | `Android、iOS` |
-| nestedScrollBottomPriority | 嵌套时**从上往下**滚动事件的处理优先级，会覆盖 `nestedScrollPriority` 对应方向的值。`最低支持版本 2.16.0，iOS最低支持版本3.3.3` | `enum(self,parent,none)` | `Android、iOS` |
+| glassEffectEnabled | 启用或禁用 iOS 26 Liquid Glass（液态玻璃）效果。当设置为 `true` 时，视图将应用液态玻璃视觉效果。 | `boolean` | `iOS 26+` |
+| glassEffectStyle | 设置液态玻璃效果的样式。可选值为 `'clear'` 和 `'regular'`，默认为 `'regular'`。 | `string` | `iOS 26+` |
+| glassEffectInteractive | 控制液态玻璃效果是否响应用户交互。当设置为 `true` 时，玻璃效果会根据用户触摸产生动态变化。 | `boolean` | `iOS 26+` |
+| glassEffectTintColor | 设置液态玻璃效果的着色颜色。可以使用任何有效的颜色值来调整玻璃效果的色调。 | `Color` | `iOS 26+` |
+| glassEffectContainerSpacing | 设置液态玻璃容器效果的间距值。当设置此属性后，视图将成为一个液态玻璃组合容器，其内嵌的液态玻璃组件之间将产生融合效果。 | `number` | `iOS 26+` |
+| nestedScrollPriority* | 嵌套滚动事件处理优先级，`default:self`。相当于同时设置 `nestedScrollLeftPriority`、 `nestedScrollTopPriority`、 `nestedScrollRightPriority`、 `nestedScrollBottomPriority`。 `Android最低支持版本 2.16.0，iOS最低支持版本3.3.3` | `enum(self,parent,none)`    | `Android、iOS、Ohos` |
+| nestedScrollLeftPriority | 嵌套时**从右往左**滚动事件的处理优先级，会覆盖 `nestedScrollPriority` 对应方向的值。`最低支持版本 2.16.0，iOS最低支持版本3.3.3` | `enum(self,parent,none)` | `Android、iOS、Ohos` |
+| nestedScrollTopPriority | 嵌套时**从下往上**滚动事件的处理优先级，会覆盖 `nestedScrollPriority` 对应方向的值。`最低支持版本 2.16.0，iOS最低支持版本3.3.3` | `enum(self,parent,none)` | `Android、iOS、Ohos` |
+| nestedScrollRightPriority | 嵌套时**从左往右**滚动事件的处理优先级，会覆盖 `nestedScrollPriority` 对应方向的值。`最低支持版本 2.16.0，iOS最低支持版本3.3.3` | `enum(self,parent,none)` | `Android、iOS、Ohos` |
+| nestedScrollBottomPriority | 嵌套时**从上往下**滚动事件的处理优先级，会覆盖 `nestedScrollPriority` 对应方向的值。`最低支持版本 2.16.0，iOS最低支持版本3.3.3` | `enum(self,parent,none)` | `Android、iOS、Ohos` |
 
 * nestedScrollPriority 的参数含义：
 
@@ -302,6 +311,9 @@
 | placeholder           | 如果没有任何文字输入，会显示此字符串。                       | `string`                                                     | `Android、iOS、Web-Renderer、Voltron、Ohos` |
 | placeholder-text-color  | 占位字符串显示的文字颜色。（也可设置为 Style 属性）  `最低支持版本2.13.4`                                   | [`color`](api/style/color.md)                                | `Android、iOS、Web-Renderer、Voltron、Ohos` |
 | returnKeyType         | 指定软键盘的回车键显示的样式。（其中部分样式仅对单行文本组件有效） | `enum(done, go, next, search, send)`              | `Android、iOS、Web-Renderer`、Ohos |
+| blurOnSubmit          | 指定当 `input` 组件为多行时，按下回车键是否自动失去焦点。`default: false` | `boolean` | `iOS` |
+| autoCorrect           | 指定 `input` 组件输入的文字是否自动修正。`default: false` | `boolean` | `iOS` |
+| clearTextOnFocus      | 指定当 `input` 组件为多行时，是否在获取焦点时清除文字。`default: false` | `boolean` | `iOS` |
 | value                 | 指定 `input` 组件的值。                                  | `string`                                                     | `Android、iOS、Web-Renderer、Voltron`     |
 | break-strategy* | 设置Android API 23及以上系统的文本换行策略。`default: simple` | `enum(simple, high_quality, balanced)` | `Android(版本 2.14.2以上)` |
 
@@ -395,13 +407,11 @@ Hippy 的重点功能，高性能的可复用列表组件，在终端侧会被�
 | preloadItemNumber     | 指定当列表滚动至倒数第几行时触发 `endReached` 回调。 | `number` | `Android、iOS、Web-Renderer、Voltron、Ohos` |
 | exposureEventEnabled | Android 曝光能力启用开关，如果要使用 `appear`、`disappear` 相关事件，Android 需要设置该开关（iOS无需设置）, `default: true` | `boolean` | `Android、Voltron、Ohos` |
 | endReached | 当所有的数据都已经渲染过，并且列表被滚动到最后一条时，将触发 `endReached` 回调。 | `Function`                                                  | `Android、iOS、Web-Renderer、Voltron`    |
-| editable | 是否可编辑，开启侧滑删除时需要设置为 `true`。`最低支持版本2.9.0` | `boolean`                                                  | `iOS`    |
-| delText | 侧滑删除文本。`最低支持版本2.9.0` | `string`                                                  | `iOS`    |
-| nestedScrollPriority* | 嵌套滚动事件处理优先级，`default:self`。相当于同时设置 `nestedScrollLeftPriority`、 `nestedScrollTopPriority`、 `nestedScrollRightPriority`、 `nestedScrollBottomPriority`。 `Android最低支持版本 2.16.0，iOS最低支持版本3.3.3` | `enum(self,parent,none)`    | `Android、iOS` |
-| nestedScrollLeftPriority | 嵌套时**从右往左**滚动事件的处理优先级，会覆盖 `nestedScrollPriority` 对应方向的值。`最低支持版本 2.16.0，iOS最低支持版本3.3.3` | `enum(self,parent,none)` | `Android、iOS` |
-| nestedScrollTopPriority | 嵌套时**从下往上**滚动事件的处理优先级，会覆盖 `nestedScrollPriority` 对应方向的值。`最低支持版本 2.16.0，iOS最低支持版本3.3.3` | `enum(self,parent,none)` | `Android、iOS` |
-| nestedScrollRightPriority | 嵌套时**从左往右**滚动事件的处理优先级，会覆盖 `nestedScrollPriority` 对应方向的值。`最低支持版本 2.16.0，iOS最低支持版本3.3.3` | `enum(self,parent,none)` | `Android、iOS` |
-| nestedScrollBottomPriority | 嵌套时**从上往下**滚动事件的处理优先级，会覆盖 `nestedScrollPriority` 对应方向的值。`最低支持版本 2.16.0，iOS最低支持版本3.3.3` | `enum(self,parent,none)` | `Android、iOS` |
+| nestedScrollPriority* | 嵌套滚动事件处理优先级，`default:self`。相当于同时设置 `nestedScrollLeftPriority`、 `nestedScrollTopPriority`、 `nestedScrollRightPriority`、 `nestedScrollBottomPriority`。 `Android最低支持版本 2.16.0，iOS最低支持版本3.3.3` | `enum(self,parent,none)`    | `Android、iOS、Ohos` |
+| nestedScrollLeftPriority | 嵌套时**从右往左**滚动事件的处理优先级，会覆盖 `nestedScrollPriority` 对应方向的值。`最低支持版本 2.16.0，iOS最低支持版本3.3.3` | `enum(self,parent,none)` | `Android、iOS、Ohos` |
+| nestedScrollTopPriority | 嵌套时**从下往上**滚动事件的处理优先级，会覆盖 `nestedScrollPriority` 对应方向的值。`最低支持版本 2.16.0，iOS最低支持版本3.3.3` | `enum(self,parent,none)` | `Android、iOS、Ohos` |
+| nestedScrollRightPriority | 嵌套时**从左往右**滚动事件的处理优先级，会覆盖 `nestedScrollPriority` 对应方向的值。`最低支持版本 2.16.0，iOS最低支持版本3.3.3` | `enum(self,parent,none)` | `Android、iOS、Ohos` |
+| nestedScrollBottomPriority | 嵌套时**从上往下**滚动事件的处理优先级，会覆盖 `nestedScrollPriority` 对应方向的值。`最低支持版本 2.16.0，iOS最低支持版本3.3.3` | `enum(self,parent,none)` | `Android、iOS、Ohos` |
 
 * nestedScrollPriority 的参数含义：
 
@@ -416,6 +426,8 @@ Hippy 的重点功能，高性能的可复用列表组件，在终端侧会被�
   如未设置任何滚动优先级时，iOS平台的默认值为`none`，即与系统默认行为保持一致。当指定任意一方向的优先级后，其他方向默认值为`self`；
   Android平台默认值始终为`self`。
 
+* 请注意，由于底层组件实现变化，原iOS 2.9版本起支持的侧滑删除相关属性（ `editable`、`delText`、`delete` ）在升级3.x后已不再默认内置支持，如需使用，可通过自定义组件实现。
+
 ## 事件
 
 | 事件名称          | 描述                                                         | 类型                                      | 支持平台 |
@@ -427,7 +439,8 @@ Hippy 的重点功能，高性能的可复用列表组件，在终端侧会被�
 | scrollBeginDrag     | 当用户开始拖拽 `ListView` 时调用，`2.14.6` 版本后支持 `offset` 相关参数   | `(event: { offsetX: number, offsetY: number }) => any`                                                  | `Android、iOS、Web-Renderer、Voltron、Ohos` |
 | scrollEndDrag       | 当用户停止拖拽 `ListView` 或者放手让 `ListView` 开始滑动的时候调用，`2.14.6` 版本后支持 `offset` 相关参数 | `(event: { offsetX: number, offsetY: number }) => any`                                                  | `Android、iOS、Web-Renderer、Voltron、Ohos` |
 | layout      | 当元素挂载或者布局改变的时候调用，参数为： `nativeEvent: { layout: { x, y, width, height } }`，其中 `x` 和 `y` 为相对父元素的坐标位置。 | `Function`                                | `Android、iOS、Web-Renderer、Voltron`    |
-| delete      | 在列表项侧滑删除时调起。`最低支持版本2.9.0` | `(nativeEvent: { index: number}) => void`                                | `iOS`    |
+
+* 请注意，由于底层组件实现变化，原iOS 2.9版本起支持的侧滑删除相关属性（ `editable`、`delText`、`delete` ）在升级3.x后已不再默认内置支持，如需使用，可通过自定义组件实现。
 
 ## 方法
 
@@ -446,6 +459,7 @@ Hippy 的重点功能，高性能的可复用列表组件，在终端侧会被�
 > * `xIndex`: number - 滑动到 X 方向的第 xIndex 个 item
 > * `yIndex`: number - 滑动到 Y 方向的 yIndex 个 item
 > * `animated`: boolean - 滑动过程是否使用动画
+> * `scrollAlign`: enum(start,center,end,auto) - 滑动对齐类型 只有`Ohos`支持
 
 ---
 
@@ -463,7 +477,8 @@ ul 的子节点，终端层节点回收和复用的最小颗粒度。
 | --------------------- | ------------------------------------------------------------ | ----------------------------------------------------------- | -------- |
 | type            | 指定一个函数，在其中返回对应条目的类型（返回Number类型的自然数，默认是0），List 将对同类型条目进行复用，所以合理的类型拆分，可以很好地提升 List 性能。`注意：同一 type 的 item 组件由于复用可能不会走完整组件创建生命周期` | `number`              | `Android、iOS、Web-Renderer、Voltron`    |
 | key             | 指定一个函数，在其中返回对应条目的 Key 值，详见 [Vue 官网](//vuejs.org/v2/guide/list.html) | `string`                                    | `Android、iOS、Web-Renderer、Voltron`    |
-| sticky       | 对应的 item 是否需要使用悬停效果（滚动到顶部时，会悬停在 ListView 顶部，不会滚出屏幕），需跟 `ul` 的 `rowShouldSticky` 配合使用 | `boolean`                                | `Android、iOS、Web-Renderer、Voltron`
+| sticky       | 对应的 item 是否需要使用悬停效果（滚动到顶部时，会悬停在List顶部，不会滚出屏幕），需跟 `ul` 的 `rowShouldSticky` 配合使用 | `boolean`                                | `Android、iOS、Web-Renderer、Voltron` |
+| keepAlive       | 设置 item 是否需要在 ListView 的整个生命周期内保持存活（不被回收复用）。启用此属性可保证 item 的状态不丢失，但会增加内存占用，请谨慎使用。`最低支持版本 3.4.0` | `boolean`                                | `iOS` |
 | appear       | 当有`li`节点滑动进入屏幕时（曝光）触发，入参返回曝光的`li`节点对应索引值。 | `(index) => any` | `Android、iOS、Web-Renderer、Voltron` |
 | disappear       | 当有`li`节点滑动离开屏幕时触发，入参返回离开的`li`节点对应索引值。 | `(index) => any` | `Android、iOS、Web-Renderer、Voltron` |
 | willAppear       | 当有`li`节点至少一个像素滑动进入屏幕时（曝光）触发，入参返回曝光的`li`节点对应索引值。`最低支持版本2.3.0` | `(index) => any` | `Android、iOS、Voltron` |

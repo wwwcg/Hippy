@@ -25,6 +25,7 @@
 #include "renderer/components/base_view.h"
 #include "renderer/arkui/stack_node.h"
 #include "renderer/arkui/water_flow_item_node.h"
+
 namespace hippy {
 inline namespace render {
 inline namespace native {
@@ -34,18 +35,33 @@ public:
   WaterfallItemView(std::shared_ptr<NativeRenderContext> &ctx);
   ~WaterfallItemView();
 
-  WaterFlowItemNode *GetLocalRootArkUINode() override;
+  ArkUINode *GetLocalRootArkUINode() override;
   void CreateArkUINodeImpl() override;
   void DestroyArkUINodeImpl() override;
   bool RecycleArkUINodeImpl(std::shared_ptr<RecycleView> &recycleView) override;
   bool ReuseArkUINodeImpl(std::shared_ptr<RecycleView> &recycleView) override;
+  bool SetViewProp(const std::string &propKey, const HippyValue &propValue) override;
   bool SetPropImpl(const std::string &propKey, const HippyValue &propValue) override;
   void OnSetPropsEndImpl() override;
+  
   void OnChildInsertedImpl(std::shared_ptr<BaseView> const &childView, int32_t index) override;
   void OnChildRemovedImpl(std::shared_ptr<BaseView> const &childView, int32_t index) override;
   void UpdateRenderViewFrameImpl(const HRRect &frame, const HRPadding &padding) override;
-private:
+  
+  float GetWidth();
+  float GetHeight();
+  std::string &GetType() { return type_; }
+  
+  constexpr static const char *HEAD_BANNER_TYPE = "HeadBanner";
+  constexpr static const char *FOOT_BANNER_TYPE = "FootBanner";
+  
+protected:
   std::shared_ptr<WaterFlowItemNode> itemNode_;
+  
+  float width_ = 0;
+  float height_ = 0;
+  
+  std::string type_;
 };
 
 } // namespace native

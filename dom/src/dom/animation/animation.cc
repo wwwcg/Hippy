@@ -149,7 +149,8 @@ void Animation::Start() {
   }
   auto status = animation->GetStatus();
   switch (status) {
-    case Animation::Status::kCreated: {
+    case Animation::Status::kCreated:
+    case Animation::Status::kEnd: {
       animation->SetStatus(Animation::Status::kStart);
       break;
     }
@@ -157,7 +158,6 @@ void Animation::Start() {
     case Animation::Status::kRunning:
     case Animation::Status::kPause:
     case Animation::Status::kResume:
-    case Animation::Status::kEnd:
     case Animation::Status::kDestroy:
     default: {
       return;
@@ -254,7 +254,6 @@ void Animation::Run(uint64_t now, const AnimationOnRun& on_run) {
     case Animation::Status::kDestroy:
     default: {
       FOOTSTONE_LOG(ERROR) << "animation status = " << static_cast<uint32_t>(status_);
-      FOOTSTONE_DCHECK(false);
       return;
     }
   }

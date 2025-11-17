@@ -26,6 +26,7 @@ import { ResourceDataHolder } from '../../../vfs/ResourceDataHolder';
 import { FetchResultCode } from '../../HippyResourceLoader';
 import fs from '@ohos.file.fs';
 import { BusinessError } from '@kit.BasicServicesKit';
+import { util } from '@kit.ArkTS';
 
 const FILE_REQ_TAG = "FileRequestAdapter"
 
@@ -59,7 +60,7 @@ export class FileRequestAdapter implements HippyFileAdapter {
   }
 
   public downloadFile(mDataHolder: ResourceDataHolder, mCallback: ProcessorCallback) {
-    let filePath = this.ctx.filesDir + '/' + this.geFileName(mDataHolder.uri);
+    let filePath = this.ctx.filesDir + '/' + 'hippy_' + util.generateRandomUUID(false) + '_' + this.geFileName(mDataHolder.uri);
 
     try {
       let res = fs.accessSync(filePath);
@@ -83,7 +84,7 @@ export class FileRequestAdapter implements HippyFileAdapter {
         LogUtils.i(FILE_REQ_TAG, 'Download task url:' + mDataHolder.uri);
         LogUtils.i(FILE_REQ_TAG, 'Download task filePath:' + filePath);
         if (err != undefined) {
-          LogUtils.i(FILE_REQ_TAG, `Failed to request the download. Code: ${err.code}, message: ${err.message}`);
+          LogUtils.e(FILE_REQ_TAG, `Failed to request the download. Code: ${err.code}, message: ${err.message}`);
           return;
         }
         downloadTask = data;

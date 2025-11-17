@@ -30,19 +30,41 @@ namespace hippy {
 inline namespace render {
 inline namespace native {
 
+class PullHeaderViewDelegate {
+public:
+  virtual ~PullHeaderViewDelegate() = default;
+  virtual void OnPullHeaderViewSizeUpdated(const HRSize &size) {}
+};
+
 class PullHeaderView : public ListItemView {
 public:
   PullHeaderView(std::shared_ptr<NativeRenderContext> &ctx);
   ~PullHeaderView();
   
+  ArkUINode *GetLocalRootArkUINode() override;
+  void CreateArkUINodeImpl() override;
+  void DestroyArkUINodeImpl() override;
+  bool RecycleArkUINodeImpl(std::shared_ptr<RecycleView> &recycleView) override;
+  bool ReuseArkUINodeImpl(std::shared_ptr<RecycleView> &recycleView) override;
+  
+  void OnChildInsertedImpl(std::shared_ptr<BaseView> const &childView, int32_t index) override;
+  void OnChildRemovedImpl(std::shared_ptr<BaseView> const &childView, int32_t index) override;
+  void UpdateRenderViewFrameImpl(const HRRect &frame, const HRPadding &padding) override;
+  
   bool SetPropImpl(const std::string &propKey, const HippyValue &propValue) override;
   void CallImpl(const std::string &method, const std::vector<HippyValue> params,
                     std::function<void(const HippyValue &result)> callback) override;
   void OnSetPropsEndImpl() override;
+  
+  void SetPullHeaderViewDelegate(PullHeaderViewDelegate *delegate) { viewDelegate_ = delegate; }
 
 private:
   void OnHeadRefreshFinish(int32_t delay = 0);
   void OnHeaderRefresh();
+  
+  std::shared_ptr<StackNode> headerItemNode_;
+  
+  PullHeaderViewDelegate *viewDelegate_ = nullptr;
 };
 
 } // namespace native

@@ -63,6 +63,8 @@ std::size_t std::hash<HippyValue>::operator()(const HippyValue& value) const noe
 namespace footstone {
 inline namespace value {
 
+static std::string global_empty_string;
+
 const HippyValue HippyValue::Undefined() {
   HippyValue Undefined;
   Undefined.type_ = Type::kUndefined;
@@ -426,7 +428,9 @@ bool HippyValue::ToBooleanChecked() const {
 
 bool HippyValue::ToString(std::string& str) const {
   bool is_string = IsString();
-  str = str_;
+  if (is_string) {
+    str = str_;
+  }
   return is_string;
 }
 
@@ -438,6 +442,22 @@ const std::string& HippyValue::ToStringChecked() const {
 std::string& HippyValue::ToStringChecked() {
   FOOTSTONE_CHECK(IsString());
   return str_;
+}
+
+const std::string& HippyValue::ToStringSafe() const {
+  bool is_string = IsString();
+  if (is_string) {
+    return str_;
+  }
+  return global_empty_string;
+}
+
+std::string& HippyValue::ToStringSafe() {
+  bool is_string = IsString();
+  if (is_string) {
+    return str_;
+  }
+  return global_empty_string; 
 }
 
 bool HippyValue::ToObject(HippyValue::HippyValueObjectType& obj) const {

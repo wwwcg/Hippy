@@ -47,11 +47,20 @@ HIPPY_EXPORT_MODULE(TextInput)
     } else {
         theView = [[HippyTextView alloc] init];
     }
+    HippyUIManager *uiManager = self.bridge.uiManager;
+    if (uiManager.globalFontSizeMultiplier) {
+        theView.fontSizeMultiplier = uiManager.globalFontSizeMultiplier.doubleValue;
+    }
     return theView;
 }
 
 - (HippyShadowView *)shadowView {
-    return [HippyShadowTextView new];
+    HippyShadowTextView *shadowTextView = [HippyShadowTextView new];
+    HippyUIManager *uiManager = self.bridge.uiManager;
+    if (uiManager.globalFontSizeMultiplier) {
+        shadowTextView.fontSizeMultiplier = uiManager.globalFontSizeMultiplier.doubleValue;
+    }
+    return shadowTextView;
 }
 
 HIPPY_EXPORT_VIEW_PROPERTY(value, NSString)
@@ -152,7 +161,8 @@ HIPPY_REMAP_VIEW_PROPERTY(autoCapitalize, textView.autocapitalizationType, UITex
 HIPPY_EXPORT_VIEW_PROPERTY(autoCorrect, BOOL)
 HIPPY_EXPORT_VIEW_PROPERTY(blurOnSubmit, BOOL)
 HIPPY_EXPORT_VIEW_PROPERTY(clearTextOnFocus, BOOL)
-HIPPY_REMAP_VIEW_PROPERTY(color, textView.textColor, UIColor)
+HIPPY_REMAP_VIEW_PROPERTY(color, textColor, UIColor)
+
 HIPPY_REMAP_VIEW_PROPERTY(textAlign, textView.textAlignment, NSTextAlignment)
 HIPPY_REMAP_VIEW_PROPERTY(editable, textView.canEdit, BOOL)
 HIPPY_REMAP_VIEW_PROPERTY(enablesReturnKeyAutomatically, textView.enablesReturnKeyAutomatically, BOOL)

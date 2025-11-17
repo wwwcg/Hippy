@@ -18,7 +18,7 @@
  * limitations under the License.
  */
 import window from '@ohos.window';
-import { HippyEngine } from '../hippy_framework';
+import { HippyEngine, HippyLayoutEngineType } from '../hippy_framework/HippyEngine';
 import { HippyException } from '../support/common/HippyException';
 import { HippyRecord } from '../support/common/HippyTypes';
 import { LogUtils } from '../support/utils/LogUtils';
@@ -33,6 +33,7 @@ import { NodeContent } from '@ohos.arkui.node';
 
 export class HippyRootView {
   renderView: HippyRenderView | null = null
+  layoutEngineType: HippyLayoutEngineType = HippyLayoutEngineType.Default
   pagerName: string
   pagerData: HippyRecord
   rootSlot: NodeContent | null = null
@@ -45,10 +46,12 @@ export class HippyRootView {
               customRenderViewCreatorMap: Map<string, HRRenderViewCreator> | null,
               nativeRender: NativeRender,
               wrappedCustomRenderViewBuilder: WrappedHippyCustomRenderViewBuilder | null,
+              layoutEngineType: HippyLayoutEngineType,
               pagerName: string,
               pagerData: HippyRecord,
   ) {
     this.ctx = new NativeRenderContext(instanceId, rootId, customRenderViewCreatorMap, nativeRender, wrappedCustomRenderViewBuilder)
+    this.layoutEngineType = layoutEngineType
     this.pagerName = pagerName
     this.pagerData = pagerData
     this.initRenderView()
@@ -61,6 +64,8 @@ export class HippyRootView {
 
   private initRenderView() {
     this.renderView = new HippyRenderView(this.ctx, this.pagerName, this.pagerData, this.renderViewSize)
+    let renderManger = this.ctx.getNativeRender().getRenderManager()
+    renderManger.initViewManager(this.renderView)
     this.performAllRenderViewTasks()
   }
 
@@ -70,6 +75,10 @@ export class HippyRootView {
 
   setRootSlot(rootSlot: NodeContent) {
     this.rootSlot = rootSlot;
+  }
+
+  getLayoutEngineType(): HippyLayoutEngineType {
+    return this.layoutEngineType
   }
 
   onViewSizeChanged(size: HRSize, force = false) {
@@ -119,8 +128,12 @@ export class HippyRootView {
 export class HippyRootViewWrapper {
   private rootView: HippyRootView | null = null
   private rootViewDidCreateCallback: ((rootView: HippyRootView) => void) | null = null
+  private rootViewWillDestroyCallback: ((rootView: HippyRootView) => void) | null = null
 
   setRootView(rootView: HippyRootView): void {
+    if (this.rootView) {
+      return;
+    }
     this.rootView = rootView
     if (this.rootViewDidCreateCallback) {
       this.rootViewDidCreateCallback(this.rootView)
@@ -131,12 +144,23 @@ export class HippyRootViewWrapper {
     return this.rootView
   }
 
+  resetRootView(): void {
+    if (this.rootView && this.rootViewWillDestroyCallback) {
+      this.rootViewWillDestroyCallback(this.rootView)
+    }
+    this.rootView = null
+  }
+
   setRootViewDidCreateCallback(callback: (rootView: HippyRootView) => void) {
     if (this.rootView) {
       callback(this.rootView)
     } else {
       this.rootViewDidCreateCallback = callback
     }
+  }
+
+  setRootViewWillDestroyCallback(callback: (rootView: HippyRootView) => void) {
+    this.rootViewWillDestroyCallback = callback
   }
 }
 

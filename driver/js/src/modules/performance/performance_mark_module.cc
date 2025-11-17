@@ -21,7 +21,7 @@
  */
 
 #include "driver/modules/performance/performance_mark_module.h"
-
+#include "driver/modules/performance/performance_entry_module.h"
 #include "driver/performance/performance_mark.h"
 #include "footstone/time_point.h"
 #include "footstone/time_delta.h"
@@ -74,6 +74,11 @@ std::shared_ptr<ClassTemplate<PerformanceMark>> RegisterPerformanceMark(const st
     return std::static_pointer_cast<PerformanceMark>(entries.back());
   };
 
+#ifdef JS_JSH
+  auto entry_properties = hippy::RegisterPerformanceEntryPropertyDefine<PerformanceMark>(weak_scope);
+  class_template.properties.insert(class_template.properties.end(), entry_properties.begin(), entry_properties.end());
+#endif
+
   PropertyDefine<PerformanceMark> name_property_define;
   name_property_define.name = "detail";
   name_property_define.getter = [weak_scope](
@@ -88,7 +93,9 @@ std::shared_ptr<ClassTemplate<PerformanceMark>> RegisterPerformanceMark(const st
     if (!detail.has_value()) {
       return context->CreateNull();
     }
-    return std::any_cast<std::shared_ptr<CtxValue>>(detail);
+    auto any_pointer = std::any_cast<std::shared_ptr<CtxValue>>(&detail);
+    auto detail_ctx = static_cast<std::shared_ptr<CtxValue>>(*any_pointer);
+    return detail_ctx;
   };
   class_template.properties.push_back(std::move(name_property_define));
 

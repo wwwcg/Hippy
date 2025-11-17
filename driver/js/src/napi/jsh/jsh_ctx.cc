@@ -23,6 +23,7 @@
 #include "driver/napi/jsh/jsh_ctx.h"
 #include <hilog/log.h>
 #include <sys/stat.h>
+#include <set>
 
 #include "driver/base/js_value_wrapper.h"
 #include "driver/napi/jsh/jsh_ctx_value.h"
@@ -31,6 +32,7 @@
 #include "driver/napi/callback_info.h"
 #include "driver/vm/jsh/jsh_vm.h"
 #include "driver/vm/native_source_code.h"
+#include "driver/vm/jsh/native_source_code_jsh.h"
 #include "footstone/check.h"
 #include "footstone/string_view.h"
 #include "footstone/string_view_utils.h"
@@ -44,7 +46,7 @@ using StringViewUtils = footstone::StringViewUtils;
 using JSHVM = hippy::vm::JSHVM;
 using CallbackInfo = hippy::CallbackInfo;
 
-void* GetPointerInInstanceData(JSVM_Env env, int index) {
+void* GetPointerInInstanceData(JSVM_Env env, int index, bool *error) {
   if (index < 0 || index >= kJSHExternalDataNum) {
     return nullptr;
   }
@@ -53,7 +55,11 @@ void* GetPointerInInstanceData(JSVM_Env env, int index) {
   auto status = OH_JSVM_GetInstanceData(env, &data);
   FOOTSTONE_DCHECK(status == JSVM_OK);
   
-  if (data) {
+  if (error) {
+    *error = (status == JSVM_OK) ? false : true;
+  }
+  
+  if ((status == JSVM_OK) && data) {
     return ((void**)data)[index];
   }
   return nullptr;
@@ -191,6 +197,27 @@ JSVM_Value InvokeJsCallbackOnConstruct(JSVM_Env env, JSVM_CallbackInfo info) {
   return thisArg;
 }
 
+class JSHInvalidEnvManager {
+public:
+  void AddEnv(JSVM_Env env) {
+    std::lock_guard<std::mutex> lock(mutex_);
+    envs_.insert(env);
+  }
+  void RemoveEnv(JSVM_Env env) {
+    std::lock_guard<std::mutex> lock(mutex_);
+    envs_.erase(env);
+  }
+  bool HasEnv(JSVM_Env env) {
+    std::lock_guard<std::mutex> lock(mutex_);
+    return envs_.find(env) != envs_.end();
+  }
+private:
+  std::set<JSVM_Env> envs_;
+  std::mutex mutex_;
+};
+
+static JSHInvalidEnvManager gInvalidEnvMgr;
+
 void JSHCtx::SetReceiverData(std::shared_ptr<CtxValue> value, void* data) {
   auto jsh_value = std::static_pointer_cast<JSHCtxValue>(value);
   auto status = OH_JSVM_Wrap(env_, jsh_value->GetValue(), data, nullptr, nullptr, nullptr);
@@ -203,6 +230,25 @@ exception_cb_(exception_cb), exception_cb_external_data_(external_data) {
   FOOTSTONE_DCHECK(status == JSVM_OK);
   status = OH_JSVM_OpenEnvScope(env_, &env_scope_);
   FOOTSTONE_DCHECK(status == JSVM_OK);
+}
+
+JSHCtx::~JSHCtx() {
+  for (auto st : callback_structs_) {
+    delete st;
+  }
+  for (auto arr : prop_descriptor_arrays_) {
+    delete []arr;
+  }
+  for (auto property_st : property_structs_) {
+    delete property_st;
+  }
+  template_map_.clear();
+  OH_JSVM_CloseEnvScope(env_, env_scope_);
+  env_scope_ = nullptr;
+  gInvalidEnvMgr.AddEnv(env_);
+  OH_JSVM_DestroyEnv(env_);
+  gInvalidEnvMgr.RemoveEnv(env_);
+  env_ = nullptr;
 }
 
 std::shared_ptr<CtxValue> JSHCtx::CreateTemplate(const std::unique_ptr<FunctionWrapper>& wrapper) {
@@ -329,6 +375,19 @@ std::shared_ptr<CtxValue> JSHCtx::InternalRunScript(
       if(!CheckJSVMStatus(env_, status)) {
         return nullptr;
       }
+      if (!script) {
+        return nullptr;
+      }
+      if (cacheRejected) {
+        const uint8_t *data = nullptr;
+        size_t length = 0;
+        status = OH_JSVM_CreateCodeCache(env_, script, &data, &length);
+        FOOTSTONE_DCHECK(status == JSVM_OK);
+        if (status == JSVM_OK && data && length > 0) {
+          *cache = string_view(data, length);
+          delete[] data;
+        }
+      }
     } else {
       FOOTSTONE_UNREACHABLE();
     }
@@ -346,8 +405,10 @@ std::shared_ptr<CtxValue> JSHCtx::InternalRunScript(
       size_t length = 0;
       status = OH_JSVM_CreateCodeCache(env_, script, &data, &length);
       FOOTSTONE_DCHECK(status == JSVM_OK);
-      *cache = string_view(data, length);
-      delete[] data;
+      if (status == JSVM_OK && data && length > 0) {
+        *cache = string_view(data, length);
+        delete[] data;
+      }
     } else {
       status = OH_JSVM_CompileScript(env_, jsh_source_value->GetValue(), nullptr, 0, true, nullptr, &script);
       if(!CheckJSVMStatus(env_, status)) {
@@ -1470,11 +1531,15 @@ bool JSHCtx::GetByteBuffer(const std::shared_ptr<CtxValue>& value,
 }
 
 void JSH_Finalize(JSVM_Env env, void* finalizeData, void* finalizeHint) {
+  if (gInvalidEnvMgr.HasEnv(env)) {
+    return;
+  }
   if (!finalizeData) {
     return;
   }
-  void* invalid = GetPointerInInstanceData(env, kJSHWeakCallbackWrapperInvalidIndex);
-  if (invalid) {
+  bool error = false;
+  void* invalid = GetPointerInInstanceData(env, kJSHWeakCallbackWrapperInvalidIndex, &error);
+  if (invalid || error) {
     return;
   }
   auto wrapper = reinterpret_cast<WeakCallbackWrapper*>(finalizeData);
@@ -1529,6 +1594,23 @@ bool JSHCtx::CheckJSVMStatus(JSVM_Env env, JSVM_Status status) {
   }
 
   return status == JSVM_OK;
+}
+
+std::shared_ptr<CtxValue> JSHCtx::DefineProxyHandler(const std::unique_ptr<FunctionWrapper>& proxy_handler) {
+  // unused in jsh
+  return nullptr;
+}
+
+std::shared_ptr<TryCatch> JSHCtx::CreateTryCatchScope(bool enable, std::shared_ptr<Ctx> ctx) {
+  return std::make_shared<JSHTryCatch>(enable, ctx);
+}
+
+void JSHCtx::SetWeak(std::shared_ptr<CtxValue> value, std::unique_ptr<WeakCallbackWrapper>&& wrapper) {
+    FOOTSTONE_UNIMPLEMENTED();
+}
+
+std::unique_ptr<NativeSourceCodeProvider> JSHCtx::GetNativeSourceCodeProvider() const {
+  return std::make_unique<NativeSourceCodeProviderJSH>();
 }
 
 }  // namespace napi

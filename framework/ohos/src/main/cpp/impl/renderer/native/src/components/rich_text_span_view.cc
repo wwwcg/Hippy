@@ -81,11 +81,28 @@ bool RichTextSpanView::ReuseArkUINodeImpl(std::shared_ptr<RecycleView> &recycleV
 #endif
 }
 
+bool RichTextSpanView::SetViewProp(const std::string &propKey, const HippyValue &propValue) {
+#ifdef OHOS_DRAW_TEXT
+  // 绘制文本时，SpanView重载了click的处理
+  if (propKey == "click") {
+    bool value = false;
+    bool isBool = propValue.ToBoolean(value);
+    if (isBool) {
+      SetClickable(value);
+    }
+    return true;
+  }
+  // TODO(etk): touch等处理的重载，业务需要时可加
+#endif
+  return false;
+}
+
 bool RichTextSpanView::SetPropImpl(const std::string &propKey, const HippyValue &propValue) {
 #ifdef OHOS_DRAW_TEXT
+  return false;
 #else
   if (propKey == "text") {
-    std::string value = HRValueUtils::GetString(propValue);
+    auto& value = HRValueUtils::GetString(propValue);
     if (!text_.has_value() || value != text_) {
       GetLocalRootArkUINode()->SetSpanContent(value);
       text_ = value;
@@ -99,7 +116,7 @@ bool RichTextSpanView::SetPropImpl(const std::string &propKey, const HippyValue 
     }
     return true;
   } else if (propKey == HRNodeProps::FONT_FAMILY) {
-    std::string value = HRValueUtils::GetString(propValue);
+    auto& value = HRValueUtils::GetString(propValue);
     if (!fontFamily_.has_value() || value != fontFamily_) {
       GetLocalRootArkUINode()->SetFontFamily(value);
       fontFamily_ = value;
@@ -113,7 +130,7 @@ bool RichTextSpanView::SetPropImpl(const std::string &propKey, const HippyValue 
     }
     return true;
   } else if (propKey == HRNodeProps::FONT_STYLE) {
-    std::string value = HRValueUtils::GetString(propValue);
+    auto& value = HRValueUtils::GetString(propValue);
     int32_t style = HRTextConvertUtils::FontStyleToArk(value);
     if (!fontStyle_.has_value() || style != fontStyle_) {
       GetLocalRootArkUINode()->SetFontStyle(style);
@@ -121,7 +138,7 @@ bool RichTextSpanView::SetPropImpl(const std::string &propKey, const HippyValue 
     }
     return true;
   } else if (propKey == HRNodeProps::FONT_WEIGHT) {
-    std::string value = HRValueUtils::GetString(propValue);
+    auto& value = HRValueUtils::GetString(propValue);
     ArkUI_FontWeight weight = HRTextConvertUtils::FontWeightToArk(value);
     if (!fontWeight_.has_value() || weight != fontWeight_) {
       GetLocalRootArkUINode()->SetFontWeight(weight);
@@ -143,7 +160,7 @@ bool RichTextSpanView::SetPropImpl(const std::string &propKey, const HippyValue 
     }
     return true;
   } else if (propKey == HRNodeProps::TEXT_DECORATION_LINE) {
-    std::string value = HRValueUtils::GetString(propValue);
+    auto& value = HRValueUtils::GetString(propValue);
     decorationType_ = HRTextConvertUtils::TextDecorationTypeToArk(value);
     toSetTextDecoration_ = true;
     return true;
@@ -152,7 +169,7 @@ bool RichTextSpanView::SetPropImpl(const std::string &propKey, const HippyValue 
     toSetTextDecoration_ = true;
     return true;
   } else if (propKey == HRNodeProps::TEXT_DECORATION_STYLE) {
-    std::string value = HRValueUtils::GetString(propValue);
+    auto& value = HRValueUtils::GetString(propValue);
     decorationStyle_ = HRTextConvertUtils::TextDecorationStyleToArk(value);
     toSetTextDecoration_ = true;
     return true;
@@ -179,9 +196,9 @@ bool RichTextSpanView::SetPropImpl(const std::string &propKey, const HippyValue 
   }
   // Not to set some attributes for text span.
   // For example: NODE_BACKGROUND_COLOR will return ARKUI_ERROR_CODE_ATTRIBUTE_OR_EVENT_NOT_SUPPORTED (106102)
-#endif
   bool handled = SetEventProp(propKey, propValue);
   return handled;
+#endif
 }
 
 void RichTextSpanView::OnSetPropsEndImpl() {

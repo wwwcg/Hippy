@@ -43,6 +43,19 @@ NS_ASSUME_NONNULL_BEGIN
 @property (nonatomic, assign) BOOL isUseNewShadow;
 @property (nonatomic, strong) HippyViewInnerLayer *innerShadowLayer;
 
+#if __IPHONE_OS_VERSION_MAX_ALLOWED >= 260000
+/// iOS 26+ Liquid Glass Effect
+@property (nonatomic, assign) BOOL glassEffectEnabled;
+/// iOS 26+ Liquid Glass Effect Interactive
+@property (nonatomic, assign) BOOL glassEffectInteractive;
+/// iOS 26+ Liquid Glass Effect Color
+@property (nonatomic, strong) UIColor *glassEffectTintColor;
+/// iOS 26+ Liquid Glass Effect Container Spacing
+@property (nonatomic, strong) NSNumber *glassEffectContainerSpacing;
+/// iOS 26+ Liquid Glass Effect Style (Regular/Clear)
+@property (nonatomic, strong) NSString *glassEffectStyle;
+#endif
+
 /**
  * get content for layer
  * return YES if getting content synchronized,else return NO
@@ -71,11 +84,11 @@ NS_ASSUME_NONNULL_BEGIN
 /**
  * Border colors (actually retained).
  */
-@property (nonatomic, assign) CGColorRef borderTopColor;
-@property (nonatomic, assign) CGColorRef borderRightColor;
-@property (nonatomic, assign) CGColorRef borderBottomColor;
-@property (nonatomic, assign) CGColorRef borderLeftColor;
-@property (nonatomic, assign) CGColorRef borderColor;
+@property (nonatomic, strong) UIColor *borderTopColor;
+@property (nonatomic, strong) UIColor *borderRightColor;
+@property (nonatomic, strong) UIColor *borderBottomColor;
+@property (nonatomic, strong) UIColor *borderLeftColor;
+@property (nonatomic, strong) UIColor *borderColor;
 
 /**
  * Border widths.
