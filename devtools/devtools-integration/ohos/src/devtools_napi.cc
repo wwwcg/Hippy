@@ -22,8 +22,6 @@
 
 #include "footstone/string_view_utils.h"
 #include "napi/native_api.h"
-
-// #include "dom_manager_napi.h"
 #include <js_native_api.h>
 #include <js_native_api_types.h>
 #include "oh_napi/data_holder.h"
@@ -37,9 +35,7 @@
 #include "footstone/task_runner.h"
 #include "footstone/worker_impl.h"
 #include "devtools_napi.h"
-
 #include "devtools/devtools_data_source.h"
-// #include "devtools/vfs/devtools_handler.h"
 
 namespace hippy::devtools {
 

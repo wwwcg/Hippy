@@ -258,12 +258,15 @@ static NSString *NativeRenderRecursiveAccessibilityLabel(UIView *view) {
         self.innerShadowLayer.mShadowOffsetY = self.layer.shadowOffset.height;
         CGFloat viewWidth = self.frame.size.width;
         CGFloat viewHeight = self.frame.size.height;
+
         UIBezierPath *outerBorderPath = [UIBezierPath shadow_bezierPathWithRoundedRect:self.bounds topLeft:topLeft topRight:topRight bottomLeft:bottomLeft bottomRight:bottomRight];
         self.innerShadowLayer.outerBorderPath = outerBorderPath;
+
         CGPoint topRightEndPoint = CGPointMake(viewWidth - MAX(topRight, _borderRightWidth), MAX(topRight, _borderTopWidth));
         CGPoint topLeftEndPoint = CGPointMake(MAX(topLeft, _borderLeftWidth), MAX(topLeft, _borderTopWidth));
         CGPoint bottomRightEndPoint = CGPointMake(viewWidth - MAX(bottomRight, _borderRightWidth), viewHeight -  MAX(bottomRight, _borderBottomWidth));
         CGPoint bottomLeftEndPoint = CGPointMake(MAX(bottomLeft, _borderLeftWidth), viewHeight - MAX(bottomLeft, _borderBottomWidth));
+        
         self.innerShadowLayer.mInnerTopStart = CGPointMake(topLeftEndPoint.x, _borderTopWidth);
         self.innerShadowLayer.mInnerTopEnd = CGPointMake(topRightEndPoint.x, _borderTopWidth);
         self.innerShadowLayer.mInnerRightStart = CGPointMake(viewWidth - _borderRightWidth, topRightEndPoint.y);
@@ -272,6 +275,7 @@ static NSString *NativeRenderRecursiveAccessibilityLabel(UIView *view) {
         self.innerShadowLayer.mInnerBottomEnd = CGPointMake(bottomRightEndPoint.x, viewHeight - _borderBottomWidth);
         self.innerShadowLayer.mInnerLeftStart = CGPointMake(_borderLeftWidth, topLeftEndPoint.y);
         self.innerShadowLayer.mInnerLeftEnd = CGPointMake(_borderLeftWidth, bottomLeftEndPoint.y);
+        
         [self.innerShadowLayer setNeedsDisplay];
     } else {
         if (_innerShadowLayer) {

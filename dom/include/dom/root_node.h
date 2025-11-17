@@ -76,7 +76,7 @@ class RootNode : public DomNode {
   using EventCallback = std::function<void(const std::shared_ptr<DomEvent>&)>;
   using EventCallBackRunner = std::function<void(const std::shared_ptr<DomEvent>&)>;
 
-  RootNode(uint32_t id, LayoutEngineType layout_engine_type = LayoutEngineDefault, void* layout_config = nullptr); // TODO: conflict: , bool enable_animation = true
+  RootNode(uint32_t id, LayoutEngineType layout_engine_type = LayoutEngineDefault, void* layout_config = nullptr);
   RootNode();
   ~RootNode();
 
