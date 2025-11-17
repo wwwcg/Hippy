@@ -34,7 +34,6 @@
 #include "footstone/macros.h"
 #include "dom/root_node.h"
 #include "oh_napi/ark_ts.h"
-#include "oh_napi/oh_measure_text.h"
 
 #define USE_C_MEASURE 1
 

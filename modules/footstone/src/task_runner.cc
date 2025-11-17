@@ -310,6 +310,7 @@ bool TaskRunner::HasMoreUrgentTask(TimeDelta min_wait_time, TimePoint now) {
       }
     }
   }
+
   return false;
 }
 
