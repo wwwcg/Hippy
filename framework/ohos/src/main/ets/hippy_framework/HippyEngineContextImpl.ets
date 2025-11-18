@@ -157,11 +157,11 @@ export class HippyEngineContextImpl implements HippyEngineContext {
       if (params.imageRemoteLoader) {
         this.imageRemoteLoaderInner = new ImageRemoteLoaderInnerAdapter(
           this.libHippy,
-          this.nativeRenderProvider.getInstanceId(),
+          this.nativeRenderProvider?.getInstanceId() ?? 0,
           params.imageRemoteLoader);
       }
       this.libHippy.NativeRenderProvider_SetImageLoaderAdapter(
-        this.nativeRenderProvider.getInstanceId(),
+        this.nativeRenderProvider?.getInstanceId() ?? 0,
         params.imageLocalLoader,
         this.imageRemoteLoaderInner);
     }
