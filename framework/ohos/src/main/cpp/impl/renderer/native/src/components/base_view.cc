@@ -34,8 +34,24 @@
 #include "renderer/utils/hr_value_utils.h"
 #include "renderer/utils/hr_convert_utils.h"
 #include "renderer/uimanager/hr_gesture_dispatcher.h"
+#include "renderer/api/hippy.h"
+#include "renderer/api_internal/hr_any_data_internal.h"
 
-#define HIPPY_COMPONENT_KEY_PREFIX "HippyKey"
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+static HRRenderViewOnSetProp gExternalPropHandlerOnSet = nullptr;
+static HRRenderViewOnResetProp gExternalPropHandlerOnReset = nullptr;
+
+void HRRenderViewSetExternalPropHandler(HRRenderViewOnSetProp set, HRRenderViewOnResetProp reset) {
+  gExternalPropHandlerOnSet = set;
+  gExternalPropHandlerOnReset = reset;
+}
+
+#ifdef __cplusplus
+}
+#endif
 
 namespace hippy {
 inline namespace render {
@@ -57,7 +73,7 @@ BaseView::~BaseView() {
   ++sCount;
   FOOTSTONE_DLOG(INFO) << "Hippy ohos mem check, view, del: " << this << ", type: " << view_type_ << ", count: " << sCount;
 #endif
-  
+
   auto node = GetLocalRootArkUINode();
   if (node) {
     node->SetArkUINodeDelegate(nullptr);
@@ -73,15 +89,15 @@ void BaseView::SetTag(uint32_t tag) {
 
 void BaseView::SetViewType(const std::string &type) {
   view_type_ = type;
-  
+
   if (HippyIsLazyCreateView(type)) {
     isLazyCreate_ = true;
   }
 }
 
 void BaseView::SetParent(std::shared_ptr<BaseView> parent) {
-  parent_ = parent; 
-  
+  parent_ = parent;
+
   if (parent && parent->IsLazyCreate()) {
     isLazyCreate_ = true;
   }
@@ -100,12 +116,12 @@ void BaseView::CreateArkUINode(bool isFromLazy, int index) {
     }
     return;
   }
-  
+
   auto parent = parent_.lock();
   if (parent && !parent->GetLocalRootArkUINode()) {
     return;
   }
-  
+
   CreateArkUINodeImpl();
   if (!GetLocalRootArkUINode()) {
     // 对于文本绘制时，RichTextSpanView无实际ArkUINode；
@@ -113,14 +129,14 @@ void BaseView::CreateArkUINode(bool isFromLazy, int index) {
     return;
   }
   isLazyCreate_ = false;
-  
+
   if (parent) {
     auto child_index = index < 0 ? parent->IndexOfChild(shared_from_this()) : index;
     parent->OnChildInsertedImpl(shared_from_this(), child_index);
   }
-  
+
   UpdateLazyAll();
-  
+
   if (isFromLazy) {
     for (int32_t i = 0; i < (int32_t)children_.size(); i++) {
       auto subView = children_[(uint32_t)i];
@@ -136,7 +152,7 @@ void BaseView::DestroyArkUINode() {
   if (!node) {
     return;
   }
-  
+
   node->SetArkUINodeDelegate(nullptr);
 
   for (int32_t i = 0; i < (int32_t)children_.size(); i++) {
@@ -154,12 +170,12 @@ std::shared_ptr<RecycleView> BaseView::RecycleArkUINode() {
     DestroyArkUINode();
     return nullptr;
   }
-  
+
   auto node = GetLocalRootArkUINode();
   if (node) {
     node->SetArkUINodeDelegate(nullptr);
   }
-  
+
   auto recycleView = std::make_shared<RecycleView>();
   recycleView->cachedViewType_ = GetViewType();
   bool result = RecycleArkUINodeImpl(recycleView);
@@ -167,9 +183,9 @@ std::shared_ptr<RecycleView> BaseView::RecycleArkUINode() {
     DestroyArkUINode();
     return nullptr;
   }
-  
+
   isLazyCreate_ = true;
-  
+
   for (int32_t i = 0; i < (int32_t)children_.size(); i++) {
     auto subView = children_[(uint32_t)i];
     auto subRecycleView = subView->RecycleArkUINode();
@@ -182,7 +198,7 @@ std::shared_ptr<RecycleView> BaseView::RecycleArkUINode() {
     }
     recycleView->children_.emplace_back(subRecycleView);
   }
-  
+
   return recycleView;
 }
 
@@ -191,28 +207,28 @@ bool BaseView::ReuseArkUINode(std::shared_ptr<RecycleView> &recycleView, int32_t
     CreateArkUINode(true, index);
     return false;
   }
-  
+
   bool result = ReuseArkUINodeImpl(recycleView);
   if (!result) {
     CreateArkUINode(true, index);
     return false;
   }
-  
+
   isLazyCreate_ = false;
-  
+
   auto parent = parent_.lock();
   if (parent) {
     parent->OnChildReusedImpl(shared_from_this(), index);
   }
-  
+
   UpdateLazyAll();
-  
+
   if (recycleView->children_.size() > children_.size()) {
     for (int32_t k = (int32_t)recycleView->children_.size() - 1; k >= (int32_t)children_.size() ; k--) {
       recycleView->RemoveSubView(k);
     }
   }
-  
+
   for (int32_t i = 0; i < (int32_t)children_.size(); i++) {
     auto subView = children_[(uint32_t)i];
     if ((int32_t)recycleView->children_.size() > i) {
@@ -249,9 +265,9 @@ void BaseView::UpdateLazyProps() {
 
 void BaseView::UpdateLazyAll() {
   GetLocalRootArkUINode()->SetArkUINodeDelegate(this);
-  std::string id_str = "HippyId" + std::to_string(tag_);
+  std::string id_str = MakeId(tag_);
   GetLocalRootArkUINode()->SetId(id_str);
-  
+
   UpdateLazyProps();
 
   if (lazyFrame_.has_value() && lazyPadding_.has_value()) {
@@ -264,13 +280,13 @@ bool BaseView::SetProp(const std::string &propKey, const HippyValue &propValue) 
   if (handled) {
     return true;
   }
-  
+
   lazyProps_[propKey] = propValue;
-  
+
   if (GetLocalRootArkUINode()) {
     return SetPropImpl(propKey, propValue);
   }
-  
+
   return true;
 }
 
@@ -354,6 +370,14 @@ bool BaseView::SetPropImpl(const std::string &propKey, const HippyValue &propVal
     }
     if (!handled) {
       handled = SetEventProp(propKey, propValue);
+    }
+    if (!handled) {
+      // pass prop not handled forward to extern handler
+      if (gExternalPropHandlerOnSet) {
+        struct HRAnyDataInternal anyDataInternal;
+        anyDataInternal.anyValue = std::make_shared<HippyValue>(propValue);
+        handled = gExternalPropHandlerOnSet(GetLocalRootArkUINode()->GetArkUINodeHandle(), propKey.c_str(), &anyDataInternal);
+      }
     }
     return handled;
   }
@@ -961,7 +985,7 @@ void BaseView::AddSubRenderView(std::shared_ptr<BaseView> &subView, int32_t inde
   subView->SetParent(shared_from_this());
   children_.insert(it, subView);
   OnChildInserted(subView, index);
-  
+
   // if (subView->GetViewType() == "ListViewItem") {
   //   FOOTSTONE_LOG(INFO) << "hippy, list child inserted: " << index << ", count: " << children_.size() << ", parent: " << this << ", view: " << subView;
   // }
@@ -974,7 +998,7 @@ void BaseView::RemoveSubView(std::shared_ptr<BaseView> &subView) {
     int32_t index = static_cast<int32_t>(it - children_.begin());
     children_.erase(it);
     OnChildRemoved(view, index);
-    
+
     // if (view->GetViewType() == "ListViewItem") {
     //   FOOTSTONE_LOG(INFO) << "hippy, list child removed: " << index << ", count: " << children_.size() << ", parent: " << this << ", view: " << view;
     // }
@@ -1191,6 +1215,11 @@ HippyValueObjectType BaseView::CallNativeRenderProviderMethod(napi_env env, napi
       }
   }
   return map;
+}
+
+std::string BaseView::MakeId(uint32_t tag) {
+  std::string id_str = "HippyId" + std::to_string(tag);
+  return id_str;
 }
 
 } // namespace native

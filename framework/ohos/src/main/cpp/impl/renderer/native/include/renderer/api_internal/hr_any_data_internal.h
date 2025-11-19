@@ -22,22 +22,23 @@
 
 #pragma once
 
-#include <arkui/native_dialog.h>
-#include <arkui/native_interface.h>
+#include "footstone/hippy_value.h"
 
-namespace hippy {
-inline namespace render {
-inline namespace native {
+using HippyValue = footstone::HippyValue;
 
-class NativeDialogApi {
-public:
-  static ArkUI_NativeDialogAPI_1 *GetInstance();
-  static ArkUI_NativeDialogAPI_2 *GetInstanceV2();
+#ifdef __cplusplus
+extern "C" {
+#endif
 
-private:
-  NativeDialogApi() {}
+struct HRAnyDataInternal {
+  std::shared_ptr<HippyValue> anyValue;
+  std::shared_ptr<HRAnyDataInternal> arrayElementData; // 局部存储数据元素数据
+  ~HRAnyDataInternal() {
+    anyValue = nullptr;
+    arrayElementData = nullptr;
+  }
 };
 
-} // namespace native
-} // namespace render
-} // namespace hippy
+#ifdef __cplusplus
+}
+#endif
