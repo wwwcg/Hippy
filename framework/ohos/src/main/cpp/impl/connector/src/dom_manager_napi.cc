@@ -64,7 +64,7 @@ static napi_value SetRenderManager(napi_env env, napi_callback_info info) {
     auto dom_manager_object = std::any_cast<std::shared_ptr<DomManager>>(dom_manager);
     dom_manager_object->SetRenderManager(render_manager_object);
   }
-  
+
   return arkTs.GetUndefined();
 }
 
@@ -74,8 +74,9 @@ static napi_value CreateDomManager(napi_env env, napi_callback_info info) {
   uint32_t dom_manager_num = static_cast<uint32_t>(arkTs.GetInteger(args[0]));
   uint32_t first_dom_manager_id = 0;
   for (uint32_t i = 0; i < dom_manager_num; i++) {
-    auto dom_manager = std::make_shared<DomManager>();
+    auto dom_manager = std::make_shared<DomManagerImpl>();
     auto dom_manager_id = hippy::global_data_holder_key.fetch_add(1);
+    dom_manager->SetId(dom_manager_id);
     hippy::global_data_holder.Insert(dom_manager_id, dom_manager);
     std::string worker_name = kDomWorkerName + std::to_string(dom_manager_id);
     auto worker = std::make_shared<WorkerImpl>(worker_name, false);
@@ -85,12 +86,12 @@ static napi_value CreateDomManager(napi_env env, napi_callback_info info) {
     worker->Bind({runner});
     dom_manager->SetTaskRunner(runner);
     dom_manager->SetWorker(worker);
-    
+
     if (first_dom_manager_id == 0) {
       first_dom_manager_id = dom_manager_id;
     }
   }
-  
+
   hippy::global_dom_manager_num_holder.Insert(first_dom_manager_id, dom_manager_num);
 
   return arkTs.CreateInt(static_cast<int>(first_dom_manager_id));
@@ -113,7 +114,7 @@ static napi_value DestroyDomManager(napi_env env, napi_callback_info info) {
     flag = hippy::global_data_holder.Erase(dom_manager_id);
     FOOTSTONE_DCHECK(flag);
   }
-  
+
   return arkTs.GetUndefined();
 }
 
@@ -173,11 +174,11 @@ static napi_value SetDomManager(napi_env env, napi_callback_info info) {
   auto& persistent_map = RootNode::PersistentMap();
   auto flag = persistent_map.Find(root_id, root_node);
   FOOTSTONE_CHECK(flag);
-  
+
   if (root_node->GetDomManager().lock()) {
     return arkTs.GetUndefined();
   }
-  
+
   uint32_t next_id = GlobalGetNextDomManagerId(first_dom_manager_id);
 
   std::any dom_manager;

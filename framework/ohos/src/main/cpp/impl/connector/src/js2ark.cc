@@ -47,6 +47,7 @@ using JsDriverUtils = hippy::JsDriverUtils;
 using byte_string = std::string;
 
 static napi_env s_env = 0;
+static CallHostInterceptor s_call_host_interceptor = nullptr;
 
 void InitBridge(napi_env env) {
   // 此处记录的是主线程的env，只需要首次记录，避免被后续worker线程的env覆盖。
@@ -113,6 +114,10 @@ void CallHost(CallbackInfo& info) {
     });
   };
   JsDriverUtils::CallNative(info, cb);
+}
+
+void SetCallHostInterceptor(CallHostInterceptor interceptor) {
+  s_call_host_interceptor = interceptor;
 }
 
 }

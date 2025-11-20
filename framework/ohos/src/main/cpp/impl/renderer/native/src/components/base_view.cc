@@ -247,6 +247,10 @@ bool BaseView::ReuseArkUINode(std::shared_ptr<RecycleView> &recycleView, int32_t
 }
 
 void BaseView::UpdateLazyProps() {
+  GetLocalRootArkUINode()->SetArkUINodeDelegate(this);
+  std::string id_str = "HippyId" + std::to_string(tag_);
+  GetLocalRootArkUINode()->SetId(id_str);
+  
   if (lazyProps_.size() > 0) {
     for (auto it = lazyProps_.begin(); it != lazyProps_.end(); it++) {
       // value maybe empty string / false / 0

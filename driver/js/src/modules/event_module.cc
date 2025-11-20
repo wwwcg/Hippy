@@ -112,14 +112,12 @@ std::shared_ptr<ClassTemplate<DomEvent>> MakeEventClassTemplate(
       exception = context->CreateException("nullptr event pointer");
       return nullptr;
     }
-    auto weak_node = event->GetTarget();
-    auto dom_node = weak_node.lock();
-    FOOTSTONE_DCHECK(dom_node != nullptr);
-    if (!dom_node) {
+    auto id = event->GetTargetId();
+    FOOTSTONE_DCHECK(id != 0);
+    if (!id) {
       exception = context->CreateException("nullptr event node pointer");
       return nullptr;
     }
-    auto id = dom_node->GetId();
     return context->CreateNumber(id);
   };
   id.setter = [](DomEvent* event, const std::shared_ptr<CtxValue>& value, std::shared_ptr<CtxValue>& exception) {};
@@ -137,14 +135,12 @@ std::shared_ptr<ClassTemplate<DomEvent>> MakeEventClassTemplate(
       exception = context->CreateException("nullptr event pointer");
       return nullptr;
     }
-    auto weak_node = event->GetCurrentTarget();
-    auto dom_node = weak_node.lock();
-    FOOTSTONE_DCHECK(dom_node != nullptr);
-    if (!dom_node) {
+    auto current_id = event->GetCurrentTargetId();
+    FOOTSTONE_DCHECK(current_id != 0);
+    if (!current_id) {
       exception = context->CreateException("nullptr event node pointer");
       return nullptr;
     }
-    auto current_id = dom_node->GetId();
     return context->CreateNumber(current_id);
   };
   current_id.setter = [](DomEvent* event, const std::shared_ptr<CtxValue>& value, std::shared_ptr<CtxValue>& exception) {};
@@ -162,14 +158,12 @@ std::shared_ptr<ClassTemplate<DomEvent>> MakeEventClassTemplate(
       exception = context->CreateException("nullptr event pointer");
       return nullptr;
     }
-    auto weak_node = event->GetTarget();
-    auto dom_node = weak_node.lock();
-    FOOTSTONE_DCHECK(dom_node != nullptr);
-    if (!dom_node) {
+    auto target_id = event->GetTargetId();
+    FOOTSTONE_DCHECK(target_id != 0);
+    if (!target_id) {
       exception = context->CreateException("nullptr event node pointer");
       return nullptr;
     }
-    auto target_id = dom_node->GetId();
     return context->CreateNumber(target_id);
   };
   target.setter = [](DomEvent* event, const std::shared_ptr<CtxValue>& value, std::shared_ptr<CtxValue>& exception) {};
@@ -187,15 +181,13 @@ std::shared_ptr<ClassTemplate<DomEvent>> MakeEventClassTemplate(
       exception = context->CreateException("nullptr event pointer");
       return nullptr;
     }
-    auto weak_node = event->GetCurrentTarget();
-    auto dom_node = weak_node.lock();
-    FOOTSTONE_DCHECK(dom_node != nullptr);
-    if (!dom_node) {
+    auto current_id = event->GetCurrentTargetId();
+    FOOTSTONE_DCHECK(current_id != 0);
+    if (!current_id) {
       exception = context->CreateException("nullptr event node pointer");
       return nullptr;
     }
-    auto current_target_id = dom_node->GetId();
-    return context->CreateNumber(current_target_id);
+    return context->CreateNumber(current_id);
   };
   current_target.setter = [](DomEvent* event, const std::shared_ptr<CtxValue>& value, std::shared_ptr<CtxValue>& exception) {};
   class_template.properties.emplace_back(std::move(current_target));
@@ -231,10 +223,18 @@ std::shared_ptr<ClassTemplate<DomEvent>> MakeEventClassTemplate(
       exception = context->CreateException("nullptr event pointer");
       return nullptr;
     }
-    auto parameter = event->GetValue();
     auto ctx_value = context->CreateUndefined();
-    if (parameter) {
+    if (auto parameter = event->GetValue()) {
       ctx_value = hippy::CreateCtxValue(context, parameter);
+    } else if (auto stringify = event->GetStringifyValue()) {
+      if (!stringify->empty()) {
+        auto engine = scope->GetEngine().lock();
+        if (!engine) {
+          exception = context->CreateException("nullptr engine pointer");
+          return nullptr;
+        }
+        ctx_value = engine->GetVM()->ParseJson(context, string_view(stringify->data()));
+      }
     }
     return ctx_value;
   };

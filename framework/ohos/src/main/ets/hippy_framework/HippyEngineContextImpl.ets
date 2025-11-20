@@ -137,16 +137,18 @@ export class HippyEngineContextImpl implements HippyEngineContext {
       bundlePath = coreBundleLoader.getPath()
     }
 
-    // Render注册
-    let enableArkCApi = globalConfigs.enableArkCApi()
-    let isRawfile = globalConfigs.isLoadFromRawfile()
-    let resModuleName = globalConfigs.getResModuleName()
-    this.nativeRenderProvider = new NativeRenderProvider(this.libHippy, enableArkCApi, customRenderViewCreatorMap, customMeasureRenderViews)
-    this.nativeRenderer = new NativeRenderer(this.libHippy, enableArkCApi, this.nativeRenderProvider,
+    if (!params.domInterceptor) {
+      // Render注册
+      let enableArkCApi = globalConfigs.enableArkCApi()
+      let isRawfile = globalConfigs.isLoadFromRawfile()
+      let resModuleName = globalConfigs.getResModuleName()
+      this.nativeRenderProvider = new NativeRenderProvider(this.libHippy, enableArkCApi, customRenderViewCreatorMap, customMeasureRenderViews)
+      this.nativeRenderer = new NativeRenderer(this.libHippy, enableArkCApi, this.nativeRenderProvider,
       customRenderViews, customMeasureRenderViews, mappingRenderViews, bundlePath, isRawfile, resModuleName, this.getVfsId())
-    this.nativeRenderer.registerCustomFontPaths(customFontPathMap)
-    // DomManager挂载
-    this.mDomManager.attachToRenderer(this.nativeRenderer.instanceId)
+      this.nativeRenderer.registerCustomFontPaths(customFontPathMap)
+      // DomManager挂载
+      this.mDomManager.attachToRenderer(this.nativeRenderer.instanceId)
+    }
     // ModuleManager注册
     this.mModuleManager = new HippyModuleManagerImpl(this, params.enableV8Serialization);
     this.mModuleManager.addModules(customNativeModules);
@@ -155,11 +157,11 @@ export class HippyEngineContextImpl implements HippyEngineContext {
       if (params.imageRemoteLoader) {
         this.imageRemoteLoaderInner = new ImageRemoteLoaderInnerAdapter(
           this.libHippy,
-          this.nativeRenderProvider.getInstanceId(),
+          this.nativeRenderProvider?.getInstanceId() ?? 0,
           params.imageRemoteLoader);
       }
       this.libHippy.NativeRenderProvider_SetImageLoaderAdapter(
-        this.nativeRenderProvider.getInstanceId(),
+        this.nativeRenderProvider?.getInstanceId() ?? 0,
         params.imageLocalLoader,
         this.imageRemoteLoaderInner);
     }
@@ -260,6 +262,13 @@ export class HippyEngineContextImpl implements HippyEngineContext {
   }
 
   createRootView(loadParams: ModuleLoadParams) {
+    if (this.mEngineInitParams.domInterceptor) {
+      // hippy规定使用整10数作为rootId，暂定使用DomInterceptorId * 10
+      const rootId = this.mEngineInitParams.domInterceptor.instanceId * 10;
+      this.attachDomToRootView(rootId, HippyLayoutEngineType.Default);
+      this.attachJsToRootView(rootId);
+      return null;
+    }
     const rootView = this.nativeRenderProvider!.getNativeRenderImpl().createRootView(loadParams.componentName, {},
       loadParams.wrappedCustomRenderViewBuilder, loadParams.layoutEngineType)
     if (rootView != null) {
@@ -350,7 +359,7 @@ export class HippyEngineContextImpl implements HippyEngineContext {
   }
 
   getNativeRender(): NativeRender | null {
-    return this.nativeRenderProvider ? this.nativeRenderProvider.getNativeRenderImpl() : null
+    return this.nativeRenderProvider?.getNativeRenderImpl() ?? null
   }
 
   getDevtoolsId(): number {
