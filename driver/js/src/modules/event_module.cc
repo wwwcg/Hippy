@@ -28,6 +28,7 @@
 #include "driver/modules/ui_manager_module.h"
 #include "driver/scope.h"
 #include "footstone/hippy_value.h"
+#include "footstone/string_utils.h"
 #include "footstone/string_view_utils.h"
 
 template <typename T>
@@ -233,7 +234,8 @@ std::shared_ptr<ClassTemplate<DomEvent>> MakeEventClassTemplate(
           exception = context->CreateException("nullptr engine pointer");
           return nullptr;
         }
-        ctx_value = engine->GetVM()->ParseJson(context, string_view(stringify->data()));
+        auto u8_str_view = footstone::string_view::new_from_utf8(stringify->data(), stringify->size());
+        ctx_value = engine->GetVM()->ParseJson(context, u8_str_view);
       }
     }
     return ctx_value;
