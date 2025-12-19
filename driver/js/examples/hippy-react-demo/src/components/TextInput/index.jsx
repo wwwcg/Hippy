@@ -133,6 +133,7 @@ export default class TextInputExpo extends Component {
           defaultValue={textContent}
           onBlur={() => this.onBlur()}
           onFocus={() => this.onFocus()}
+          onChangeText={(text) => console.log(text) }
         />
         <Text style={styles.itemContent}>{`事件: ${event} | isFocused: ${isFocused}`}</Text>
         <View style={styles.button} onClick={this.changeInputContent}>
