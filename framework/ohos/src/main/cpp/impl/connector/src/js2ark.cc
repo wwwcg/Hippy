@@ -47,7 +47,7 @@ using JsDriverUtils = hippy::JsDriverUtils;
 using byte_string = std::string;
 
 static napi_env s_env = 0;
-static CallHostInterceptor s_call_host_interceptor = nullptr;
+static CallHostInterceptor s_call_host_interceptor = nullptr; // [HippyOnKuikly] Interceptor
 
 void InitBridge(napi_env env) {
   // 此处记录的是主线程的env，只需要首次记录，避免被后续worker线程的env覆盖。
@@ -65,6 +65,15 @@ void CallHost(CallbackInfo& info) {
       const string_view& cb_id,
       bool is_heap_buffer,
       const byte_string& buffer) {
+        
+        // [HippyOnKuikly] Interceptor
+        if (s_call_host_interceptor) {
+            bool handled = s_call_host_interceptor(scope, module, func, cb_id, buffer);
+            if (handled) {
+              return;
+            }
+        }
+        
     auto bridge = std::any_cast<std::shared_ptr<Bridge>>(scope->GetBridge());
     napi_ref object_ref = bridge->GetRef();
     std::u16string module_str = StringViewUtils::ConvertEncoding(module, string_view::Encoding::Utf16).utf16_value();
@@ -116,6 +125,7 @@ void CallHost(CallbackInfo& info) {
   JsDriverUtils::CallNative(info, cb);
 }
 
+// [HippyOnKuikly] Interceptor
 void SetCallHostInterceptor(CallHostInterceptor interceptor) {
   s_call_host_interceptor = interceptor;
 }
