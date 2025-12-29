@@ -528,13 +528,20 @@ uint32_t HippyCreateDomInterceptor(HippyDomInterceptor handler) {
 }
 
 static std::shared_ptr<hippy::DomManager> GetDomManager(uint32_t dom_interceptor_id) {
-  uint32_t dom_manager_num = 0;
-  auto flag = hippy::global_dom_manager_num_holder.Find(dom_interceptor_id, dom_manager_num);
-  FOOTSTONE_DCHECK(dom_manager_num == 1);
   std::any dom_manager;
-  flag = hippy::global_data_holder.Find(dom_interceptor_id, dom_manager);
-  FOOTSTONE_DCHECK(flag);
-  return std::any_cast<std::shared_ptr<hippy::DomManager>>(dom_manager);
+  bool flag = hippy::global_data_holder.Find(dom_interceptor_id, dom_manager);
+  if (!flag) {
+    // dom_interceptor已被销毁，返回空指针避免crash
+    FOOTSTONE_LOG(WARNING) << "GetDomManager: dom_interceptor not found, id = " << dom_interceptor_id;
+    return nullptr;
+  }
+  try {
+    return std::any_cast<std::shared_ptr<hippy::DomManager>>(dom_manager);
+  } catch (const std::bad_any_cast& e) {
+    // any_cast失败，返回空指针避免crash
+    FOOTSTONE_LOG(ERROR) << "GetDomManager: bad_any_cast for dom_interceptor, id = " << dom_interceptor_id;
+    return nullptr;
+  }
 }
 
 void HippyDomInterceptorSendEvent(uint32_t dom_interceptor_id, uint32_t root_id, const char *param) {
@@ -555,9 +562,13 @@ void HippyDomInterceptorDoCallback(uint32_t dom_interceptor_id, uint32_t root_id
 
 void HippyDestroyDomInterceptor(uint32_t dom_interceptor_id) {
   auto dom_manager_object = GetDomManager(dom_interceptor_id);
-  dom_manager_object->GetWorker()->Terminate();
+  if (dom_manager_object) {
+    dom_manager_object->GetWorker()->Terminate();
+  }
   bool flag = hippy::global_data_holder.Erase(dom_interceptor_id);
-  FOOTSTONE_DCHECK(flag);
+  if (!flag) {
+    FOOTSTONE_LOG(WARNING) << "HippyDestroyDomInterceptor: dom_interceptor already erased, id = " << dom_interceptor_id;
+  }
 }
 
 void HippyBridgeCallFunction(uint32_t scope_id, const char *action_name, const char *buffer) {
