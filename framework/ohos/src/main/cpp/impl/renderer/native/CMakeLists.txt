@@ -38,9 +38,10 @@ target_compile_options(${PROJECT_NAME} PRIVATE ${COMPILE_OPTIONS})
 
 # 鸿蒙上文本组件绘制方案：
 # OHOS_DRAW_TEXT - 使用绘制好的文本赋给Text组件，默认打开
-# OHOS_DRAW_CUSTOM_TEXT - 使用绘制好的文本赋给Custom组件，不使用Text组件，AI选词、长按、手势、无障碍等不能利用OH底座，默认关闭
+# OHOS_DRAW_CUSTOM_TEXT - 使用绘制好的文本赋给Custom组件，不使用Text组件，AI选词、长按、手势、无障碍等不能利用OH底座，
+# 也打开，否则有TxtParagraph偶现crash。TODO：TxtParagraph crash
 target_compile_definitions(${PROJECT_NAME} PUBLIC "OHOS_DRAW_TEXT")
-# target_compile_definitions(${PROJECT_NAME} PUBLIC "OHOS_DRAW_CUSTOM_TEXT")
+target_compile_definitions(${PROJECT_NAME} PUBLIC "OHOS_DRAW_CUSTOM_TEXT")
 
 # region dom
 GlobalPackages_Add_dom()
@@ -78,6 +79,7 @@ set(SOURCE_SET
   src/uimanager/hr_keyboard_manager.cc
   src/utils/hr_event_utils.cc
   src/utils/hr_convert_utils.cc
+  src/utils/hr_device_utils.cc
   src/utils/hr_pixel_utils.cc
   src/utils/hr_text_convert_utils.cc
   src/utils/hr_url_utils.cc
@@ -139,6 +141,7 @@ set(SOURCE_SET
   src/components/waterfall_view.cc
   src/components/waterfall_pull_footer_view.cc
   src/components/waterfall_pull_header_view.cc
+  src/components/extend/bidirection_list_view.cc
   src/image_loader/image_loader.cc
   src/recycle/recycle_view.cc
   src/text_measure/font_collection_manager.cc

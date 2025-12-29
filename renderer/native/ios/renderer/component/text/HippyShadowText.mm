@@ -376,35 +376,42 @@ static void resetFontAttribute(NSTextStorage *textStorage) {
 }
 
 - (NSTextStorage *)buildTextStorageForWidth:(CGFloat)width widthMode:(hippy::LayoutMeasureMode)widthMode {
-    @synchronized (self) {
-        if (isnan(width)) {
-            width = 0;
-        }
+    if (isnan(width)) {
+        width = 0;
+    }
 
+    @synchronized (self) {
         if (_cachedTextStorage && width == _cachedTextStorageWidth && widthMode == _cachedTextStorageWidthMode) {
             return _cachedTextStorage;
         }
+    }
 
-        // textContainer
-        NSTextContainer *textContainer = [NSTextContainer new];
-        textContainer.lineFragmentPadding = 0.0;
+    // Build attributed string outside of synchronized block to avoid potential deadlock
+    // when creating UIFont instances on the main thread.
+    NSAttributedString *baseAttributedString = self.attributedString;
 
-        if (_numberOfLines > 0) {
-            textContainer.lineBreakMode = _ellipsizeMode;
-        } else {
-            textContainer.lineBreakMode = NSLineBreakByClipping;
-        }
+    // textContainer
+    NSTextContainer *textContainer = [NSTextContainer new];
+    textContainer.lineFragmentPadding = 0.0;
 
-        textContainer.maximumNumberOfLines = _numberOfLines;
-        textContainer.size = (CGSize) { widthMode == hippy::LayoutMeasureMode::Undefined ? CGFLOAT_MAX : width, CGFLOAT_MAX };
-        
-        // layoutManager && textStorage
-        NSLayoutManager *layoutManager = [NSLayoutManager new];
-        NSTextStorage *textStorage = [[NSTextStorage alloc] initWithAttributedString:self.attributedString];
-        [textStorage addLayoutManager:layoutManager];
-        
-        layoutManager.delegate = self;
-        [layoutManager addTextContainer:textContainer];
+    if (_numberOfLines > 0) {
+        textContainer.lineBreakMode = _ellipsizeMode;
+    } else {
+        textContainer.lineBreakMode = NSLineBreakByClipping;
+    }
+
+    textContainer.maximumNumberOfLines = _numberOfLines;
+    textContainer.size = (CGSize) { widthMode == hippy::LayoutMeasureMode::Undefined ? CGFLOAT_MAX : width, CGFLOAT_MAX };
+    
+    // layoutManager && textStorage
+    NSLayoutManager *layoutManager = [NSLayoutManager new];
+    NSTextStorage *textStorage = [[NSTextStorage alloc] initWithAttributedString:baseAttributedString];
+    [textStorage addLayoutManager:layoutManager];
+    
+    layoutManager.delegate = self;
+    [layoutManager addTextContainer:textContainer];
+
+    @synchronized (self) {
         // start clean collection for this layout build
         [_pendingBaselineOffsets removeAllObjects];
         [_pendingAttachmentBaselineBottoms removeAllObjects];
@@ -459,9 +466,9 @@ static void resetFontAttribute(NSTextStorage *textStorage) {
         _cachedTextStorageWidth = width;
         _cachedTextStorageWidthMode = widthMode;
         _cachedTextStorage = textStorage;
-
-        return textStorage;
     }
+
+    return textStorage;
 }
 
 - (void)dirtyText:(BOOL)needToDoLayout {
