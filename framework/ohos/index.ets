@@ -71,6 +71,7 @@ export * from "./src/main/ets/hippy_framework/worker_modules/native/HippyWModule
 export * from "./src/main/ets/hippy_framework/worker_modules/worker/HippyModuleWorkerHelper"
 export * from "./src/main/ets/hippy_framework/worker_modules/worker_manager/HippyModuleWorkerManager"
 
+export * from "./src/main/ets/hippy_framework/connector/DomManager" // [for HippyInterceptor]
 export * from "./src/main/ets/hippy_library/HippyLibrary"
 
 export * from "./src/main/ets/renderer_native/HippyBizViewBuilder"

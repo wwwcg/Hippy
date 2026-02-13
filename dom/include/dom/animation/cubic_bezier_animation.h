@@ -59,7 +59,7 @@ class CubicBezierAnimation : public Animation {
                        int32_t cnt,
                        uint32_t related_id = kInvalidAnimationId);
   CubicBezierAnimation();
-  ~CubicBezierAnimation() = default;
+  ~CubicBezierAnimation() override = default;
 
   inline uint32_t GetRelatedId() {
     return related_id_;
@@ -69,6 +69,8 @@ class CubicBezierAnimation : public Animation {
 
   virtual double Calculate(uint64_t time) override;
 
+  virtual void Update(std::any param) override;
+    
   void Update(Mode mode,
               uint64_t delay,
               double start_value,
@@ -89,6 +91,18 @@ class CubicBezierAnimation : public Animation {
   std::string func_;
   CubicBezier cubic_bezier_;
   uint32_t related_id_;
+};
+
+struct ParseAnimationResult {
+  CubicBezierAnimation::Mode mode;
+  uint64_t delay;
+  uint32_t animation_id;
+  double start_value;
+  double to_value;
+  CubicBezierAnimation::ValueType type;
+  uint64_t duration;
+  std::string func;
+  int32_t cnt;
 };
 
 }

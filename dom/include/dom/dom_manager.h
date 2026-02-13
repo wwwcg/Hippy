@@ -57,7 +57,7 @@ struct DomInfo;
 using EventCallback = std::function<void(const std::shared_ptr<DomEvent>&)>;
 using CallFunctionCallback = std::function<void(std::shared_ptr<DomArgument>)>;
 
-// This class is used to mainpulate dom. Please note that the member
+// This class is used to manipulate dom. Please note that the member
 // function of this class must be run in dom thread. If you want to call
 // in other thread please use PostTask.
 // Example:
@@ -66,8 +66,9 @@ using CallFunctionCallback = std::function<void(std::shared_ptr<DomArgument>)>;
 //      some_ops();
 //    });
 //    dom_manager->PostTask(Scene(std::move(ops)));
-class DomManager : public std::enable_shared_from_this<DomManager> {
+class DomManager {
  public:
+  enum class DomManagerType { kHippyValue, kJson };
   using byte_string = std::string;
   using HippyValue = footstone::value::HippyValue;
   using TaskRunner = footstone::runner::TaskRunner;
@@ -75,13 +76,12 @@ class DomManager : public std::enable_shared_from_this<DomManager> {
   using BaseTimer = footstone::timer::BaseTimer;
   using Worker = footstone::Worker;
 
-  DomManager() = default;
-  ~DomManager() = default;
+  DomManager(DomManagerType type): type_(type) {}
+  virtual ~DomManager() = default;
 
   DomManager(DomManager&) = delete;
   DomManager& operator=(DomManager&) = delete;
 
-  inline std::weak_ptr<RenderManager> GetRenderManager() { return render_manager_; }
   inline std::shared_ptr<TaskRunner> GetTaskRunner() { return task_runner_; }
   inline void SetTaskRunner(std::shared_ptr<TaskRunner> runner) {
     task_runner_ =  runner;
@@ -93,61 +93,59 @@ class DomManager : public std::enable_shared_from_this<DomManager> {
     return worker_;
   }
 
-  void SetRenderManager(const std::weak_ptr<RenderManager>& render_manager);
-  static std::shared_ptr<DomNode> GetNode(const std::weak_ptr<RootNode>& weak_root_node,
-                                   uint32_t id) ;
+  virtual void SetRenderManager(const std::weak_ptr<RenderManager>& render_manager) = 0;
+  virtual std::weak_ptr<RenderManager> GetRenderManager() = 0;
+  virtual std::shared_ptr<DomNode> GetNode(const std::weak_ptr<RootNode>& weak_root_node, uint32_t id) = 0;
 
-  static void CreateDomNodes(const std::weak_ptr<RootNode>& weak_root_node,
-                      std::vector<std::shared_ptr<DomInfo>>&& nodes, bool needSortByIndex);
-  static void UpdateDomNodes(const std::weak_ptr<RootNode>& weak_root_node,
-                      std::vector<std::shared_ptr<DomInfo>>&& nodes);
-  static void MoveDomNodes(const std::weak_ptr<RootNode>& weak_root_node,
-                    std::vector<std::shared_ptr<DomInfo>>&& nodes);
-  static void DeleteDomNodes(const std::weak_ptr<RootNode>& weak_root_node,
-                      std::vector<std::shared_ptr<DomInfo>>&& nodes);
-  static void UpdateAnimation(const std::weak_ptr<RootNode>& weak_root_node,
-                       std::vector<std::shared_ptr<DomNode>>&& nodes);
-  void EndBatch(const std::weak_ptr<RootNode>& root_node);
+  virtual void CreateDomNodes(const std::weak_ptr<RootNode>& weak_root_node,
+                              std::vector<std::shared_ptr<DomInfo>>&& nodes, bool needSortByIndex) = 0;
+  virtual void UpdateDomNodes(const std::weak_ptr<RootNode>& weak_root_node,
+                              std::vector<std::shared_ptr<DomInfo>>&& nodes) = 0;
+  virtual void MoveDomNodes(const std::weak_ptr<RootNode>& weak_root_node,
+                            std::vector<std::shared_ptr<DomInfo>>&& nodes) = 0;
+  virtual void DeleteDomNodes(const std::weak_ptr<RootNode>& weak_root_node,
+                              std::vector<std::shared_ptr<DomInfo>>&& nodes) = 0;
+  virtual void UpdateAnimation(const std::weak_ptr<RootNode>& weak_root_node,
+                               std::vector<std::shared_ptr<DomNode>>&& nodes) = 0;
+  virtual void EndBatch(const std::weak_ptr<RootNode>& root_node) = 0;
   // 返回0代表失败，正常id从1开始
-  static void AddEventListener(const std::weak_ptr<RootNode>& weak_root_node,
-                        uint32_t dom_id,
-                        const std::string& event_name,
-                        uint64_t listener_id,
-                        bool use_capture,
-                        const EventCallback& cb);
-  static void RemoveEventListener(const std::weak_ptr<RootNode>& weak_root_node,
-                           uint32_t id,
-                           const std::string& name,
-                           uint64_t listener_id);
-  static void CallFunction(const std::weak_ptr<RootNode>& weak_root_node,
-                    uint32_t id,
-                    const std::string& name,
-                    const DomArgument& param,
-                    const CallFunctionCallback& cb);
-  static void SetRootSize(const std::weak_ptr<RootNode>& weak_root_node, float width, float height);
-  void DoLayout(const std::weak_ptr<RootNode>& weak_root_node);
+  virtual void AddEventListener(const std::weak_ptr<RootNode>& weak_root_node, uint32_t dom_id,
+                                const std::string& event_name, uint64_t listener_id, bool use_capture,
+                                const EventCallback& cb) = 0;
+  virtual void RemoveEventListener(const std::weak_ptr<RootNode>& weak_root_node, uint32_t id, const std::string& name,
+                                   uint64_t listener_id) = 0;
+  virtual void CallFunction(const std::weak_ptr<RootNode>& weak_root_node, uint32_t id, const std::string& name,
+                            const DomArgument& param, uint32_t cb_id, const CallFunctionCallback& cb) = 0;
+  virtual void SetRootSize(const std::weak_ptr<RootNode>& weak_root_node, float width, float height) = 0;
+  virtual void DoLayout(const std::weak_ptr<RootNode>& weak_root_node) = 0;
   void PostTask(const Scene&& scene);
   uint32_t PostDelayedTask(const Scene&& scene, footstone::TimeDelta delay);
   void CancelTask(uint32_t id);
 
-  static byte_string GetSnapShot(const std::shared_ptr<RootNode>& root_node);
-  bool SetSnapShot(const std::shared_ptr<RootNode>& root_node, const byte_string& buffer);
+  virtual byte_string GetSnapShot(const std::shared_ptr<RootNode>& root_node) = 0;
+  virtual bool SetSnapShot(const std::shared_ptr<RootNode>& root_node, const byte_string& buffer) = 0;
 
-  void RecordDomStartTimePoint(uint32_t root_id);
-  void RecordDomEndTimePoint(uint32_t root_id);
+  inline void RecordDomStartTimePoint(uint32_t root_id) {
+    if (dom_start_time_point_[root_id].ToEpochDelta() == footstone::TimeDelta::Zero()) {
+      dom_start_time_point_[root_id] = footstone::TimePoint::SystemNow();
+    }
+  }
+  inline void RecordDomEndTimePoint(uint32_t root_id) {
+    if (dom_end_time_point_[root_id].ToEpochDelta() == footstone::TimeDelta::Zero()
+    && dom_start_time_point_[root_id].ToEpochDelta() != footstone::TimeDelta::Zero()) {
+      dom_end_time_point_[root_id] = footstone::TimePoint::SystemNow();
+    }
+  }
   inline auto GetDomStartTimePoint(uint32_t root_id) { return dom_start_time_point_[root_id]; }
   inline auto GetDomEndTimePoint(uint32_t root_id) { return dom_end_time_point_[root_id]; }
+  inline DomManagerType GetType() { return type_; }
+  inline void SetId(uint32_t id) { id_ = id; }
+  inline uint32_t GetId() { return id_; }
 
- private:
-  friend class DomNode;
-
+ protected:
   uint32_t id_;
-#ifdef HIPPY_EXPERIMENT_LAYER_OPTIMIZATION
-  std::shared_ptr<LayerOptimizedRenderManager> optimized_render_manager_;
-  std::shared_ptr<RenderManager> render_manager_;
-#else
-  std::shared_ptr<RenderManager> render_manager_;
-#endif
+ private:
+  DomManagerType type_;
   std::unordered_map<uint32_t, std::shared_ptr<BaseTimer>> timer_map_;
   std::shared_ptr<TaskRunner> task_runner_;
   std::shared_ptr<Worker> worker_;
@@ -156,5 +154,63 @@ class DomManager : public std::enable_shared_from_this<DomManager> {
   std::unordered_map<uint32_t, footstone::TimePoint> dom_end_time_point_;
 };
 
+class DomManagerImpl : public DomManager {
+ public:
+  DomManagerImpl() : DomManager(DomManagerType::kHippyValue) {}
+  ~DomManagerImpl() override = default;
+
+  void SetRenderManager(const std::weak_ptr<RenderManager>& render_manager) override;
+  std::weak_ptr<RenderManager> GetRenderManager() override {
+        return render_manager_;
+  }
+  std::shared_ptr<DomNode> GetNode(const std::weak_ptr<RootNode>& weak_root_node,
+                                   uint32_t id) override;
+
+  void CreateDomNodes(const std::weak_ptr<RootNode>& weak_root_node,
+                      std::vector<std::shared_ptr<DomInfo>>&& nodes, bool needSortByIndex) override;
+  void UpdateDomNodes(const std::weak_ptr<RootNode>& weak_root_node,
+                      std::vector<std::shared_ptr<DomInfo>>&& nodes) override;
+  void MoveDomNodes(const std::weak_ptr<RootNode>& weak_root_node,
+                    std::vector<std::shared_ptr<DomInfo>>&& nodes) override;
+  void DeleteDomNodes(const std::weak_ptr<RootNode>& weak_root_node,
+                      std::vector<std::shared_ptr<DomInfo>>&& nodes) override;
+  void UpdateAnimation(const std::weak_ptr<RootNode>& weak_root_node,
+                       std::vector<std::shared_ptr<DomNode>>&& nodes) override;
+  void EndBatch(const std::weak_ptr<RootNode>& root_node) override;
+  // 返回0代表失败，正常id从1开始
+  void AddEventListener(const std::weak_ptr<RootNode>& weak_root_node,
+                        uint32_t dom_id,
+                        const std::string& event_name,
+                        uint64_t listener_id,
+                        bool use_capture,
+                        const EventCallback& cb) override;
+  void RemoveEventListener(const std::weak_ptr<RootNode>& weak_root_node,
+                           uint32_t id,
+                           const std::string& name,
+                           uint64_t listener_id) override;
+  void CallFunction(const std::weak_ptr<RootNode>& weak_root_node,
+                    uint32_t id,
+                    const std::string& name,
+                    const DomArgument& param,
+                    uint32_t cb_id,
+                    const CallFunctionCallback& cb) override;
+  void SetRootSize(const std::weak_ptr<RootNode>& weak_root_node, float width, float height) override;
+  void DoLayout(const std::weak_ptr<RootNode>& weak_root_node) override;
+
+  byte_string GetSnapShot(const std::shared_ptr<RootNode>& root_node) override;
+  bool SetSnapShot(const std::shared_ptr<RootNode>& root_node, const byte_string& buffer) override;
+
+
+ private:
+  friend class DomNode;
+
+#ifdef HIPPY_EXPERIMENT_LAYER_OPTIMIZATION
+  std::shared_ptr<LayerOptimizedRenderManager> optimized_render_manager_;
+  std::shared_ptr<RenderManager> render_manager_;
+#else
+  std::shared_ptr<RenderManager> render_manager_;
+#endif
+
+};
 }  // namespace dom
 }  // namespace hippy

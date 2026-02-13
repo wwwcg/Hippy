@@ -20,6 +20,7 @@
 
 #pragma once
 
+#include <any>
 #include <atomic>
 #include <functional>
 #include <string>
@@ -187,14 +188,15 @@ class Animation {
 
   virtual double Calculate(uint64_t time);
 
-  void AddEventListener(const std::string& event, AnimationCb cb);
-  void RemoveEventListener(const std::string& event);
-  void Start();
+  virtual void AddEventListener(const std::string& event, AnimationCb cb);
+  virtual void RemoveEventListener(const std::string& event);
+  virtual void Start();
   void Run(uint64_t now, const AnimationOnRun& on_run);
-  void Destroy();
-  void Pause();
-  void Resume();
+  virtual void Destroy();
+  virtual void Pause();
+  virtual void Resume();
   void Repeat(uint64_t now);
+  virtual void Update(std::any param);
 
  protected:
   uint32_t id_;

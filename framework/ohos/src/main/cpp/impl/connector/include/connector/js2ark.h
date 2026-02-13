@@ -24,14 +24,20 @@
 
 #include "driver/napi/callback_info.h"
 #include "oh_napi/ark_ts.h"
+#include "driver/scope.h"
 
 namespace hippy {
 inline namespace framework {
 inline namespace bridge {
 
-void InitBridge(napi_env env);
-void CallHost(CallbackInfo& info);
+typedef std::function<bool(const std::shared_ptr<Scope> &scope, const string_view &module,
+                           const string_view &func, const string_view &cb_id,
+                           const std::string &buffer)> CallHostInterceptor;
 
-}
-}
-}
+void InitBridge(napi_env env);
+void CallHost(CallbackInfo &info);
+void SetCallHostInterceptor(CallHostInterceptor interceptor);
+
+} // namespace bridge
+} // namespace framework
+} // namespace hippy

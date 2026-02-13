@@ -50,6 +50,7 @@ using AnimationSetChild = hippy::AnimationSet::AnimationSetChild;
 using Ctx = hippy::napi::Ctx;
 using CtxValue = hippy::napi::CtxValue;
 using CallbackInfo = hippy::napi::CallbackInfo;
+using Animation = hippy::Animation;
 using CubicBezierAnimation = hippy::CubicBezierAnimation;
 using DomEvent = hippy::dom::DomEvent;
 using DomManager = hippy::dom::DomManager;
@@ -88,17 +89,7 @@ constexpr char kAnimationValueTypeDeg[] = "deg";
 constexpr char kAnimationValueTypeColor[] = "color";
 constexpr char kAnimationIdKey[] = "animationId";
 
-struct ParseAnimationResult {
-  CubicBezierAnimation::Mode mode;
-  uint64_t delay;
-  uint32_t animation_id;
-  double start_value;
-  double to_value;
-  CubicBezierAnimation::ValueType type;
-  uint64_t duration;
-  std::string func;
-  int32_t cnt;
-};
+static AnimationInterceptor s_animation_interceptor = nullptr;
 
 double DegreesToRadians(double degrees) {
   return degrees * M_PI / 180;
@@ -289,9 +280,27 @@ std::shared_ptr<ParseAnimationResult> ParseAnimation(const std::shared_ptr<Ctx>&
   return std::make_shared<ParseAnimationResult>(std::move(ret));
 }
 
-std::shared_ptr<ClassTemplate<CubicBezierAnimation>>
+std::string StringifyAnimation(const std::shared_ptr<Ctx>& context,
+                                                     size_t argument_count,
+                                                     const std::shared_ptr<CtxValue> arguments[],
+                                                     std::shared_ptr<CtxValue>& exception) {
+  if (argument_count != kAnimationUpdateArgc) {
+    exception = context->CreateException("animation argument count error");
+    return "";
+  }
+  string_view value_view;
+  bool status = context->GetValueJson(arguments[0], &value_view);
+  if (!status) {
+    exception = context->CreateException("animation argument error");
+    return "";
+  }
+  return StringViewUtils::ToStdString(
+      StringViewUtils::ConvertEncoding(value_view, string_view::Encoding::Utf8).utf8_value());
+}
+
+std::shared_ptr<ClassTemplate<Animation>>
 RegisterAnimation(const std::weak_ptr<Scope>& weak_scope) {
-  ClassTemplate<CubicBezierAnimation> class_template;
+  ClassTemplate<Animation> class_template;
   class_template.name = "Animation";
   class_template.constructor = [weak_scope](
       const std::shared_ptr<CtxValue>& receiver,
@@ -299,7 +308,7 @@ RegisterAnimation(const std::weak_ptr<Scope>& weak_scope) {
       const std::shared_ptr<CtxValue> arguments[],
       void* external,
       std::shared_ptr<CtxValue>& exception)
-      -> std::shared_ptr<CubicBezierAnimation> {
+      -> std::shared_ptr<Animation> {
     auto scope = weak_scope.lock();
     if (!scope) {
       return nullptr;
@@ -316,6 +325,13 @@ RegisterAnimation(const std::weak_ptr<Scope>& weak_scope) {
       exception = scope->GetContext()->CreateException("root_node null error");
       return nullptr;
     }
+    if (s_animation_interceptor) {
+      auto json_str = StringifyAnimation(scope->GetContext(), argument_count, arguments, exception);
+      if (exception) {
+        return nullptr;
+      }
+      return s_animation_interceptor(dom_manager, json_str, false);
+    }
     auto result = ParseAnimation(scope->GetContext(), argument_count, arguments, exception);
     if (exception) {
       return nullptr;
@@ -327,13 +343,13 @@ RegisterAnimation(const std::weak_ptr<Scope>& weak_scope) {
     auto animation_manager = root_node->GetAnimationManager();
     animation->SetAnimationManager(animation_manager);
     animation_manager->AddAnimation(animation);
-    return animation;
+    return std::static_pointer_cast<Animation>(animation);
   };
 
-  FunctionDefine<CubicBezierAnimation> id_func_def;
+  FunctionDefine<Animation> id_func_def;
   id_func_def.name = "getId";
   id_func_def.callback = [weak_scope](
-      CubicBezierAnimation* animation,
+      Animation* animation,
       size_t argument_count,
       const std::shared_ptr<CtxValue> arguments[],
       std::shared_ptr<CtxValue>&) -> std::shared_ptr<CtxValue> {
@@ -349,10 +365,10 @@ RegisterAnimation(const std::weak_ptr<Scope>& weak_scope) {
   };
   class_template.functions.emplace_back(std::move(id_func_def));
 
-  FunctionDefine<CubicBezierAnimation> start_func_def;
+  FunctionDefine<Animation> start_func_def;
   start_func_def.name = "start";
   start_func_def.callback = [weak_scope](
-      CubicBezierAnimation* animation,
+      Animation* animation,
       size_t argument_count,
       const std::shared_ptr<CtxValue> arguments[],
       std::shared_ptr<CtxValue>&) -> std::shared_ptr<CtxValue> {
@@ -378,10 +394,10 @@ RegisterAnimation(const std::weak_ptr<Scope>& weak_scope) {
   };
   class_template.functions.emplace_back(std::move(start_func_def));
 
-  FunctionDefine<CubicBezierAnimation> destroy_func_def;
+  FunctionDefine<Animation> destroy_func_def;
   destroy_func_def.name = "destroy";
   destroy_func_def.callback = [weak_scope](
-      CubicBezierAnimation* animation,
+      Animation* animation,
       size_t argument_count,
       const std::shared_ptr<CtxValue> arguments[],
       std::shared_ptr<CtxValue>&) -> std::shared_ptr<CtxValue> {
@@ -407,10 +423,10 @@ RegisterAnimation(const std::weak_ptr<Scope>& weak_scope) {
   };
   class_template.functions.emplace_back(std::move(destroy_func_def));
 
-  FunctionDefine<CubicBezierAnimation> pause_func_def;
+  FunctionDefine<Animation> pause_func_def;
   pause_func_def.name = "pause";
   pause_func_def.callback = [weak_scope](
-      CubicBezierAnimation* animation,
+      Animation* animation,
       size_t argument_count,
       const std::shared_ptr<CtxValue> arguments[],
       std::shared_ptr<CtxValue>&) -> std::shared_ptr<CtxValue> {
@@ -436,10 +452,10 @@ RegisterAnimation(const std::weak_ptr<Scope>& weak_scope) {
   };
   class_template.functions.emplace_back(std::move(pause_func_def));
 
-  FunctionDefine<CubicBezierAnimation> resume_func_def;
+  FunctionDefine<Animation> resume_func_def;
   resume_func_def.name = "resume";
   resume_func_def.callback = [weak_scope](
-      CubicBezierAnimation* animation,
+      Animation* animation,
       size_t argument_count,
       const std::shared_ptr<CtxValue> arguments[],
       std::shared_ptr<CtxValue>&) -> std::shared_ptr<CtxValue> {
@@ -465,10 +481,10 @@ RegisterAnimation(const std::weak_ptr<Scope>& weak_scope) {
   };
   class_template.functions.emplace_back(std::move(resume_func_def));
 
-  FunctionDefine<CubicBezierAnimation> update_func_def;
+  FunctionDefine<Animation> update_func_def;
   update_func_def.name = "updateAnimation";
   update_func_def.callback = [weak_scope](
-      CubicBezierAnimation* animation,
+      Animation* animation,
       size_t argument_count,
       const std::shared_ptr<CtxValue> arguments[],
       std::shared_ptr<CtxValue>& exception) -> std::shared_ptr<CtxValue> {
@@ -479,13 +495,20 @@ RegisterAnimation(const std::weak_ptr<Scope>& weak_scope) {
     if (!scope) {
       return nullptr;
     }
-    std::shared_ptr<Ctx> context = scope->GetContext();
-    auto result = ParseAnimation(context, argument_count, arguments, exception);
-    if (!result) {
+    if (auto cubic_bezier_animation = dynamic_cast<CubicBezierAnimation*>(animation)) {
+      std::shared_ptr<Ctx> context = scope->GetContext();
+      auto result = ParseAnimation(context, argument_count, arguments, exception);
+      if (!result) {
+        return nullptr;
+      }
+      cubic_bezier_animation->Update(result);
+    } else {
+      auto result = StringifyAnimation(scope->GetContext(), argument_count, arguments, exception);
+      if (!exception) {
+        animation->Update(result);
+      }
       return nullptr;
     }
-    animation->Update(result->mode, result->delay, result->start_value, result->to_value,
-                      result->type, result->duration, result->func, result->cnt);
     auto weak_dom_manager = scope->GetDomManager();
     auto dom_manager = weak_dom_manager.lock();
     if (!dom_manager) {
@@ -500,10 +523,10 @@ RegisterAnimation(const std::weak_ptr<Scope>& weak_scope) {
   };
   class_template.functions.emplace_back(std::move(update_func_def));
 
-  FunctionDefine<CubicBezierAnimation> add_event_listener_func_def;
+  FunctionDefine<Animation> add_event_listener_func_def;
   add_event_listener_func_def.name = "addEventListener";
   add_event_listener_func_def.callback = [weak_scope](
-      CubicBezierAnimation* animation,
+      Animation* animation,
       size_t argument_count,
       const std::shared_ptr<CtxValue> arguments[],
       std::shared_ptr<CtxValue>& exception) -> std::shared_ptr<CtxValue> {
@@ -562,10 +585,10 @@ RegisterAnimation(const std::weak_ptr<Scope>& weak_scope) {
   };
   class_template.functions.emplace_back(std::move(add_event_listener_func_def));
 
-  FunctionDefine<CubicBezierAnimation> remove_listener_func_def;
+  FunctionDefine<Animation> remove_listener_func_def;
   remove_listener_func_def.name = "removeEventListener";
   remove_listener_func_def.callback = [weak_scope](
-      CubicBezierAnimation* animation,
+      Animation* animation,
       size_t argument_count,
       const std::shared_ptr<CtxValue> arguments[],
       std::shared_ptr<CtxValue>& exception) -> std::shared_ptr<CtxValue> {
@@ -603,20 +626,20 @@ RegisterAnimation(const std::weak_ptr<Scope>& weak_scope) {
   };
   class_template.functions.emplace_back(std::move(remove_listener_func_def));
 
-  return std::make_shared<ClassTemplate<CubicBezierAnimation>>(std::move(class_template));
+  return std::make_shared<ClassTemplate<Animation>>(std::move(class_template));
 
 }
 
-std::shared_ptr<ClassTemplate<AnimationSet>>
+std::shared_ptr<ClassTemplate<Animation>>
 RegisterAnimationSet(const std::weak_ptr<Scope>& weak_scope) {
-  ClassTemplate<AnimationSet> def;
+  ClassTemplate<Animation> def;
   def.name = "AnimationSet";
   def.constructor = [weak_scope](
       const std::shared_ptr<CtxValue>& receiver,
       size_t argument_count,
       const std::shared_ptr<CtxValue> arguments[],
       void* external,
-      std::shared_ptr<CtxValue>& exception) -> std::shared_ptr<AnimationSet> {
+      std::shared_ptr<CtxValue>& exception) -> std::shared_ptr<Animation> {
     auto scope = weak_scope.lock();
     if (!scope) {
       return nullptr;
@@ -633,6 +656,14 @@ RegisterAnimationSet(const std::weak_ptr<Scope>& weak_scope) {
       exception = scope->GetContext()->CreateException("root_node null error");
       return nullptr;
     }
+    if (s_animation_interceptor) {
+      auto json_str = StringifyAnimation(scope->GetContext(), argument_count, arguments, exception);
+      if (exception) {
+        return nullptr;
+      }
+      return s_animation_interceptor(dom_manager, json_str, true);
+
+    }
     auto animation_manager = root_node->GetAnimationManager();
     if (!animation_manager) {
       exception = scope->GetContext()->CreateException("animation_manager null error");
@@ -645,13 +676,13 @@ RegisterAnimationSet(const std::weak_ptr<Scope>& weak_scope) {
     set->SetAnimationManager(root_node->GetAnimationManager());
     set->Init();
     animation_manager->AddAnimation(set);
-    return set;
+    return std::static_pointer_cast<Animation>(set);
   };
 
-  FunctionDefine<AnimationSet> id_func_def;
+  FunctionDefine<Animation> id_func_def;
   id_func_def.name = "getId";
   id_func_def.callback = [weak_scope](
-      AnimationSet* animation_set,
+      Animation* animation_set,
       size_t argument_count,
       const std::shared_ptr<CtxValue> arguments[],
       std::shared_ptr<CtxValue>&) -> std::shared_ptr<CtxValue> {
@@ -667,10 +698,10 @@ RegisterAnimationSet(const std::weak_ptr<Scope>& weak_scope) {
   };
   def.functions.emplace_back(std::move(id_func_def));
 
-  FunctionDefine<AnimationSet> start_func_def;
+  FunctionDefine<Animation> start_func_def;
   start_func_def.name = "start";
   start_func_def.callback = [weak_scope](
-      AnimationSet* animation_set,
+      Animation* animation_set,
       size_t argument_count,
       const std::shared_ptr<CtxValue> arguments[],
       std::shared_ptr<CtxValue>&) -> std::shared_ptr<CtxValue> {
@@ -696,10 +727,10 @@ RegisterAnimationSet(const std::weak_ptr<Scope>& weak_scope) {
   };
   def.functions.emplace_back(std::move(start_func_def));
 
-  FunctionDefine<AnimationSet> destroy_func_def;
+  FunctionDefine<Animation> destroy_func_def;
   destroy_func_def.name = "destroy";
   destroy_func_def.callback = [weak_scope](
-      AnimationSet* animation_set,
+      Animation* animation_set,
       size_t argument_count,
       const std::shared_ptr<CtxValue> arguments[],
       std::shared_ptr<CtxValue>&) -> std::shared_ptr<CtxValue> {
@@ -725,10 +756,10 @@ RegisterAnimationSet(const std::weak_ptr<Scope>& weak_scope) {
   };
   def.functions.emplace_back(std::move(destroy_func_def));
 
-  FunctionDefine<AnimationSet> pause_func_def;
+  FunctionDefine<Animation> pause_func_def;
   pause_func_def.name = "pause";
   pause_func_def.callback = [weak_scope](
-      AnimationSet* animation_set,
+      Animation* animation_set,
       size_t argument_count,
       const std::shared_ptr<CtxValue> arguments[],
       std::shared_ptr<CtxValue>&) -> std::shared_ptr<CtxValue> {
@@ -754,10 +785,10 @@ RegisterAnimationSet(const std::weak_ptr<Scope>& weak_scope) {
   };
   def.functions.emplace_back(std::move(pause_func_def));
 
-  FunctionDefine<AnimationSet> resume_func_def;
+  FunctionDefine<Animation> resume_func_def;
   resume_func_def.name = "resume";
   resume_func_def.callback = [weak_scope](
-      AnimationSet* animation_set,
+      Animation* animation_set,
       size_t argument_count,
       const std::shared_ptr<CtxValue> arguments[],
       std::shared_ptr<CtxValue>&) -> std::shared_ptr<CtxValue> {
@@ -783,10 +814,10 @@ RegisterAnimationSet(const std::weak_ptr<Scope>& weak_scope) {
   };
   def.functions.emplace_back(std::move(resume_func_def));
 
-  FunctionDefine<AnimationSet> add_event_listener_func_def;
+  FunctionDefine<Animation> add_event_listener_func_def;
   add_event_listener_func_def.name = "addEventListener";
   add_event_listener_func_def.callback = [weak_scope](
-      AnimationSet* animation_set,
+      Animation* animation_set,
       size_t argument_count,
       const std::shared_ptr<CtxValue> arguments[],
       std::shared_ptr<CtxValue>& exception) -> std::shared_ptr<CtxValue> {
@@ -845,10 +876,10 @@ RegisterAnimationSet(const std::weak_ptr<Scope>& weak_scope) {
   };
   def.functions.emplace_back(std::move(add_event_listener_func_def));
 
-  FunctionDefine<AnimationSet> remove_listener_func_def;
+  FunctionDefine<Animation> remove_listener_func_def;
   remove_listener_func_def.name = "removeEventListener";
   remove_listener_func_def.callback = [weak_scope](
-      AnimationSet* animation_set,
+      Animation* animation_set,
       size_t argument_count,
       const std::shared_ptr<CtxValue> arguments[],
       std::shared_ptr<CtxValue>& exception) -> std::shared_ptr<CtxValue> {
@@ -887,7 +918,11 @@ RegisterAnimationSet(const std::weak_ptr<Scope>& weak_scope) {
   };
   def.functions.emplace_back(std::move(remove_listener_func_def));
 
-  return std::make_shared<ClassTemplate<AnimationSet>>(std::move(def));
+  return std::make_shared<ClassTemplate<Animation>>(std::move(def));
+}
+
+void SetAnimationInterceptor(AnimationInterceptor interceptor) {
+  s_animation_interceptor = interceptor;
 }
 
 }
