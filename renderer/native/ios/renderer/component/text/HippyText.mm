@@ -171,19 +171,17 @@ static void collectNonTextDescendants(HippyText *view, NSMutableArray *nonTextDe
     return componentTag;
 }
 
-- (void)setBorderColor:(CGColorRef)color {
-    if (CGColorEqualToColor(_borderColor, color)) {
+- (void)setBorderColor:(UIColor *)color {
+    if (CGColorEqualToColor(_borderColor.CGColor, color.CGColor)) {
         return;
     }
-
-    CGColorRelease(_borderColor);
-    _borderColor = CGColorRetain(color);
+    _borderColor = color;
     [self refreshBorderColor];
 }
 
 - (void)refreshBorderColor {
     if (_borderColor) {
-        self.layer.borderColor = _borderColor;
+        self.layer.borderColor = _borderColor.CGColor;
     }
 }
 
@@ -199,10 +197,6 @@ static void collectNonTextDescendants(HippyText *view, NSMutableArray *nonTextDe
     } else if (_textStorage.length) {
         [self setNeedsDisplay];
     }
-}
-
-- (void)dealloc {
-    CGColorRelease(_borderColor);
 }
 
 #pragma mark - Accessibility

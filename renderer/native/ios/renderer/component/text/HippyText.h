@@ -32,7 +32,7 @@
 @property (nonatomic, assign) UIEdgeInsets contentInset;
 @property (nonatomic, strong) NSTextStorage *textStorage;
 @property (nonatomic, assign) CGRect textFrame;
-@property (nonatomic, assign) CGColorRef borderColor;
+@property (nonatomic, strong) UIColor *borderColor;
 @property (nonatomic, strong) UIColor *textColor;
 
 @property (nonatomic, strong) NSString *backgroundImageUrl;
