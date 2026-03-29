@@ -22,6 +22,7 @@
 
 #include "driver/base/js_convert_utils.h"
 
+#include "dom/dom_manager.h"
 #include "footstone/logging.h"
 #include "footstone/string_view.h"
 #include "footstone/string_view_utils.h"
@@ -186,7 +187,18 @@ std::shared_ptr<HippyValue> ToDomValue(const std::shared_ptr<Ctx>& ctx, const st
 
 std::shared_ptr<DomArgument> ToDomArgument(
     const std::shared_ptr<Ctx>& ctx,
-    const std::shared_ptr<CtxValue>& value) {
+    const std::shared_ptr<CtxValue>& value,
+    const DomManager::DomManagerType type) {
+  if (type == DomManager::DomManagerType::kJson) {
+    std::string json_str;
+    string_view value_view;
+    bool status = ctx->GetValueJson(value, &value_view);
+    if (status) {
+      json_str = StringViewUtils::ToStdString(
+          StringViewUtils::ConvertEncoding(value_view, string_view::Encoding::Utf8).utf8_value());
+    }
+    return std::make_shared<DomArgument>(json_str);
+  }
 #ifdef JS_V8
   auto v8_ctx = std::static_pointer_cast<hippy::V8Ctx>(ctx);
   auto isolate = v8_ctx->isolate_;

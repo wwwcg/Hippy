@@ -31,10 +31,13 @@ namespace hippy {
 inline namespace driver {
 inline namespace module {
 
-std::shared_ptr<hippy::ClassTemplate<CubicBezierAnimation>> RegisterAnimation(const std::weak_ptr<Scope>& weak_scope);
+typedef std::function<std::shared_ptr<Animation>(std::shared_ptr<DomManager>, std::string& param, bool is_set)> AnimationInterceptor;
 
-std::shared_ptr<hippy::ClassTemplate<AnimationSet>>RegisterAnimationSet(const std::weak_ptr<Scope>& weak_scope);
+std::shared_ptr<hippy::ClassTemplate<Animation>> RegisterAnimation(const std::weak_ptr<Scope>& weak_scope);
 
+std::shared_ptr<hippy::ClassTemplate<Animation>> RegisterAnimationSet(const std::weak_ptr<Scope>& weak_scope);
+
+void SetAnimationInterceptor(AnimationInterceptor interceptor);
 }
 }
 }

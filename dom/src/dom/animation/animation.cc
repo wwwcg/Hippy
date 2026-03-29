@@ -534,5 +534,9 @@ void Animation::Repeat(uint64_t now) {
   }
 }
 
+void Animation::Update(std::any param) {
+  // do nothing
+}
+
 }
 }

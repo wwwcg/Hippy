@@ -22,6 +22,7 @@
 
 #include "driver/modules/ui_manager_module.h"
 
+#include <cstdint>
 #include <set>
 #include <tuple>
 
@@ -69,15 +70,20 @@ void UIManagerModule::CallUIFunction(CallbackInfo& info, void* data) {
     name = name_value->ToStringChecked();
   }
 
-  std::unordered_map<std::string, std::shared_ptr<HippyValue>> param;
-  DomArgument param_value = *(hippy::ToDomArgument(context, info[2]));
+  auto dom_manager = scope->GetDomManager().lock();
+  if (!dom_manager) {
+    return;
+  }
+  auto type = dom_manager->GetType();
+  DomArgument param_value = *(hippy::ToDomArgument(context, info[2], type));
+  uint32_t callback_id = 0;
   hippy::CallFunctionCallback cb = nullptr;
   bool flag = context->IsFunction(info[3]);
   if (flag) {
     auto function = info[3];
     std::weak_ptr<Scope> weak_scope = scope;
     std::weak_ptr<CtxValue> weak_function = function;
-    auto callback_id = scope->AddCallUIFunctionCallback(function);
+    callback_id = scope->AddCallUIFunctionCallback(function);
     cb = [weak_scope, weak_function, callback_id](const std::shared_ptr<DomArgument> &argument) -> void {
       auto scope = weak_scope.lock();
       if (!scope) {
@@ -95,11 +101,24 @@ void UIManagerModule::CallUIFunction(CallbackInfo& info, void* data) {
         }
 
         auto context = scope->GetContext();
-        HippyValue value;
-        bool flag = argument->ToObject(value);
+        HippyValue hippy_value;
+        std::string json_value;
+        std::shared_ptr<CtxValue> param;
+        bool flag = false;
+        if (argument->ToObject(hippy_value)) {
+          param = hippy::CreateCtxValue(
+              context, std::make_shared<HippyValue>(std::move(hippy_value)));
+          flag = true;
+        } else if (argument->ToJson(json_value)) {
+          if (!json_value.empty()) {
+            auto engine = scope->GetEngine().lock();
+            if (engine) {
+              param = engine->GetVM()->ParseJson(context, string_view(json_value.data()));
+            }
+          }
+          flag = true;
+        }
         if (flag) {
-          auto param = hippy::CreateCtxValue(
-              context, std::make_shared<HippyValue>(std::move(value)));
           if (param) {
             const std::shared_ptr<CtxValue> argus[] = {param};
             context->CallFunction(function, context->GetGlobalObject(), 1, argus);
@@ -117,11 +136,7 @@ void UIManagerModule::CallUIFunction(CallbackInfo& info, void* data) {
       runner->PostTask(std::move(cb));
     };
   }
-  auto dom_manager = scope->GetDomManager().lock();
-  if (!dom_manager) {
-    return;
-  }
-  dom_manager->CallFunction(scope->GetRootNode(), static_cast<uint32_t>(id), name, param_value, cb);
+  dom_manager->CallFunction(scope->GetRootNode(), static_cast<uint32_t>(id), name, param_value, callback_id, cb);
 }
 
 std::shared_ptr<CtxValue> UIManagerModule::BindFunction(std::shared_ptr<Scope> scope,

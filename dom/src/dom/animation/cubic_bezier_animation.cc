@@ -169,6 +169,12 @@ double CubicBezierAnimation::Calculate(uint64_t now) {
   return current_value_;
 }
 
+void CubicBezierAnimation::Update(std::any param) {
+  auto result = std::any_cast<std::shared_ptr<ParseAnimationResult>>(param);
+  Update(result->mode, result->delay, result->start_value, result->to_value,
+         result->type, result->duration, result->func, result->cnt);
+}
+
 void CubicBezierAnimation::Update(Mode mode,
                                   uint64_t delay,
                                   double start_value,

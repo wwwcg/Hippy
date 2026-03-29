@@ -22,7 +22,7 @@
 
 #pragma once
 
-#include "driver/base/js_value_wrapper.h"
+#include "dom/dom_manager.h"
 #include "driver/napi/js_ctx.h"
 #include "driver/napi/js_ctx_value.h"
 #include "footstone/hippy_value.h"
@@ -35,7 +35,8 @@ inline namespace base {
 std::shared_ptr<footstone::HippyValue> ToDomValue(const std::shared_ptr<hippy::Ctx>& ctx,
                                                   const std::shared_ptr<hippy::CtxValue>& value);
 std::shared_ptr<hippy::DomArgument> ToDomArgument(const std::shared_ptr<hippy::Ctx>& ctx,
-                                                  const std::shared_ptr<CtxValue>& value);
+                                                  const std::shared_ptr<CtxValue>& value,
+                                                  const DomManager::DomManagerType type);
 std::shared_ptr<hippy::CtxValue> CreateCtxValue(const std::shared_ptr<hippy::Ctx>& ctx,
                                                 const std::shared_ptr<footstone::HippyValue>& value);
 

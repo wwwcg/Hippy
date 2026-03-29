@@ -142,6 +142,7 @@ ArkTsTurboModule::ArkTsTurboModule(const std::string& name,
                                  const std::shared_ptr<Ctx>& ctx,
                                  napi_env env)
   : name(name), impl(impl), env(env) {
+  InitMethodSet();
   auto getter = std::make_unique<FunctionWrapper>([](CallbackInfo& info, void* data) {
     auto scope_wrapper = reinterpret_cast<ScopeWrapper*>(std::any_cast<void*>(info.GetSlot()));
     auto scope = scope_wrapper->scope.lock();
